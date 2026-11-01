@@ -30,10 +30,16 @@
 
   // Suono
   let ac = null, muted = ls.get('mute', false);
+  // Su iPhone l'interruttore "silenzioso" azzera il Web Audio: si passa alla categoria "riproduzione" e si tiene
+  // acceso un breve file muto in loop, cosi' i suoni dei giochi si sentono anche a telefono silenzioso.
+  let keepAlive = null;
   const audioUnlock = () => {
     try {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
       ac = ac || new (window.AudioContext || window.webkitAudioContext)();
       if (ac.state === 'suspended') ac.resume();
+      if (!keepAlive) { keepAlive = new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='); keepAlive.loop = true; keepAlive.volume = 0.01; keepAlive.setAttribute('playsinline', ''); }
+      if (keepAlive.paused) { const pr = keepAlive.play(); if (pr && pr.catch) pr.catch(() => {}); }
     } catch (e) {}
   };
   const beep = (f = 440, d = 0.06, type = 'square', v = 0.04) => {
@@ -41,7 +47,7 @@
     try {
       const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime;
       o.type = type; o.frequency.value = f;
-      gn.gain.setValueAtTime(v, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      gn.gain.setValueAtTime(Math.min(0.6, v * 1.7), t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
       o.connect(gn); gn.connect(ac.destination); o.start(t); o.stop(t + d);
     } catch (e) {}
   };
