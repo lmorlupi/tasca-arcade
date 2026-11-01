@@ -14,7 +14,7 @@
   };
   // Foto di Margot (ritagli del solo gatto) e texture del pelo ricavata dalle foto.
   const PHOTO = {};
-  const NAMES = { face: 'art/margot-face.jpg', q3: 'art/margot-3q.jpg', sleep: 'art/margot-sleep.jpg', fur: 'art/fur.jpg', bed: 'art/margot-bed.jpg', blanket: 'art/margot-blanket.jpg', avatar: 'art/margot-avatar.jpg' };
+  const NAMES = { face: 'art/margot-face.jpg', q3: 'art/margot-3q.jpg', sleep: 'art/margot-sleep.jpg', fur: 'art/fur.jpg', bed: 'art/margot-bed.jpg', sun: 'art/margot-sun.jpg', blanket: 'art/margot-blanket.jpg', avatar: 'art/margot-avatar.jpg' };
   Object.keys(NAMES).forEach(k => {
     const im = new Image(); im.src = NAMES[k]; PHOTO[k] = im;
     im.onload = () => { if (k === 'fur') { for (const kk in sideCache) delete sideCache[kk]; for (const kk in portraitCache) delete portraitCache[kk]; } };

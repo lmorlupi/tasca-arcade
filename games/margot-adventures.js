@@ -115,6 +115,7 @@ registerGame({
       { n: 'q3', t: ['Sempre attenta,', 'curiosa di tutto.'] },
       { n: 'sleep', t: ['Affettuosa,', 'anche quando dormiva.'] },
       { n: 'bed', t: ['Pancia all\'aria,', 'regina del letto.'] },
+      { n: 'sun', t: ['Una dormitina al sole,', 'senza pensieri.'] },
       { n: 'blanket', t: ['Sotto la coperta,', 'a ronfare in pace.'] },
     ];
     const unlocked = () => api.store.get('album', []);
