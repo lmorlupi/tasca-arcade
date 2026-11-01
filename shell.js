@@ -464,7 +464,7 @@
       if (!reg) { if (manual) setStatus('PRIMO SALVATAGGIO IN CORSO: RIPROVA TRA UN ATTIMO'); return; }
       await reg.update();
       await new Promise(r => setTimeout(r, 1800));
-      if (reg.installing || reg.waiting) { if (manual) setStatus('SCARICO LA NUOVA VERSIONE...'); }
+      if (reg.installing || reg.waiting) { if (manual || mode === 'menu') setStatus('NUOVA VERSIONE: AGGIORNO...', true); }
       else if (manual) { await showVersion(); setStatus('GIÀ AGGIORNATO · ' + (verEl() ? verEl().textContent : '')); }
     } catch (e) { if (manual) setStatus('SERVER NON RAGGIUNGIBILE: USO LA VERSIONE SALVATA'); }
   };
@@ -587,8 +587,9 @@
   addEventListener('blur', () => { for (const k in held) delete held[k]; hide(); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hide();
-    else if (mode === 'game') keepAwake();
+    else { if (mode === 'game') keepAwake(); if (Date.now() - lastCheck > 30000) checkUpdate(false); }
   });
+  addEventListener('pageshow', e => { if (e.persisted && Date.now() - lastCheck > 30000) checkUpdate(false); });
 
   document.querySelectorAll('[data-k="select"],[data-k="start"]').forEach(b => {
     const k = b.dataset.k;
@@ -877,7 +878,8 @@
       buildLogo();
       cv.classList.add('off');
       renderMenu();
-      checkUpdate(false);
+      // Auto-aggiornamento: controlla all'apertura (appena il service worker e' pronto) e ogni volta che si torna nell'app.
+      setTimeout(() => checkUpdate(false), 1500); setTimeout(() => checkUpdate(false), 6000);
       bootTimer = setTimeout(endBoot, 2600);
       requestAnimationFrame(frame);
     },

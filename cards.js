@@ -18,9 +18,11 @@
       g.fillStyle = '#c0334d'; g.beginPath(); g.moveTo(-r * 0.8, -r * 0.8); g.lineTo(r * 0.8, -r * 0.8); g.quadraticCurveTo(r * 0.8, r * 0.2, 0, r * 0.35); g.quadraticCurveTo(-r * 0.8, r * 0.2, -r * 0.8, -r * 0.8); g.fill();
       g.fillRect(-r * 0.09, r * 0.3, r * 0.18, r * 0.4); g.beginPath(); g.ellipse(0, r * 0.82, r * 0.5, r * 0.14, 0, 0, 7); g.fill();
       g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(-r * 0.55, -r * 0.65, r * 0.18, r * 0.5); g.strokeStyle = '#7a1428'; g.lineWidth = r * 0.1; g.beginPath(); g.moveTo(-r * 0.8, -r * 0.8); g.lineTo(r * 0.8, -r * 0.8); g.stroke();
-    } else if (s === 2) {                            // spada
-      g.rotate(-0.35); g.fillStyle = '#9fb4cc'; g.beginPath(); g.moveTo(0, -r); g.lineTo(r * 0.2, r * 0.25); g.lineTo(-r * 0.2, r * 0.25); g.closePath(); g.fill(); g.fillStyle = '#e8eef6'; g.fillRect(-r * 0.04, -r * 0.9, r * 0.08, r * 1.1);
-      g.fillStyle = '#2a6fb3'; g.fillRect(-r * 0.55, r * 0.25, r * 1.1, r * 0.16); g.fillStyle = '#5a3a1a'; g.fillRect(-r * 0.09, r * 0.4, r * 0.18, r * 0.45); g.fillStyle = '#c98a12'; g.beginPath(); g.arc(0, r * 0.92, r * 0.13, 0, 7); g.fill();
+    } else if (s === 2) {                            // spada: lama curva alla piacentina
+      g.rotate(-0.35); const bl = g.createLinearGradient(-r * 0.2, 0, r * 0.3, 0); bl.addColorStop(0, '#dfe8f2'); bl.addColorStop(1, '#8aa0bc');
+      g.fillStyle = bl; g.beginPath(); g.moveTo(-r * 0.12, r * 0.3); g.quadraticCurveTo(-r * 0.55, -r * 0.35, r * 0.05, -r * 1.0); g.quadraticCurveTo(r * 0.3, -r * 0.4, r * 0.14, r * 0.3); g.closePath(); g.fill();
+      g.strokeStyle = '#5a6a80'; g.lineWidth = r * 0.05; g.stroke();
+      g.fillStyle = '#2a6fb3'; g.beginPath(); g.roundRect(-r * 0.5, r * 0.28, r * 1.0, r * 0.16, r * 0.08); g.fill(); g.fillStyle = '#5a3a1a'; g.fillRect(-r * 0.08, r * 0.42, r * 0.16, r * 0.4); g.fillStyle = '#c98a12'; g.beginPath(); g.arc(0, r * 0.9, r * 0.14, 0, 7); g.fill();
     } else {                                         // bastone
       g.rotate(0.45); const gr = g.createLinearGradient(-r * 0.2, 0, r * 0.2, 0); gr.addColorStop(0, '#8a5a2a'); gr.addColorStop(0.5, '#c28a4a'); gr.addColorStop(1, '#6a4018');
       g.fillStyle = gr; g.beginPath(); g.moveTo(-r * 0.16, r); g.lineTo(-r * 0.3, -r * 0.55); g.quadraticCurveTo(0, -r * 1.15, r * 0.3, -r * 0.55); g.lineTo(r * 0.16, r); g.closePath(); g.fill();
@@ -50,14 +52,22 @@
         const rr = c.n === 1 ? w * 0.34 : c.n <= 3 ? w * 0.2 : w * 0.15;
         pos.forEach(([px, py]) => suitSymbol(g, c.s, cx + px * w * 0.28, cy + py * w * 0.46, rr));
       } else {
-        g.fillStyle = 'rgba(0,0,0,.05)'; g.beginPath(); g.roundRect(w * 0.16, h * 0.2, w * 0.68, h * 0.6, r); g.fill();
-        // figura stilizzata: fante, cavallo, re
-        g.save(); g.translate(cx, cy - h * 0.02);
-        g.fillStyle = col;
-        if (c.n === 10) { g.beginPath(); g.moveTo(-w * 0.26, -h * 0.2); g.lineTo(-w * 0.2, -h * 0.3); g.lineTo(-w * 0.1, -h * 0.22); g.lineTo(0, -h * 0.32); g.lineTo(w * 0.1, -h * 0.22); g.lineTo(w * 0.2, -h * 0.3); g.lineTo(w * 0.26, -h * 0.2); g.closePath(); g.fill(); g.fillStyle = '#f0c39a'; g.beginPath(); g.arc(0, -h * 0.08, w * 0.15, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.moveTo(-w * 0.3, h * 0.28); g.quadraticCurveTo(0, h * 0.0, w * 0.3, h * 0.28); g.closePath(); g.fill(); }
-        else if (c.n === 9) { g.beginPath(); g.moveTo(-w * 0.28, h * 0.25); g.quadraticCurveTo(-w * 0.28, -h * 0.05, -w * 0.05, -h * 0.12); g.lineTo(w * 0.04, -h * 0.28); g.lineTo(w * 0.15, -h * 0.12); g.quadraticCurveTo(w * 0.3, -h * 0.05, w * 0.28, h * 0.25); g.closePath(); g.fill(); g.fillStyle = '#fbf5e4'; g.beginPath(); g.arc(w * 0.08, -h * 0.1, w * 0.025, 0, 7); g.fill(); }
-        else { g.fillStyle = '#f0c39a'; g.beginPath(); g.arc(0, -h * 0.12, w * 0.14, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.moveTo(-w * 0.18, -h * 0.17); g.quadraticCurveTo(0, -h * 0.34, w * 0.2, -h * 0.15); g.lineTo(w * 0.08, -h * 0.1); g.closePath(); g.fill(); g.beginPath(); g.moveTo(-w * 0.26, h * 0.28); g.quadraticCurveTo(0, h * 0.0, w * 0.26, h * 0.28); g.closePath(); g.fill(); }
-        g.restore(); suitSymbol(g, c.s, cx, cy + h * 0.27, w * 0.13);
+        // figure alla piacentina: doppia (la meta' alta e la sua copia capovolta)
+        const col2 = col, half = (flip) => {
+          g.save(); g.translate(cx, cy); if (flip) g.rotate(Math.PI);
+          g.save(); g.beginPath(); g.rect(-w * 0.4, -h * 0.4, w * 0.8, h * 0.4); g.clip();
+          g.fillStyle = 'rgba(200,170,110,.18)'; g.fillRect(-w * 0.4, -h * 0.4, w * 0.8, h * 0.4);
+          if (c.n === 10) { g.fillStyle = col2; g.beginPath(); g.moveTo(-w * 0.2, -h * 0.2); g.lineTo(-w * 0.17, -h * 0.34); g.lineTo(-w * 0.08, -h * 0.26); g.lineTo(0, -h * 0.38); g.lineTo(w * 0.08, -h * 0.26); g.lineTo(w * 0.17, -h * 0.34); g.lineTo(w * 0.2, -h * 0.2); g.closePath(); g.fill(); g.fillStyle = '#f0c39a'; g.beginPath(); g.arc(0, -h * 0.12, w * 0.13, 0, 7); g.fill(); g.fillStyle = '#6a4018'; g.beginPath(); g.moveTo(-w * 0.1, -h * 0.07); g.quadraticCurveTo(0, h * 0.01, w * 0.1, -h * 0.07); g.quadraticCurveTo(0, -h * 0.04, -w * 0.1, -h * 0.07); g.fill(); g.fillStyle = col2; g.beginPath(); g.moveTo(-w * 0.34, 0); g.quadraticCurveTo(0, -h * 0.1, w * 0.34, 0); g.lineTo(w * 0.34, h * 0.02); g.lineTo(-w * 0.34, h * 0.02); g.closePath(); g.fill(); }
+          else if (c.n === 9) { g.fillStyle = col2; g.beginPath(); g.moveTo(-w * 0.34, 0); g.quadraticCurveTo(-w * 0.3, -h * 0.14, -w * 0.08, -h * 0.17); g.lineTo(-w * 0.02, -h * 0.34); g.lineTo(w * 0.1, -h * 0.2); g.quadraticCurveTo(w * 0.32, -h * 0.1, w * 0.34, 0); g.closePath(); g.fill(); g.fillStyle = '#fbf5e4'; g.beginPath(); g.arc(w * 0.06, -h * 0.13, w * 0.025, 0, 7); g.fill(); g.fillStyle = '#f0c39a'; g.beginPath(); g.arc(-w * 0.18, -h * 0.17, w * 0.07, 0, 7); g.fill(); g.fillStyle = '#5a3a1a'; g.fillRect(-w * 0.22, -h * 0.26, w * 0.09, h * 0.04); }
+          else { g.fillStyle = '#f0c39a'; g.beginPath(); g.arc(0, -h * 0.13, w * 0.13, 0, 7); g.fill(); g.fillStyle = col2; g.beginPath(); g.moveTo(-w * 0.17, -h * 0.17); g.quadraticCurveTo(0, -h * 0.36, w * 0.19, -h * 0.17); g.lineTo(w * 0.34, -h * 0.28); g.lineTo(w * 0.12, -h * 0.13); g.closePath(); g.fill(); g.beginPath(); g.moveTo(-w * 0.3, 0); g.quadraticCurveTo(0, -h * 0.1, w * 0.3, 0); g.lineTo(w * 0.3, h * 0.02); g.lineTo(-w * 0.3, h * 0.02); g.closePath(); g.fill(); }
+          g.restore(); g.restore();
+        };
+        half(false); half(true);
+        g.strokeStyle = 'rgba(120,90,40,.55)'; g.lineWidth = w * 0.02; g.beginPath(); g.moveTo(cx - w * 0.4, cy); g.lineTo(cx + w * 0.4, cy); g.stroke();
+        suitSymbol(g, c.s, cx, cy, w * 0.11);
+      }
+      if (c.n === 1) {      // asso: cartiglio con il nome del seme, come nei mazzi regionali
+        g.fillStyle = col; g.beginPath(); g.roundRect(w * 0.22, h * 0.8, w * 0.56, h * 0.1, h * 0.03); g.fill(); g.fillStyle = '#fbf5e4'; g.font = 'bold ' + (w * 0.11) + 'px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(SUITS[c.s], w / 2, h * 0.85);
       }
     }
     g.restore();
