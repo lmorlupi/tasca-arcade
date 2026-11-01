@@ -785,7 +785,7 @@ registerGame({
       if (caught > 0) text('GRILLI ' + caught, 8, 30, 11, 'left', '#2a2236');
       if (coccole > 0) text('COCCOLE ' + coccole, 8, caught > 0 ? 44 : 30, 11, 'left', '#c0334d');
       if (msgT > 0) { g.fillStyle = 'rgba(42,34,54,.7)'; g.fillRect(W / 2 - 120, 36, 240, 26); text(msg, W / 2, 41, 14, 'center', '#ffe9b8'); }
-      if (state === 'win') banner(['BRAVO MARGOT!', 'QUADRO ' + (level + 1)]);
+      if (state === 'win') banner(['BRAVA MARGOT!', 'QUADRO ' + (level + 1)]);
       if (state === 'photo' || state === 'album') {
         uiOn();
         const idx = state === 'photo' ? photoShow : unlocked()[Math.min(albumIdx, unlocked().length - 1)], ph = PHOTOS[idx] || PHOTOS[0];
