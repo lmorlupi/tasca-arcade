@@ -21,6 +21,7 @@ registerGame({
     let hi = api.store.get('hi', 0);
     let lastN = [0, -1], mult = 0, bonusN = 0, laneLit = [false, false, false], saucer = { x: 180, y: 192, t: 0, ball: false }, slingL = 0, slingR = 0, extraLit = false;
     const MULTS = [1, 2, 3, 5, 10];
+    const drops = Array.from({ length: 4 }, (_, i) => ({ x: 300, y: 196 + i * 18, down: false })); let dropReset = 0, starL = 0, starR = 0, extraFlash = 0;
     let state = 'title', score = 0, balls = 3, ball = null, charge = 0, charging = false, time = 0, msg = '', msgT = 0, bonusLit = [false, false, false], flashT = 0, chain = 0;
     const flip = { L: { a: 0.5, w: 0, down: false }, R: { a: Math.PI - 0.5, w: 0, down: false } };
     const REST = 0.5, ACT = -0.45, FSPEED = 20, FLEN = 62, FR = 7;
@@ -41,7 +42,7 @@ registerGame({
       else if (tiltG >= 0.6) { flash('ATTENTO AL TILT!'); }
     };
     const spawn = () => { ball = { x: 332, y: 602, vx: 0, vy: 0, lane: true }; charge = 0; charging = false; tilted = false; tiltG = 0; };
-    const newGame = () => { score = 0; balls = 3; mult = 0; bonusN = 0; laneLit = [false, false, false]; extraLit = false; state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
+    const newGame = () => { score = 0; balls = 3; mult = 0; bonusN = 0; laneLit = [false, false, false]; extraLit = false; drops.forEach(d => d.down = false); state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
 
     const colCircleOut = (cx, cy, cr, e, kick) => {          // la pallina deve restare fuori dal cerchio
@@ -67,6 +68,7 @@ registerGame({
     const flipperTip = (k) => { const p = PIV[k], a = flip[k].a; return [p[0] + Math.cos(a) * FLEN, p[1] + Math.sin(a) * FLEN]; };
 
     const laneX = [150, 180, 210];
+    const posts = [[40, 428], [96, 500], [320, 428], [264, 500]];
     const step = h => {
       if (saucer.ball) { saucer.t -= h; if (saucer.t <= 0) { saucer.ball = false; ball.vx = (Math.random() * 2 - 1) * 160; ball.vy = 230; saucer.cool = 0.5; api.beep(520, 0.08, 'square', 0.05); } else { ball.x = saucer.x; ball.y = saucer.y; return; } }
       ball.vy += GRAV * h; ball.x += ball.vx * h; ball.y += ball.vy * h;
@@ -88,8 +90,12 @@ registerGame({
         if (ball.x > WALL_R - R) { ball.x = WALL_R - R; ball.vx = -Math.abs(ball.vx) * 0.5; }
       }
       for (const b of bumpers) if (colCircleOut(b.x, b.y, b.r, 0.5, 340)) { b.l = 0.25; bonusN = Math.min(10, bonusN + (chain % 3 === 2 ? 1 : 0)); score += 100 + chain * 10; chain = Math.min(chain + 1, 20); api.haptic(8); api.beep(520 + (b.x % 5) * 60, 0.05, 'square', 0.05); }
-      for (const t of targets) if (colCircleOut(t.x, t.y, 8, 0.3, 80)) { if (!t.lit) { t.lit = true; score += 250; api.beep(900, 0.07, 'triangle', 0.05); if (targets.every(q => q.lit)) { score += 1000; if (balls < 5) { balls++; flash('PALLINA EXTRA!'); } else flash('BONUS +1000!'); targets.forEach(q => q.lit = false); api.haptic(30); [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), i * 90)); } } }
+      for (const t of targets) if (colCircleOut(t.x, t.y, 8, 0.3, 80)) { if (!t.lit) { t.lit = true; score += 250; api.beep(900, 0.07, 'triangle', 0.05); if (targets.every(q => q.lit)) { score += 1000; if (balls < 5) { balls++; flash('PALLINA EXTRA!'); } else flash('BONUS +1000!'); targets.forEach(q => q.lit = false); extraFlash = 2; api.haptic(30); [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), i * 90)); } } }
+      for (const dt of drops) if (!dt.down && colCircleOut(dt.x, dt.y, 7, 0.3, 40)) { dt.down = true; score += 200; api.haptic(10); api.beep(760, 0.05, 'square', 0.05); if (drops.every(q => q.down)) { score += 1000; dropReset = 1.2; flash('BANCO COMPLETO +1000'); if (mult < MULTS.length - 1 && drops.length) { bonusN = Math.min(10, bonusN + 2); } } }
+      if (Math.hypot(ball.x - 58, ball.y - 484) < 9 && starL <= 0) { starL = 2; score += 200; api.beep(990, 0.05, 'triangle', 0.05); }
+      if (Math.hypot(ball.x - 302, ball.y - 484) < 9 && starR <= 0) { starR = 2; score += 200; api.beep(990, 0.05, 'triangle', 0.05); }
       for (const [ax, ay, bx, by] of guides) colSegment(ax, ay, bx, by, 3, 0.35);
+      for (const [px, py] of posts) colCircleOut(px, py, 4, 0.5, 0);
       // rimbalzatori a molla sopra le palette
       if (colSegment(46, 432, 96, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingL = 0.2; score += 10; api.haptic(8); api.beep(380, 0.04, 'square', 0.05); }
       if (colSegment(314, 432, 264, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingR = 0.2; score += 10; api.haptic(8); api.beep(380, 0.04, 'square', 0.05); }
@@ -97,7 +103,7 @@ registerGame({
       if (ball.y > 92 && ball.y < 116) laneX.forEach((lx, i) => { if (Math.abs(ball.x - lx) < 9 && !laneLit[i]) { laneLit[i] = true; score += 50; api.beep(700 + i * 120, 0.05, 'triangle', 0.05); if (laneLit.every(Boolean)) { laneLit = [false, false, false]; if (mult < MULTS.length - 1) { mult++; flash('MOLTIPLICATORE x' + MULTS[mult]); [660, 880].forEach((f, k) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), k * 90)); } else { score += 500; flash('ZONA BONUS +500'); } } } });
       // piattello: trattiene la pallina un attimo, poi la sputa via
       if (saucer.cool > 0) saucer.cool -= h;
-      if (!saucer.ball && !(saucer.cool > 0) && Math.hypot(ball.x - saucer.x, ball.y - saucer.y) < 10) { saucer.ball = true; saucer.t = 0.8; ball.vx = 0; ball.vy = 0; score += 500; bonusN = Math.min(10, bonusN + 1); api.haptic(20); api.beep(300, 0.2, 'sine', 0.05); }
+      if (!saucer.ball && !(saucer.cool > 0) && Math.hypot(ball.x - saucer.x, ball.y - saucer.y) < 10) { saucer.ball = true; saucer.t = 0.8; ball.vx = 0; ball.vy = 0; score += 500; bonusN = Math.min(10, bonusN + 1); api.haptic(20); api.beep(300, 0.2, 'sine', 0.05); if (mult >= 2) { score += 2500; flash('SPECIAL +2500!'); [660, 880, 1046].forEach((f, k) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), k * 80)); } }
       if (saucer.ball) { ball.x = saucer.x; ball.y = saucer.y; ball.vx = 0; ball.vy = 0; }
       for (const k of ['L', 'R']) {
         const p = PIV[k], tp = flipperTip(k), w = flip[k].w;
@@ -109,7 +115,7 @@ registerGame({
 
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt); flashT = Math.max(0, flashT - dt);
-      bumpers.forEach(b => b.l = Math.max(0, b.l - dt)); slingL = Math.max(0, slingL - dt); slingR = Math.max(0, slingR - dt);
+      bumpers.forEach(b => b.l = Math.max(0, b.l - dt)); starL = Math.max(0, starL - dt); starR = Math.max(0, starR - dt); extraFlash = Math.max(0, extraFlash - dt); if (dropReset > 0) { dropReset -= dt; if (dropReset <= 0) drops.forEach(d => d.down = false); } slingL = Math.max(0, slingL - dt); slingR = Math.max(0, slingR - dt);
       if (state !== 'play') return;
       tiltG = Math.max(0, tiltG - 0.3 * dt); nudgeCool = Math.max(0, nudgeCool - dt); shake.t = Math.max(0, shake.t - dt);
       if (held.up && !prevUp) nudge(0, -1); prevUp = !!held.up;
@@ -182,6 +188,9 @@ registerGame({
       const bg = g.createLinearGradient(0, 0, 0, VHd); bg.addColorStop(0, '#3b1a5c'); bg.addColorStop(0.55, '#26104a'); bg.addColorStop(1, '#1a0b36'); g.fillStyle = bg; g.fillRect(0, 0, VWd, VHd);
       g.save(); g.beginPath(); g.moveTo(WALL_L, VHd); g.lineTo(WALL_L, CY); g.arc(CX, CY, AR, Math.PI, 0); g.lineTo(WALL_R, VHd); g.closePath(); g.clip();
       const bl = g.createRadialGradient(CX, 300, 20, CX, 300, 300); bl.addColorStop(0, 'rgba(255,120,200,.22)'); bl.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = bl; g.fillRect(0, 0, VWd, VHd);
+      // raggiera dipinta e coppa neon
+      for (let i = 0; i < 20; i++) { const a0 = i / 20 * Math.PI, a1 = (i + 0.5) / 20 * Math.PI; g.fillStyle = i % 2 ? 'rgba(255,120,160,.07)' : 'rgba(255,200,90,.06)'; g.beginPath(); g.moveTo(CX, 640); g.arc(CX, 640, 520, Math.PI + a0, Math.PI + a1); g.closePath(); g.fill(); }
+      g.strokeStyle = 'rgba(255,230,120,.55)'; g.lineWidth = 2.4; g.lineJoin = 'round'; g.beginPath(); g.moveTo(150, 378); g.lineTo(210, 378); g.lineTo(180, 412); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(180, 412); g.lineTo(180, 430); g.moveTo(166, 430); g.lineTo(194, 430); g.stroke(); g.beginPath(); g.arc(196, 386, 3, 0, 7); g.stroke(); g.beginPath(); g.moveTo(196, 384); g.lineTo(206, 366); g.stroke();
       // insegna BAR
       g.fillStyle = 'rgba(255,230,120,' + (0.55 + 0.25 * Math.sin(time * 3)) + ')'; g.font = 'bold 34px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('BAR', CX, 470);
       g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 1; for (let y = 0; y < VHd; y += 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(VWd, y); g.stroke(); }
@@ -222,11 +231,23 @@ registerGame({
         g.strokeStyle = '#fff4e0'; g.lineWidth = 3; g.beginPath(); if (!i) { g.moveTo(40, 428); g.lineTo(96, 500); } else { g.moveTo(320, 428); g.lineTo(264, 500); } g.stroke();
         g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); if (!i) { g.moveTo(44, 440); g.lineTo(44, 488); g.lineTo(74, 488); } else { g.moveTo(316, 440); g.lineTo(316, 488); g.lineTo(286, 488); } g.closePath(); g.fill();
       });
+      // bersagli a cadere
+      drops.forEach(d => { if (d.down) { g.fillStyle = '#2a1a4a'; g.fillRect(d.x - 7, d.y + 3, 14, 3); } else { const dg = g.createLinearGradient(d.x - 7, 0, d.x + 7, 0); dg.addColorStop(0, '#ffd27a'); dg.addColorStop(1, '#e8801c'); g.fillStyle = dg; g.beginPath(); g.roundRect(d.x - 7, d.y - 7, 14, 14, 3); g.fill(); g.strokeStyle = '#fff4e0'; g.lineWidth = 1.5; g.stroke(); } });
+      // stelle sulle corsie laterali
+      [[58, 484, starL], [302, 484, starR]].forEach(([x, y, l]) => { const on = l > 0; glowDot(x, y, 6, on ? '#ffe66a' : '#6b4fa0', on ? 0.9 : 0.2); g.fillStyle = on ? '#fff3b0' : '#5a4a8a'; g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 3 : 7, a = k / 10 * Math.PI * 2 - Math.PI / 2; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill(); });
+      // luci SPECIAL e PALLINA EXTRA
+      [['SPECIAL', 90, 316, mult >= 2], ['EXTRA', 270, 316, extraFlash > 0 && ((time * 6) | 0) % 2 === 0]].forEach(([t, x, y, on]) => { g.fillStyle = on ? '#ffe66a' : '#33265a'; g.beginPath(); g.roundRect(x - 24, y - 7, 48, 14, 7); g.fill(); g.strokeStyle = '#e9d9ff'; g.lineWidth = 1.4; g.stroke(); text(t, x, y - 4, 8, 'center', on ? '#3a1a00' : '#8a76b8'); });
+      // paletti di gomma
+      posts.forEach(([x, y]) => { g.fillStyle = '#e8455f'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.strokeStyle = '#fff4e0'; g.lineWidth = 1.6; g.stroke(); });
       // molla
       const py = ball && ball.lane ? ball.y + R + charge * 14 : 614;
       g.strokeStyle = '#c9c0d8'; g.lineWidth = 2.2; g.beginPath(); for (let i = 0; i < 8; i++) { const y = py + i * (VHd - 12 - py) / 8; g.lineTo(332 + (i % 2 ? 5 : -5), y); } g.stroke();
       g.fillStyle = '#e8455f'; g.fillRect(324, py - 2, 16, 4); g.fillStyle = '#b8123a'; g.beginPath(); g.arc(332, VHd - 4, 6, 0, 7); g.fill();
       drawFlipper('L'); drawFlipper('R');
+      // grembiule con le istruzioni (la pallina scompare qui sotto)
+      const ag = g.createLinearGradient(0, 604, 0, VHd); ag.addColorStop(0, '#5a1a3a'); ag.addColorStop(1, '#2a0a24'); g.fillStyle = ag; g.fillRect(12, 606, 306, VHd - 606); g.fillStyle = '#e9d9ff'; g.fillRect(12, 606, 306, 2);
+      g.fillStyle = '#fff4e0'; g.fillRect(24, 614, 100, 20); g.fillRect(206, 614, 100, 20); text('PALETTE: TOCCA', 74, 619, 8, 'center', '#3a1a30'); text('SINISTRA / DESTRA', 74, 627, 7, 'center', '#6a3a50'); text('COLPO ANCA: SWIPE', 256, 619, 8, 'center', '#3a1a30'); text('ATTENTO AL TILT', 256, 627, 7, 'center', '#6a3a50');
+      g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(165, 624, 7, 0, 7); g.fill(); g.strokeStyle = '#fff4e0'; g.lineWidth = 1.5; g.stroke(); text('€', 165, 619, 9, 'center', '#6a3a00');
       // pallina
       if (ball) {
         g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(ball.x + 3, ball.y + 5, R, R * 0.7, 0, 0, 7); g.fill();
