@@ -27,6 +27,14 @@ registerGame({
     // dopo ogni tappa si sceglie a sinistra o a destra la tappa successiva
     const CHOICES = [[1, 2], [2, 3], [3, 4], [4, 0], [0, 1]];
 
+    // Radio di bordo: tre brani originali a 8 bit (melodia + basso)
+    const RADIO = [
+      { name: 'SOLE', bpm: 132, mel: [0, 4, 7, 12, 7, 4, 7, 9, 5, 9, 12, 17, 12, 9, 12, 14, 7, 11, 14, 19, 14, 11, 14, 16, 4, 7, 12, 16, 12, 7, 4, 7], bass: [0, 0, 5, 5, 7, 7, 4, 4] },
+      { name: 'MARE', bpm: 116, mel: [9, 12, 16, 12, 9, 12, 16, 19, 7, 11, 14, 11, 7, 11, 14, 17, 5, 9, 12, 9, 5, 9, 12, 16, 4, 8, 11, 8, 4, 8, 11, 14], bass: [-3, -3, -5, -5, -7, -7, -8, -8] },
+      { name: 'NOTTE', bpm: 142, mel: [2, -1, 9, 2, -1, 9, 7, -1, 5, -1, 12, 5, -1, 12, 9, -1, 7, -1, 14, 7, -1, 14, 12, -1, 9, 12, 14, 12, 9, 7, 5, 2], bass: [2, 2, 2, 2, 5, 5, 7, 7] },
+    ];
+    let radio = api.store.get('radio', 0), musicT = 0, musicStep = 0;
+    const hz = semi => 261.63 * Math.pow(2, semi / 12);
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, time = 60, position = 0, speed = 0, playerX = 0, steer = 0, lap = 0, stageIdx = 0, tm = 0, flashMsg = '', flashT = 0;
     let vx = 0, turbo = 0, turboCd = 0, steerT = null, brakeBtn = null, turboBtn = null, smoke = [], skid = 0, braking = false, curMod = 0, choice = 0, stageCount = 1, segments = [], cars = [], trackLength = 0, touch = null, countdown = 0, shake = 0, skyOff = 0, engT = 0, overtakes = 0, lastStage = 0, passedGuard = 0;
@@ -101,6 +109,10 @@ registerGame({
     // ---- aggiornamento ----
     const update = dt => {
       tm += dt; flashT = Math.max(0, flashT - dt); shake = Math.max(0, shake - dt);
+      if (state === 'title' || (state === 'play' && countdown <= 0 && time > 0)) {
+        const r = RADIO[radio], stepT = 60 / r.bpm / 2; musicT += dt;
+        while (musicT >= stepT) { musicT -= stepT; const m = r.mel[musicStep % r.mel.length]; if (m >= 0) api.beep(hz(m), stepT * 0.9, 'square', 0.014); if (musicStep % 4 === 0) api.beep(hz(r.bass[((musicStep / 4) | 0) % r.bass.length] - 12), stepT * 3, 'triangle', 0.03); musicStep++; }
+      }
       if (state !== 'play') return;
       if (!segments.length) buildTrack();
       if (countdown > 0) { const c0 = Math.ceil(countdown); countdown -= dt; if (Math.ceil(countdown) !== c0) api.beep(countdown > 0 ? 440 : 880, 0.15, 'square', 0.04); return; }
@@ -170,6 +182,8 @@ registerGame({
     const BTN = () => [{ k: 'brake', x: 44, y: H - 112, r: 32, label: 'FRENO', c: '#e5413b' }, { k: 'turbo', x: W - 44, y: H - 112, r: 32, label: 'TURBO', c: '#ffb020' }];
     const onPointer = e => {
       if (e.type === 'down') {
+        if (state === 'title') { const by = H * 0.14 + 136; for (let i = 0; i < 3; i++) { const bx = W / 2 - 120 + i * 82; if (e.x > bx && e.x < bx + 76 && e.y > by && e.y < by + 30) { radio = i; musicStep = 0; musicT = 0; api.store.set('radio', i); return; } } }
+        if (state === 'play' && e.y < TOPH && e.x > 150 && e.x < 260) { radio = (radio + 1) % 3; musicStep = 0; musicT = 0; api.store.set('radio', radio); flash('RADIO ' + RADIO[radio].name); return; }
         if (state === 'title' || state === 'over') { newGame(); return; }
         if (state === 'pause') { state = 'play'; return; }
         const hit = BTN().find(b => Math.hypot(e.x - b.x, e.y - b.y) < b.r + 12);
@@ -472,6 +486,8 @@ registerGame({
         g.fillStyle = '#2fa05a'; g.fillRect(W / 2 - 112, H * 0.14 + 52, 74, 5); g.fillStyle = '#f4f4f4'; g.fillRect(W / 2 - 38, H * 0.14 + 52, 76, 5); g.fillStyle = '#d8392f'; g.fillRect(W / 2 + 38, H * 0.14 + 52, 74, 5);
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, H * 0.14 + 82, 16, 'center', '#ffe14a');
         text('RECORD ' + hi, W / 2, H * 0.14 + 110, 13, 'center');
+        for (let i = 0; i < 3; i++) { const bx = W / 2 - 120 + i * 82, by = H * 0.14 + 136, on = radio === i; g.fillStyle = on ? '#ffe14a' : 'rgba(10,12,40,.7)'; g.beginPath(); g.roundRect(bx, by, 76, 30, 8); g.fill(); g.strokeStyle = '#7a7ac8'; g.lineWidth = 1.5; g.stroke(); text('RADIO', bx + 38, by + 4, 8, 'center', on ? '#141234' : '#7fd0ff'); text(RADIO[i].name, bx + 38, by + 15, 11, 'center', on ? '#141234' : '#ffffff'); }
+        text('SCEGLI LA RADIO · TOCCA FUORI PER PARTIRE', W / 2, H * 0.14 + 174, 9, 'center', '#bff3ff');
       }
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['TEMPO SCADUTO', 'PUNTI ' + score, 'SORPASSI ' + overtakes, 'TOCCA']);
