@@ -18,18 +18,20 @@ registerGame({
     const S = Math.min(CW / VWd, CH / VHd), OX = (CW - VWd * S) / 2, OY = (CH - VHd * S) / 2;
     const R = 7, GRAV = 640, CX = 180, CY = 220, AR = 162, LANE_X = 322, WALL_L = 18, WALL_R = 342;
     let hi = api.store.get('hi', 0);
+    let lastN = [0, -1], mult = 0, bonusN = 0, laneLit = [false, false, false], saucer = { x: 180, y: 192, t: 0, ball: false }, slingL = 0, slingR = 0, extraLit = false;
+    const MULTS = [1, 2, 3, 5, 10];
     let state = 'title', score = 0, balls = 3, ball = null, charge = 0, charging = false, time = 0, msg = '', msgT = 0, bonusLit = [false, false, false], flashT = 0, chain = 0;
     const flip = { L: { a: 0.5, w: 0, down: false }, R: { a: Math.PI - 0.5, w: 0, down: false } };
     const REST = 0.5, ACT = -0.45, FSPEED = 20, FLEN = 62, FR = 7;
     const PIV = { L: [118, 566], R: [242, 566] };
     const bumpers = [{ x: 108, y: 255, r: 18, l: 0 }, { x: 232, y: 255, r: 18, l: 0 }, { x: 170, y: 330, r: 18, l: 0 }];
-    const targets = [{ x: 62, y: 170, lit: false }, { x: 180, y: 120, lit: false }, { x: 288, y: 170, lit: false }];
+    const targets = [{ x: 62, y: 170, lit: false }, { x: 180, y: 148, lit: false }, { x: 288, y: 170, lit: false }];
     const guides = [[18, 505, 118, 566], [322, 505, 242, 566]];
     const lights = Array.from({ length: 14 }, (_, i) => ({ a: Math.PI * (1.05 + 0.9 * i / 13) }));
     const pointers = new Map();
     const flash = t => { msg = t; msgT = 1.3; };
     const spawn = () => { ball = { x: 332, y: 602, vx: 0, vy: 0, lane: true }; charge = 0; charging = false; };
-    const newGame = () => { score = 0; balls = 3; state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
+    const newGame = () => { score = 0; balls = 3; mult = 0; bonusN = 0; laneLit = [false, false, false]; extraLit = false; state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
 
     const colCircleOut = (cx, cy, cr, e, kick) => {          // la pallina deve restare fuori dal cerchio
@@ -46,7 +48,7 @@ registerGame({
       let t = ((ball.x - ax) * abx + (ball.y - ay) * aby) / l2; t = Math.max(0, Math.min(1, t));
       const px = ax + abx * t, py = ay + aby * t, dx = ball.x - px, dy = ball.y - py, d = Math.hypot(dx, dy), m = rad + R;
       if (d >= m || d === 0) return false;
-      const nx = dx / d, ny = dy / d; ball.x = px + nx * m; ball.y = py + ny * m;
+      const nx = dx / d, ny = dy / d; ball.x = px + nx * m; ball.y = py + ny * m; lastN = [nx, ny];
       const sx = (wx || 0) * t, sy = (wy || 0) * t;
       const rvx = ball.vx - sx, rvy = ball.vy - sy, vn = rvx * nx + rvy * ny;
       if (vn < 0) { ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; }
@@ -54,7 +56,9 @@ registerGame({
     };
     const flipperTip = (k) => { const p = PIV[k], a = flip[k].a; return [p[0] + Math.cos(a) * FLEN, p[1] + Math.sin(a) * FLEN]; };
 
+    const laneX = [150, 180, 210];
     const step = h => {
+      if (saucer.ball) { saucer.t -= h; if (saucer.t <= 0) { saucer.ball = false; ball.vx = (Math.random() * 2 - 1) * 160; ball.vy = 230; saucer.cool = 0.5; api.beep(520, 0.08, 'square', 0.05); } else { ball.x = saucer.x; ball.y = saucer.y; return; } }
       ball.vy += GRAV * h; ball.x += ball.vx * h; ball.y += ball.vy * h;
       const sp = Math.hypot(ball.vx, ball.vy); if (sp > 1100) { ball.vx *= 1100 / sp; ball.vy *= 1100 / sp; }
       if (ball.lane) {
@@ -73,9 +77,18 @@ registerGame({
         if (ball.x < WALL_L + R) { ball.x = WALL_L + R; ball.vx = Math.abs(ball.vx) * 0.5; }
         if (ball.x > WALL_R - R) { ball.x = WALL_R - R; ball.vx = -Math.abs(ball.vx) * 0.5; }
       }
-      for (const b of bumpers) if (colCircleOut(b.x, b.y, b.r, 0.5, 340)) { b.l = 0.25; score += 100 + chain * 10; chain = Math.min(chain + 1, 20); api.haptic(8); api.beep(520 + (b.x % 5) * 60, 0.05, 'square', 0.05); }
-      for (const t of targets) if (colCircleOut(t.x, t.y, 8, 0.3, 80)) { if (!t.lit) { t.lit = true; score += 250; api.beep(900, 0.07, 'triangle', 0.05); if (targets.every(q => q.lit)) { score += 1000; flash('BONUS +1000!'); targets.forEach(q => q.lit = false); api.haptic(30); [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), i * 90)); } } }
+      for (const b of bumpers) if (colCircleOut(b.x, b.y, b.r, 0.5, 340)) { b.l = 0.25; bonusN = Math.min(10, bonusN + (chain % 3 === 2 ? 1 : 0)); score += 100 + chain * 10; chain = Math.min(chain + 1, 20); api.haptic(8); api.beep(520 + (b.x % 5) * 60, 0.05, 'square', 0.05); }
+      for (const t of targets) if (colCircleOut(t.x, t.y, 8, 0.3, 80)) { if (!t.lit) { t.lit = true; score += 250; api.beep(900, 0.07, 'triangle', 0.05); if (targets.every(q => q.lit)) { score += 1000; if (balls < 5) { balls++; flash('PALLINA EXTRA!'); } else flash('BONUS +1000!'); targets.forEach(q => q.lit = false); api.haptic(30); [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), i * 90)); } } }
       for (const [ax, ay, bx, by] of guides) colSegment(ax, ay, bx, by, 3, 0.35);
+      // rimbalzatori a molla sopra le palette
+      if (colSegment(46, 432, 96, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingL = 0.2; score += 10; api.haptic(8); api.beep(380, 0.04, 'square', 0.05); }
+      if (colSegment(314, 432, 264, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingR = 0.2; score += 10; api.haptic(8); api.beep(380, 0.04, 'square', 0.05); }
+      // corsie in alto: accendi A, B, C per salire di moltiplicatore
+      if (ball.y > 92 && ball.y < 116) laneX.forEach((lx, i) => { if (Math.abs(ball.x - lx) < 9 && !laneLit[i]) { laneLit[i] = true; score += 50; api.beep(700 + i * 120, 0.05, 'triangle', 0.05); if (laneLit.every(Boolean)) { laneLit = [false, false, false]; if (mult < MULTS.length - 1) { mult++; flash('MOLTIPLICATORE x' + MULTS[mult]); [660, 880].forEach((f, k) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), k * 90)); } else { score += 500; flash('ZONA BONUS +500'); } } } });
+      // piattello: trattiene la pallina un attimo, poi la sputa via
+      if (saucer.cool > 0) saucer.cool -= h;
+      if (!saucer.ball && !(saucer.cool > 0) && Math.hypot(ball.x - saucer.x, ball.y - saucer.y) < 10) { saucer.ball = true; saucer.t = 0.8; ball.vx = 0; ball.vy = 0; score += 500; bonusN = Math.min(10, bonusN + 1); api.haptic(20); api.beep(300, 0.2, 'sine', 0.05); }
+      if (saucer.ball) { ball.x = saucer.x; ball.y = saucer.y; ball.vx = 0; ball.vy = 0; }
       for (const k of ['L', 'R']) {
         const p = PIV[k], tp = flipperTip(k), w = flip[k].w;
         // velocita' della punta (perpendicolare al segmento): w * lunghezza
@@ -86,7 +99,7 @@ registerGame({
 
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt); flashT = Math.max(0, flashT - dt);
-      bumpers.forEach(b => b.l = Math.max(0, b.l - dt));
+      bumpers.forEach(b => b.l = Math.max(0, b.l - dt)); slingL = Math.max(0, slingL - dt); slingR = Math.max(0, slingR - dt);
       if (state !== 'play') return;
       const wantL = held.left || held.b || [...pointers.values()].includes('L'), wantR = held.right || held.a || [...pointers.values()].includes('R');
       if (ball.lane && ball.y > 590) { if (wantR || charging) { charging = true; charge = Math.min(1, charge + dt * 1.1); } }
@@ -99,8 +112,9 @@ registerGame({
       }
       const n = 8; for (let i = 0; i < n; i++) step(dt / n);
       if (ball.y > 668) {
-        balls--; chain = 0; api.haptic(40); api.beep(140, 0.35, 'sawtooth', 0.06);
-        if (balls <= 0) endGame(); else { spawn(); flash('PALLINA ' + (4 - balls)); }
+        const bonus = bonusN * 1000 * MULTS[mult]; score += bonus; const had = bonusN;
+        balls--; chain = 0; bonusN = 0; api.haptic(40); api.beep(140, 0.35, 'sawtooth', 0.06);
+        if (balls <= 0) endGame(); else { spawn(); flash(had ? 'BONUS ' + bonus : 'PALLINA ' + (4 - balls)); }
       }
     };
     const launch = () => {
@@ -163,10 +177,33 @@ registerGame({
         g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(b.x - 5, b.y - 7, 5, 2.4, -0.6, 0, 7); g.fill();
       }
       for (const t of targets) { glowDot(t.x, t.y, 8, t.lit ? '#6fffa0' : '#5a4a8a', t.lit ? 0.8 : 0.3); g.fillStyle = t.lit ? '#6fffa0' : '#6a5aa0'; g.beginPath(); g.arc(t.x, t.y, 8, 0, 7); g.fill(); g.strokeStyle = '#fff4e0'; g.lineWidth = 2; g.stroke(); }
+      // corsie in alto con lucine A B C
+      laneX.forEach((lx, i) => {
+        g.strokeStyle = '#e9d9ff'; g.lineWidth = 3; g.beginPath(); g.moveTo(lx - 15, 86); g.lineTo(lx - 15, 118); g.stroke(); g.beginPath(); g.moveTo(lx + 15, 86); g.lineTo(lx + 15, 118); g.stroke();
+        const on = laneLit[i]; glowDot(lx, 104, 6, on ? '#ffe66a' : '#5a4a8a', on ? 0.9 : 0.25); g.fillStyle = on ? '#fff3b0' : '#4a3a7a'; g.beginPath(); g.arc(lx, 104, 6, 0, 7); g.fill();
+        text('ABC'[i], lx, 98, 9, 'center', on ? '#3a1a00' : '#a894d6');
+      });
+      // piattello
+      glowDot(saucer.x, saucer.y, 9, saucer.ball ? '#ffe66a' : '#ff9a3a', saucer.ball ? 0.9 : 0.35);
+      const sgd = g.createRadialGradient(saucer.x, saucer.y, 2, saucer.x, saucer.y, 12); sgd.addColorStop(0, '#05020c'); sgd.addColorStop(0.7, '#1a0b30'); sgd.addColorStop(1, '#8a6cc8'); g.fillStyle = sgd; g.beginPath(); g.arc(saucer.x, saucer.y, 12, 0, 7); g.fill(); g.strokeStyle = '#e9d9ff'; g.lineWidth = 2; g.stroke();
+      text('500', saucer.x, saucer.y + 15, 8, 'center', '#c9b6e8');
+      // scala del bonus (10 lucine) e moltiplicatori
+      for (let i = 0; i < 10; i++) { const on = i < bonusN, ly = 392 - i * 13; glowDot(40, ly, 4, on ? '#ffb03a' : '#4a3a7a', on ? 0.8 : 0.15); g.fillStyle = on ? '#ffd27a' : '#3a2a62'; g.beginPath(); g.arc(40, ly, 4.2, 0, 7); g.fill(); if (i % 3 === 2) text(String(i + 1), 52, ly - 4, 8, 'left', '#8a76b8'); }
+      text('BONUS', 40, 408, 8, 'center', '#c9b6e8');
+      ['2X', '3X', '5X', '10X'].forEach((t, i) => { const on = mult > i, lx = 143 + i * 25; glowDot(lx, 528, 8, on ? '#6fffa0' : '#5a4a8a', on ? 0.85 : 0.18); g.fillStyle = on ? '#6fffa0' : '#33265a'; g.beginPath(); g.arc(lx, 528, 8.5, 0, 7); g.fill(); g.strokeStyle = '#e9d9ff'; g.lineWidth = 1.4; g.stroke(); text(t, lx, 524, 8, 'center', on ? '#06301a' : '#8a76b8'); });
+      // frecce sulle corsie laterali
+      [[34, 470, 1], [326, 470, -1]].forEach(([ax, ay, d], i) => { const on = ((time * 3 + i) | 0) % 2; g.fillStyle = on ? '#ffe66a' : '#6b4fa0'; g.beginPath(); g.moveTo(ax, ay + 12); g.lineTo(ax + d * 7, ay); g.lineTo(ax + d * 14, ay + 12); g.closePath(); g.fill(); });
+      // rimbalzatori a molla
+      [[46, 432, 96, 500, slingL], [298, 500, 248, 432, slingR]].forEach(([ax, ay, bx, by, l], i) => {
+        const side = i ? 1 : -1; const tip = i ? [314, 432, 264, 500] : null;
+        g.fillStyle = l > 0 ? '#ffe66a' : '#c8185a'; g.beginPath(); if (!i) { g.moveTo(40, 428); g.lineTo(96, 500); g.lineTo(40, 500); } else { g.moveTo(320, 428); g.lineTo(264, 500); g.lineTo(320, 500); } g.closePath(); g.fill();
+        g.strokeStyle = '#fff4e0'; g.lineWidth = 3; g.beginPath(); if (!i) { g.moveTo(40, 428); g.lineTo(96, 500); } else { g.moveTo(320, 428); g.lineTo(264, 500); } g.stroke();
+        g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); if (!i) { g.moveTo(44, 440); g.lineTo(44, 488); g.lineTo(74, 488); } else { g.moveTo(316, 440); g.lineTo(316, 488); g.lineTo(286, 488); } g.closePath(); g.fill();
+      });
       // molla
       const py = ball && ball.lane ? ball.y + R + charge * 14 : 614;
       g.strokeStyle = '#c9c0d8'; g.lineWidth = 2.2; g.beginPath(); for (let i = 0; i < 8; i++) { const y = py + i * (VHd - 12 - py) / 8; g.lineTo(332 + (i % 2 ? 5 : -5), y); } g.stroke();
-      g.fillStyle = '#e8455f'; g.fillRect(324, py - 2, 16, 4);
+      g.fillStyle = '#e8455f'; g.fillRect(324, py - 2, 16, 4); g.fillStyle = '#b8123a'; g.beginPath(); g.arc(332, VHd - 4, 6, 0, 7); g.fill();
       drawFlipper('L'); drawFlipper('R');
       // pallina
       if (ball) {
@@ -174,9 +211,18 @@ registerGame({
         const gb = g.createRadialGradient(ball.x - 2.5, ball.y - 3, 0.5, ball.x, ball.y, R + 1); gb.addColorStop(0, '#ffffff'); gb.addColorStop(0.5, '#c9d2e8'); gb.addColorStop(1, '#5b6580');
         g.fillStyle = gb; g.beginPath(); g.arc(ball.x, ball.y, R, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(ball.x - 2.2, ball.y - 2.6, 1.6, 0, 7); g.fill();
       }
-      // HUD
-      g.fillStyle = 'rgba(10,4,24,.7)'; g.fillRect(0, 0, VWd, 26);
-      text('PUNTI ' + String(score).padStart(6, '0'), 8, 6, 13); for (let i = 0; i < balls; i++) { g.fillStyle = '#dfe6ff'; g.beginPath(); g.arc(VWd - 14 - i * 16, 13, 5, 0, 7); g.fill(); }
+      // vetro del tavolo: display ambra e insegna
+      const bgl = g.createLinearGradient(0, 0, 0, 56); bgl.addColorStop(0, '#1a0a2e'); bgl.addColorStop(1, '#2d1250'); g.fillStyle = bgl; g.fillRect(0, 0, VWd, 56);
+      g.fillStyle = '#0b0414'; g.fillRect(6, 6, 118, 22); g.fillRect(236, 6, 118, 22);
+      g.strokeStyle = '#6b4fa0'; g.lineWidth = 1; g.strokeRect(6, 6, 118, 22); g.strokeRect(236, 6, 118, 22);
+      g.save(); g.shadowColor = '#ffb03a'; g.shadowBlur = 8; text(String(score).padStart(7, '0'), 14, 9, 17, 'left', '#ffb03a'); text(String(bonusN * 1000 * MULTS[mult]).padStart(7, '0'), 244, 9, 17, 'left', '#ff7a3a'); g.restore();
+      text('PUNTI', 8, 30, 8, 'left', '#a894d6'); text('BONUS', 238, 30, 8, 'left', '#a894d6');
+      text('FLIPPER DEL BAR', VWd / 2, 8, 9, 'center', '#ffe66a'); text('PALLINE', VWd / 2, 36, 8, 'center', '#a894d6'); for (let i = 0; i < balls; i++) { g.fillStyle = '#dfe6ff'; g.beginPath(); g.arc(VWd / 2 - (balls - 1) * 7 + i * 14, 26, 4, 0, 7); g.fill(); }
+      text('x' + MULTS[mult], 336, 38, 12, 'center', '#6fffa0');
+      // fiancate di legno e metallo
+      const rail = (x, w) => { const rg = g.createLinearGradient(x, 0, x + w, 0); rg.addColorStop(0, '#6b4a2a'); rg.addColorStop(0.5, '#a8774a'); rg.addColorStop(1, '#5a3a1e'); g.fillStyle = rg; g.fillRect(x, 56, w, VHd - 56); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x + 1, 56, 1.5, VHd - 56); };
+      rail(0, 12); rail(VWd - 12, 12);
+      for (let y = 90; y < VHd; y += 120) { g.fillStyle = '#c9c0d8'; g.beginPath(); g.arc(6, y, 2.2, 0, 7); g.arc(VWd - 6, y, 2.2, 0, 7); g.fill(); }
       if (msgT > 0) text(msg, VWd / 2, 60, 18, 'center', '#ffe66a');
       if (state === 'play' && ball && ball.lane && ball.y > 590) text(charging ? 'LASCIA PER LANCIARE' : 'TIENI PREMUTO LA MOLLA (A)', VWd / 2, 596, 10, 'center', '#ffe66a');
       if (state === 'title') {
