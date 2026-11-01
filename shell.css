@@ -31,7 +31,8 @@ button { touch-action: none; cursor: pointer; font: inherit; }
 .bezel { position: relative; background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 5px 2px 5px; }
 .bezel::before { content: ''; position: absolute; left: 9px; top: 2px; width: 4px; height: 4px; border-radius: 50%; background: #e5413b; }
 .screen { position: relative; background: var(--screen-bg); border: 1px solid #1a1a22; overflow: hidden; }
-canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; touch-action: none; }
+canvas { display: block; width: 100%; height: auto; touch-action: none; }
+canvas.px { image-rendering: pixelated; }
 canvas.off { display: none; }
 
 /* Comandi. Tutte le misure sono in em: la fascia dei tasti si rimpicciolisce con la larghezza dello schermo
@@ -207,3 +208,14 @@ canvas.off { display: none; }
   box-shadow: inset 0 -4px 0 rgba(0,0,0,.22), inset 0 2px 0 rgba(255,255,255,.3); touch-action: manipulation;
 }
 .menu .sw button.sel { border-color: #eef1ff; transform: scale(1.08); }
+/* Vetro dello schermo: un leggero riflesso e un'ombra interna danno profondità */
+.screen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(155deg, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 30%);
+  box-shadow: inset 0 0 16px rgba(0,0,0,.4);
+}
+.menu .seg { display: flex; gap: 10px; margin: 6px 2px 8px; }
+.menu .seg button { flex: 1; padding: 12px 6px; border-radius: 10px; border: 2px solid #2a3566; background: #0f1527; color: var(--ink); font-size: 12px; font-weight: 800; letter-spacing: .06em; touch-action: manipulation; }
+.menu .seg button small { font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.menu .seg button.sel { border-color: #eef1ff; background: #1b2444; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }

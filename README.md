@@ -39,10 +39,17 @@ Un gioco chiama `registerGame({ ... })` con questi campi:
 | `blurb`, `inputs`, `color`, `author`, `license`, `bg` | no | testo, etichette dei controlli, colore, autore, licenza, sfondo ai lati |
 | `flexH` | no | l'altezza del canvas si adatta allo schermo (leggi `cv.height`) |
 | `tilt` | no | `true` se usa l'inclinazione: l'app chiede il permesso dei sensori |
+| `pixel` | no | `true` per la grafica a pixel: l'app la ingrandisce solo a multipli interi, con bordi netti |
 
 `create(api)` restituisce un oggetto con: `update(dt)`, `render()`, e facoltativi `onPress(k)`, `onRelease(k)`,
 `onPointer(e)`, `onHide()`, `destroy()`. L'oggetto `api` contiene `cv`, `g`, `held`, `tilt`, `haptic()`, `beep()`,
 `store`, `goMenu()`. Tutto è descritto, con un esempio funzionante, in `games/_template.js`.
+
+### Alta definizione
+
+Il gioco disegna sempre in coordinate «logiche» (`api.cv.width` x `api.cv.height`): la console sceglie da sola quanti pixel
+veri usare, uno per ogni pixel dello schermo del telefono (fino a 3x), e scala il disegno senza che il gioco debba fare nulla.
+Testo, linee e cerchi restano nitidi. Non usare `canvas.width = ...` dentro il gioco e non leggere la dimensione reale del canvas.
 
 ### Pensati per l'iPhone
 

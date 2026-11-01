@@ -5,6 +5,7 @@ registerGame({
   blurb: 'Un topo avventuriero raccoglie il formaggio, salta sui gatti e arriva alla tana. Croce per muoverti, A salta (più a lungo, più in alto), B tenuto premuto per correre.',
   inputs: ['D-PAD', '2 POLLICI', 'SALTO'],
   size: [352, 576],
+  pixel: true,
   create(api) {
     const { cv, g, held } = api;
     const W = cv.width, H = cv.height;

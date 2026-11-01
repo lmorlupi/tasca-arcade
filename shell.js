@@ -101,8 +101,52 @@
   };
   const letSleep = () => { try { if (wake) wake.release(); } catch (e) {} wake = null; };
 
+  // Alta definizione. Questa funzione è self-contained: lo stesso testo gira anche dentro la scatola dei giochi di terzi.
+  function hiResFactory(cv, cw, ch) {
+    var g = cv.getContext('2d'), k = 1, cache = {};
+    var gP = new Proxy(g, {
+      get: function (t, p) {
+        if (p === 'setTransform') return function (a, b, c, d, e, f) { return t.setTransform(a * k, b * k, c * k, d * k, e * k, f * k); };
+        if (p === 'resetTransform') return function () { t.setTransform(k, 0, 0, k, 0, 0); };
+        if (p === 'getTransform') return function () { var m = t.getTransform(); return new DOMMatrix([m.a / k, m.b / k, m.c / k, m.d / k, m.e / k, m.f / k]); };
+        if (p === 'canvas') return cvP;
+        var v = t[p];
+        if (typeof v === 'function') return cache[p] || (cache[p] = v.bind(t));
+        return v;
+      },
+      set: function (t, p, v) { t[p] = v; return true; },
+    });
+    var cvP = new Proxy(cv, {
+      get: function (t, p) {
+        if (p === 'width') return cw;
+        if (p === 'height') return ch;
+        if (p === 'getContext') return function () { return gP; };
+        var v = t[p];
+        return typeof v === 'function' ? v.bind(t) : v;
+      },
+      set: function (t, p, v) { t[p] = v; return true; },
+    });
+    return {
+      cvP: cvP, gP: gP, cw: cw, ch: ch,
+      get k() { return k; },
+      setK: function (nk) {
+        k = nk; cv.width = Math.max(1, Math.round(cw * k)); cv.height = Math.max(1, Math.round(ch * k));
+        g.setTransform(k, 0, 0, k, 0, 0); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+      },
+      base: function () { g.setTransform(k, 0, 0, k, 0, 0); },
+    };
+  }
+  let HR = null;   // alta definizione del gioco in corso
+  // Quanti pixel veri per ogni unità del gioco: quelli dello schermo del telefono (fino a 3x), senza esagerare.
+  const pickK = (def, cw, ch) => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const css = Math.min(screenEl.clientWidth / cw, screenEl.clientHeight / ch) || 1;
+    let k = ls.get('hq', true) ? dpr * css : 1;
+    if (def.pixel) k = Math.floor(k + 0.02);          // pixel art: multipli interi, bordi netti
+    return Math.max(1, Math.min(k, Math.sqrt(4.6e6 / (cw * ch)), 4));
+  };
   const apiFor = def => ({
-    cv, g, w: cv.width, h: cv.height, held, tilt, haptic, beep, goMenu: () => toMenu(),
+    cv: HR.cvP, g: HR.gP, w: HR.cw, h: HR.ch, held, tilt, haptic, beep, goMenu: () => toMenu(),
     store: { get: (k, d) => ls.get(def.id + ':' + k, d), set: (k, v) => ls.set(def.id + ':' + k, v) },
   });
 
@@ -114,16 +158,16 @@
   // ======================================================================================================
 
   // Questa funzione NON gira qui: il suo testo viene messo dentro la scatola, dove fa da "console in miniatura".
-  function sdkMain() {
+  function sdkMain(hiResFactory) {
     var post = function (m) { parent.postMessage(m, '*'); };
     var def = null, inst = null, running = false, last = 0;
     var held = {}, tiltS = { x: 0, y: 0, sensor: false }, store = {};
-    var cv = document.createElement('canvas'), g = cv.getContext('2d');
+    var cv = document.createElement('canvas'), hr = null, LW = 1, LH = 1;
     document.body.appendChild(cv);
     window.registerGame = function (d) { if (!def && d && typeof d === 'object') def = d; };
     window.addEventListener('error', function (e) { post({ t: 'error', msg: String(e.message || 'errore').slice(0, 120) }); });
     var api = {
-      cv: cv, g: g, w: 0, h: 0, held: held,
+      cv: null, g: null, w: 0, h: 0, held: held,
       tilt: { get x() { return tiltS.x; }, get y() { return tiltS.y; }, get sensor() { return tiltS.sensor; }, calibrate: function () { post({ t: 'calibrate' }); } },
       haptic: function (ms) { post({ t: 'haptic', ms: +ms || 10 }); },
       beep: function (f, d, type, v) { post({ t: 'beep', f: +f, d: +d, type: type, v: +v }); },
@@ -136,7 +180,7 @@
     function loop(now) {
       if (!running) return;
       var dt = Math.min(0.05, (now - last) / 1000); last = now;
-      try { inst.update(dt); g.setTransform(1, 0, 0, 1, 0, 0); inst.render(g); }
+      try { hr.base(); inst.update(dt); inst.render(hr.gP); }
       catch (err) { running = false; post({ t: 'error', msg: String(err && err.message).slice(0, 120) }); return; }
       requestAnimationFrame(loop);
     }
@@ -150,8 +194,8 @@
         if (!inst || !inst.onPointer) return;
         e.preventDefault();
         if (type === 'down') { try { cv.setPointerCapture(e.pointerId); } catch (x) {} }
-        var r = cv.getBoundingClientRect(), k = Math.min(r.width / cv.width, r.height / cv.height);
-        var ox = r.left + (r.width - cv.width * k) / 2, oy = r.top + (r.height - cv.height * k) / 2;
+        var r = cv.getBoundingClientRect(), k = Math.min(r.width / LW, r.height / LH);
+        var ox = r.left + (r.width - LW * k) / 2, oy = r.top + (r.height - LH * k) / 2;
         inst.onPointer({ type: type === 'cancel' ? 'up' : type, cancelled: type === 'cancel', id: e.pointerId, t: e.timeStamp, x: (e.clientX - ox) / k, y: (e.clientY - oy) / k });
       };
     };
@@ -163,12 +207,14 @@
       var m = e.data; if (!m || typeof m !== 'object') return;
       if (m.t === 'init') {
         store = m.store || {};
-        cv.width = m.w; cv.height = m.h; api.w = m.w; api.h = m.h;
+        LW = m.w; LH = m.h; hr = hiResFactory(cv, m.w, m.h); hr.setK(m.k || 1);
+        api.cv = hr.cvP; api.g = hr.gP; api.w = m.w; api.h = m.h;
+        if (m.pixel) cv.style.imageRendering = 'pixelated';
         try { var s = document.createElement('script'); s.textContent = m.code; document.head.appendChild(s); }
         catch (err) { post({ t: 'error', msg: 'codice non valido' }); return; }
         if (!def) { post({ t: 'invalid' }); return; }
         var meta = {};
-        ['id', 'title', 'author', 'color', 'blurb', 'inputs', 'size', 'bg', 'flexH', 'tilt', 'license'].forEach(function (k) { if (def[k] !== undefined) meta[k] = def[k]; });
+        ['id', 'title', 'author', 'color', 'blurb', 'inputs', 'size', 'bg', 'flexH', 'pixel', 'tilt', 'license'].forEach(function (k) { if (def[k] !== undefined) meta[k] = def[k]; });
         post({ t: 'registered', meta: meta });
         if (m.mode === 'play') begin();
       } else if (m.t === 'state') {
@@ -188,8 +234,8 @@
     + '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'unsafe-inline\'; style-src \'unsafe-inline\'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src \'none\'; frame-src \'none\'; worker-src \'none\'; object-src \'none\'; form-action \'none\'; base-uri \'none\'">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">'
     + '<style>html,body{margin:0;height:100%;background:transparent;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}'
-    + 'canvas{display:block;width:100vw;height:100vh;object-fit:contain;image-rendering:pixelated;touch-action:none}</style></head>'
-    + '<body><script>(' + sdkMain.toString() + ')();<\/script></body></html>';
+    + 'canvas{display:block;width:100vw;height:100vh;object-fit:contain;touch-action:none}</style></head>'
+    + '<body><script>(' + sdkMain.toString() + ')(' + hiResFactory.toString() + ');<\/script></body></html>';
 
   const MAX_CODE = 400000, MAX_COMMUNITY = 12;
   const hexOk = c => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c);
@@ -203,7 +249,7 @@
     return {
       id: 'c-' + id, title, author: String(m.author || '').slice(0, 40), color: hexOk(m.color) ? m.color : '#8a8a99',
       blurb: String(m.blurb || '').slice(0, 240), inputs: (Array.isArray(m.inputs) ? m.inputs : []).slice(0, 5).map(s => String(s).slice(0, 18)),
-      size: sz, bg: hexOk(m.bg) ? m.bg : '', flexH: !!m.flexH, tilt: !!m.tilt, license: String(m.license || '').slice(0, 40),
+      size: sz, bg: hexOk(m.bg) ? m.bg : '', flexH: !!m.flexH, pixel: !!m.pixel, tilt: !!m.tilt, license: String(m.license || '').slice(0, 40),
     };
   };
 
@@ -235,10 +281,10 @@
     return { frame: f, send, destroy() { window.removeEventListener('message', onMsg); f.remove(); } };
   };
 
-  const startSandbox = (def, w, h) => {
+  const startSandbox = (def, w, h, k) => {
     const key = def.id;
     let lastHb = performance.now(), beepAt = 0, beepN = 0, storeKeys = 0;
-    const box = makeSandbox({ init: { mode: 'play', code: def.code, w, h, store: cmStore(key) } }, (m) => {
+    const box = makeSandbox({ init: { mode: 'play', code: def.code, w, h, k, pixel: !!def.pixel, store: cmStore(key) } }, (m) => {
       switch (m.t) {
         case 'hb': lastHb = performance.now(); break;
         case 'haptic': haptic(clamp(+m.ms || 10, 1, 80)); break;
@@ -425,7 +471,7 @@
     pinned = false;
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">COLORI</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
+    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
       games.map((d, i) => {
         const rec = d.community ? (cmStore(d.id).hi || 0) : ls.get(d.id + ':hi', 0);
         return `<button class="cart${i === sel ? ' sel' : ''}" data-i="${i}" style="--c:${/^#[0-9a-fA-F]{3,8}$/.test(d.color) ? d.color : '#25c4f0'}">
@@ -480,15 +526,17 @@
       if (def.flexH && screenEl.clientWidth > 0 && screenEl.clientHeight > 0) {
         ch = Math.round(clamp(cw * screenEl.clientHeight / screenEl.clientWidth, cw * 1.25, cw * 2.1));
       }
-      cv.width = cw; cv.height = ch;
+      HR = hiResFactory(cv, cw, ch);
+      if (!def.community) HR.setK(pickK(def, cw, ch));
       cv.style.aspectRatio = cw + ' / ' + ch;
+      cv.classList.toggle('px', !!def.pixel);
       screenEl.style.background = def.bg || '';
       cv.classList.remove('off'); menuEl.classList.add('off');
       cur = def; mode = 'game';
       for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
       tilt.calibrate();
       if (def.community) { cv.classList.add('off'); }
-      try { inst = def.community ? startSandbox(def, cw, ch) : def.create(apiFor(def)); } catch (e) { console.error('Errore in', def.id, e); inst = null; toMenu(); setStatus('IL GIOCO NON SI AVVIA: ' + def.title, true); return; }
+      try { inst = def.community ? startSandbox(def, cw, ch, pickK(def, cw, ch)) : def.create(apiFor(def)); } catch (e) { console.error('Errore in', def.id, e); inst = null; toMenu(); setStatus('IL GIOCO NON SI AVVIA: ' + def.title, true); return; }
       keepAwake();
       beep(880, 0.08); haptic(8);
     } finally { launching = false; }
@@ -629,8 +677,9 @@
     e.preventDefault();
     if (type === 'down') { try { cv.setPointerCapture(e.pointerId); } catch (err) {} }
     // Il canvas riempie lo schermo con object-fit: contain: le coordinate vanno riportate all'area realmente disegnata.
-    const r = cv.getBoundingClientRect(), k = Math.min(r.width / cv.width, r.height / cv.height);
-    const ox = r.left + (r.width - cv.width * k) / 2, oy = r.top + (r.height - cv.height * k) / 2;
+    const LW = HR ? HR.cw : cv.width, LH = HR ? HR.ch : cv.height;
+    const r = cv.getBoundingClientRect(), k = Math.min(r.width / LW, r.height / LH);
+    const ox = r.left + (r.width - LW * k) / 2, oy = r.top + (r.height - LH * k) / 2;
     inst.onPointer({
       type: type === 'cancel' ? 'up' : type, cancelled: type === 'cancel', id: e.pointerId, t: e.timeStamp,
       x: (e.clientX - ox) / k, y: (e.clientY - oy) / k,
@@ -694,10 +743,13 @@
   const renderColors = () => {
     const curS = document.documentElement.dataset.shell, curB = document.documentElement.dataset.btn || 'graphite';
     const sw = (cls, list, cur, bg) => '<div class="sw">' + list.map(x => `<button class="${cls}${x.id === cur ? ' sel' : ''}" data-id="${x.id}" style="--s:${bg(x)}" aria-label="${x.name}" title="${x.name}"></button>`).join('') + '</div>';
-    menuEl.innerHTML = `<header><button class="snd" id="colBack">‹ CATALOGO</button><h1>COLORI</h1></header>
+    menuEl.innerHTML = `<header><button class="snd" id="colBack">‹ CATALOGO</button><h1>ASPETTO</h1></header>
       <p class="ver">LA CONSOLE QUI SOTTO CAMBIA SUBITO. LA SCELTA RESTA SALVATA.</p>
       <h2 class="sub">SCOCCA</h2>${sw('swShell', SHELL_COLORS, curS, x => x.c)}
       <h2 class="sub">TASTI A E B</h2>${sw('swBtn', BTN_COLORS, curB, x => x.mid)}
+      <h2 class="sub">QUALITÀ GRAFICA</h2>
+      <div class="seg"><button class="qBtn${ls.get('hq', true) ? ' sel' : ''}" data-q="1">ALTA<br><small>RETINA, PIÙ NITIDA</small></button><button class="qBtn${ls.get('hq', true) ? '' : ' sel'}" data-q="0">RISPARMIO<br><small>MENO BATTERIA</small></button></div>
+      <p class="ver">LA QUALITÀ CAMBIA DALLA PROSSIMA PARTITA. SE IL TELEFONO FATICA, SCENDE DA SOLA.</p>
       <button class="act imp" id="colReset">RIPRISTINA I COLORI ORIGINALI</button>`;
   };
   const colorsClick = e => {
@@ -707,6 +759,8 @@
     const s = t.closest('.swShell'), b = t.closest('.swBtn');
     if (s) { setShell(s.dataset.id); haptic(8); renderColors(); return true; }
     if (b) { setBtn(b.dataset.id); haptic(8); renderColors(); return true; }
+    const q = t.closest('.qBtn');
+    if (q) { ls.set('hq', q.dataset.q === '1'); haptic(8); renderColors(); return true; }
     if (t.closest('#colReset')) { setShell('grape'); setBtn('graphite'); renderColors(); return true; }
     return false;
   };
@@ -728,13 +782,18 @@
 
   // Ciclo
   let last = performance.now();
+  let slow = 0;
   const frame = now => {
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const raw = (now - last) / 1000, dt = Math.min(0.05, raw); last = now;
     if (mode === 'game' && inst) {
       try {
         inst.update(dt);
-        g.setTransform(1, 0, 0, 1, 0, 0);
-        inst.render(g);
+        if (HR && !(cur && cur.community)) { HR.base(); inst.render(HR.gP); } else inst.render(g);
+        // Se il telefono fatica a tenere i fotogrammi, la definizione scende un po' alla volta (mai sotto 1x).
+        if (HR && !(cur && cur.community) && HR.k > 1.05 && raw < 0.25) {
+          slow = Math.max(0, Math.min(140, slow + (raw > 0.032 ? 1 : -1)));
+          if (slow > 100) { HR.setK(Math.max(1, HR.k * 0.8)); slow = 0; }
+        }
       } catch (e) {
         // Un gioco con un errore non deve bloccare la console: si torna al catalogo.
         console.error('Errore durante il gioco', cur && cur.id, e);

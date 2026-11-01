@@ -5,6 +5,7 @@ registerGame({
   blurb: 'Nel castello: raccogli tutte le chiavi, sali le scale, spingi i blocchi, evita fantasmi e ghiaccioli e usa le caselle W per teletrasportarti. Poi esci dalla porta.',
   inputs: ['D-PAD', 'PUZZLE', 'SALTO'],
   size: [352, 576],
+  pixel: true,
   bg: '#1a1633',
   create(api) {
     const { cv, g, held } = api;
