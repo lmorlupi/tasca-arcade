@@ -3,7 +3,7 @@
 Una sala giochi tascabile che gira nel browser del telefono, con un catalogo di giochi pensati per l'iPhone:
 inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **offline** e si aggiorna da sola.
 
-**Gioca:** <https://lmorlupi.github.io/gameboy-web/> · su iPhone: Condividi → *Aggiungi alla schermata Home*.
+**Gioca:** <https://lmorlupi.github.io/tasca-arcade/> · su iPhone: Condividi → *Aggiungi alla schermata Home*.
 
 ## Aggiungere un gioco
 
