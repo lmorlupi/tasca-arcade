@@ -479,7 +479,7 @@
     pinned = false;
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
+    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
       games.map((d, i) => {
         const rec = d.community ? (cmStore(d.id).hi || 0) : ls.get(d.id + ':hi', 0);
         const avatar = d.art === 'margot' && window.Art ? `<img class="avatar" alt="Margot" src="art/margot-avatar.jpg">` : '';
@@ -761,8 +761,29 @@
       <p class="ver">LA QUALITÀ CAMBIA DALLA PROSSIMA PARTITA. SE IL TELEFONO FATICA, SCENDE DA SOLA.</p>
       <button class="act imp" id="colReset">RIPRISTINA I COLORI ORIGINALI</button>`;
   };
+  // Piccola guida: come mettere l'app nella Home del telefono e usarla anche senza rete.
+  const renderHelp = () => {
+    const ios = isIOS, one = ios
+      ? ['Apri questo link con <b>Safari</b> (non dentro un\'altra app).', 'Tocca il tasto <b>Condividi</b> (il quadrato con la freccia in su).', 'Scorri e scegli <b>«Aggiungi alla schermata Home»</b>.', 'Tocca <b>Aggiungi</b>: l\'icona compare nella Home.']
+      : ['Apri questo link con <b>Chrome</b>.', 'Tocca i <b>tre puntini</b> in alto a destra.', 'Scegli <b>«Aggiungi a schermata Home»</b> (o «Installa app»).', 'Conferma: l\'icona compare nella Home.'];
+    const other = ios
+      ? ['Su Android (Chrome): tre puntini → «Aggiungi a schermata Home» o «Installa app».']
+      : ['Su iPhone (Safari): Condividi → «Aggiungi alla schermata Home».'];
+    menuEl.innerHTML = `<header><button class="snd" id="helpBack">‹ CATALOGO</button><h1>AIUTO</h1></header>
+      <h2 class="sub">METTI L'APP NELLA HOME ${ios ? '(IPHONE)' : '(ANDROID)'}</h2>
+      <ol class="help">${one.map(x => '<li>' + x + '</li>').join('')}</ol>
+      <p class="ver">${other[0].toUpperCase()}</p>
+      <h2 class="sub">SENZA RETE</h2>
+      <p class="ver">DOPO IL PRIMO CARICAMENTO TUTTO RESTA SALVATO SUL TELEFONO: I GIOCHI FUNZIONANO ANCHE IN AEREO O SENZA SEGNALE. RECORD E IMPOSTAZIONI RESTANO SUL TELEFONO.</p>
+      <h2 class="sub">AGGIORNARE</h2>
+      <p class="ver">QUANDO C'È RETE TOCCA «AGGIORNA» NEL CATALOGO: SCARICA I GIOCHI NUOVI E LE MODIFICHE. SE QUALCOSA RESTA VECCHIO, CHIUDI E RIAPRI L'APP.</p>
+      <h2 class="sub">SUONO</h2>
+      <p class="ver">SE NON SENTI NULLA, CONTROLLA IL TASTO «SUONO» DEL CATALOGO E CHE IL TELEFONO NON SIA IN SILENZIOSO.</p>`;
+  };
   const colorsClick = e => {
     const t = e.target;
+    if (t.closest('#help')) { renderHelp(); return true; }
+    if (t.closest('#helpBack')) { renderMenu(); return true; }
     if (t.closest('#col')) { renderColors(); return true; }
     if (t.closest('#colBack')) { renderMenu(); return true; }
     const s = t.closest('.swShell'), b = t.closest('.swBtn');
