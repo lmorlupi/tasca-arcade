@@ -23,7 +23,7 @@
     if (now - lastHap < 25) return;
     lastHap = now;
     try {
-      if (navigator.vibrate) navigator.vibrate(ms);
+      if (navigator.vibrate) { if (!navigator.userActivation || navigator.userActivation.hasBeenActive) navigator.vibrate(ms); }
       else hapLabel.click();
     } catch (e) {}
   };
@@ -237,6 +237,19 @@
   });
   $('home').addEventListener('click', () => { if (mode === 'game') toMenu(); });
   document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // iPhone: Safari ignora user-scalable=no. Blocchiamo a mano il doppio tocco e il pizzico, così premere
+  // a ripetizione i tasti non fa mai zoom.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault()));
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 400) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener('touchstart', e => { if (e.touches.length > 1 && !e.target.closest('.menu')) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', e => { if (e.scale && e.scale !== 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', e => e.preventDefault());
 
   // Croce direzionale: un'unica superficie. Il dito può scivolare e premere gli angoli per le diagonali.
   const dpad = dpadEl;
