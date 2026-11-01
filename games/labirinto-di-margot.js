@@ -226,7 +226,7 @@ registerGame({
     const render = () => {
       g.fillStyle = '#12091e'; g.fillRect(0, 0, CW, CH);
       g.save(); g.translate(OX, OY); g.scale(S, S);
-      const bg = g.createLinearGradient(0, 0, 0, VHd); bg.addColorStop(0, '#2a1a3e'); bg.addColorStop(1, '#170d26'); g.fillStyle = bg; g.fillRect(0, 0, VWd, VHd);
+      g.fillStyle = '#000'; g.fillRect(0, 0, VWd, VHd);
       if (state === 'title') {
         text('LABIRINTO', VWd / 2, 110, 40, 'center', '#f2c94c'); text('DI MARGOT', VWd / 2, 156, 40, 'center', '#ff7a9a');
         catFace(VWd / 2, 270, 38, 1, 0, Math.sin(time * 2) * 0.12);
@@ -236,23 +236,27 @@ registerGame({
         text('RECORD ' + hi, VWd / 2, 500, 14, 'center');
         g.restore(); return;
       }
-      // pavimento e pareti
-      g.fillStyle = '#3a2548'; g.fillRect(MX - 4, MY - 4, COLS * T + 8, ROWS * T + 8);
-      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-        const X = MX + x * T, Y = MY + y * T;
-        if (maze[y][x] === 1) {
-          const wg = g.createLinearGradient(X, Y, X, Y + T); wg.addColorStop(0, '#6a4fb0'); wg.addColorStop(1, '#3d2a70'); g.fillStyle = wg; g.beginPath(); g.roundRect(X + 1, Y + 1, T - 2, T - 2, 5); g.fill();
-          g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(X + 4, Y + 3, T - 8, 2); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(X + 3, Y + T - 5, T - 6, 2);
-        } else { g.fillStyle = (x + y) % 2 ? '#d9a574' : '#cf9a68'; g.fillRect(X, Y, T, T); g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(X, Y, T, 1); g.fillRect(X, Y, 1, T); }
+      // pavimento nero e pareti con contorno blu neon (stile sala giochi)
+      g.fillStyle = '#000'; g.fillRect(MX - 6, MY - 6, COLS * T + 12, ROWS * T + 12);
+      const W1 = (x, y) => (y < 0 || y >= ROWS || x < 0 || x >= COLS ? true : maze[y][x] === 1), LW = 3;
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (maze[y][x] === 1) { g.fillStyle = 'rgba(60,80,255,.16)'; g.fillRect(MX + x * T - 3, MY + y * T - 3, T + 6, T + 6); }
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (maze[y][x] === 1) { g.fillStyle = '#2f4cff'; g.fillRect(MX + x * T, MY + y * T, T, T); }
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (maze[y][x] === 1) {
+        const X = MX + x * T, Y = MY + y * T, l = W1(x - 1, y), r = W1(x + 1, y), u = W1(x, y - 1), d = W1(x, y + 1);
+        g.fillStyle = '#000'; g.fillRect(X + (l ? 0 : LW), Y + (u ? 0 : LW), T - (l ? 0 : LW) - (r ? 0 : LW), T - (u ? 0 : LW) - (d ? 0 : LW));
+        g.fillStyle = '#2f4cff';
+        if (l && u && !W1(x - 1, y - 1)) g.fillRect(X, Y, LW, LW); if (r && u && !W1(x + 1, y - 1)) g.fillRect(X + T - LW, Y, LW, LW);
+        if (l && d && !W1(x - 1, y + 1)) g.fillRect(X, Y + T - LW, LW, LW); if (r && d && !W1(x + 1, y + 1)) g.fillRect(X + T - LW, Y + T - LW, LW, LW);
+        g.fillStyle = 'rgba(120,150,255,.55)'; if (!u) g.fillRect(X + (l ? 0 : LW), Y + 1, T - (l ? 0 : LW) - (r ? 0 : LW), 1);
       }
       // porta della tana
-      g.fillStyle = '#ff7a9a'; g.fillRect(MX + 7 * T + 2, MY + (MID - 1) * T + T / 2 - 1.5, T - 4, 3);
+      g.fillStyle = '#ffb0d0'; g.fillRect(MX + 7 * T + 2, MY + (MID - 1) * T + T / 2 - 1.5, T - 4, 3);
       // bocconcini e tonno
       for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
         const v = dots[y][x]; if (!v) continue; const cx = px(x), cy = py(y);
         g.save(); g.translate(cx, cy); g.scale(KT, KT);
-        if (v === 1) { g.fillStyle = '#f0a846'; g.beginPath(); g.ellipse(0, 0, 4.2, 2.6, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo(3, 0); g.lineTo(6.4, -2.4); g.lineTo(6.4, 2.4); g.closePath(); g.fill(); g.fillStyle = '#7a3f10'; g.fillRect(-2.6, -1, 1, 1); }
-        else { const bob = Math.sin(time * 6 + x) * 1.2; g.fillStyle = 'rgba(120,200,255,.3)'; g.beginPath(); g.arc(0, bob, 9, 0, 7); g.fill(); const cg = g.createLinearGradient(-6, 0, 6, 0); cg.addColorStop(0, '#2f6fb3'); cg.addColorStop(0.5, '#6ab0ee'); cg.addColorStop(1, '#2a5f9c'); g.fillStyle = cg; g.fillRect(-6, -5 + bob, 12, 10); g.fillStyle = '#cfd6e0'; g.fillRect(-6, -6 + bob, 12, 2); g.fillRect(-6, 4 + bob, 12, 2); g.fillStyle = '#fff4e0'; g.beginPath(); g.ellipse(0, bob, 3, 1.8, 0, 0, 7); g.fill(); }
+        if (v === 1) { g.fillStyle = '#ffd9b0'; g.beginPath(); g.arc(0, 0, 2.6, 0, 7); g.fill(); }
+        else if (((time * 5) | 0) % 2 === 0 || true) { const bob = 0; if (((time * 5) | 0) % 2) g.globalAlpha = 0.45; g.fillStyle = 'rgba(120,200,255,.3)'; g.beginPath(); g.arc(0, bob, 9, 0, 7); g.fill(); const cg = g.createLinearGradient(-6, 0, 6, 0); cg.addColorStop(0, '#2f6fb3'); cg.addColorStop(0.5, '#6ab0ee'); cg.addColorStop(1, '#2a5f9c'); g.fillStyle = cg; g.fillRect(-6, -5 + bob, 12, 10); g.fillStyle = '#cfd6e0'; g.fillRect(-6, -6 + bob, 12, 2); g.fillRect(-6, 4 + bob, 12, 2); g.fillStyle = '#fff4e0'; g.beginPath(); g.ellipse(0, bob, 3, 1.8, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
         g.restore();
       }
       if (bonus) { const bx = 0, by = Math.sin(time * 9) * 1.5; g.save(); g.translate(px(bonus.x), py(bonus.y)); g.scale(KT * 1.2, KT * 1.2); g.strokeStyle = '#3f6b2f'; g.lineWidth = 1.3; g.beginPath(); g.moveTo(bx - 3, by); g.lineTo(bx - 8, by - 5); g.lineTo(bx - 9, by + 3); g.moveTo(bx + 1, by); g.lineTo(bx - 3, by - 6); g.lineTo(bx - 4, by + 4); g.stroke(); g.fillStyle = '#5c9a43'; g.beginPath(); g.ellipse(bx, by, 6.5, 3.2, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(bx + 6, by - 1, 2.6, 2.4, 0, 0, 7); g.fill(); g.restore(); }
