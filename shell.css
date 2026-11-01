@@ -49,7 +49,7 @@ canvas.off { display: none; }
 .dpad.down .cross { transition: transform .025s linear; }
 .dpad button {
   position: absolute; width: 39px; height: 39px; border: 0; padding: 0; pointer-events: none;
-  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #9d9dac; font-size: 12px;
+  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #babacb; font-size: 12px;
   box-shadow: inset 0 2px 0 rgba(255,255,255,.16), inset 0 -3px 0 rgba(0,0,0,.45), 0 3px 3px rgba(0,0,0,.35);
   transition: filter .14s var(--spring), transform .14s var(--spring);
 }
@@ -91,8 +91,10 @@ canvas.off { display: none; }
 .meta { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); display: flex; flex-direction: column; z-index: 2; }
 .meta button {
   display: flex; align-items: center; gap: 5px; border: 0; background: none; padding: 4px 8px; color: #fff;
-  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-shadow: 0 1px 0 rgba(0,0,0,.35); white-space: nowrap;
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; white-space: nowrap;
 }
+/* Etichetta su fondo scuro: resta leggibile con qualsiasi colore di scocca. */
+.meta span { padding: 1px 6px; border-radius: 99px; background: rgba(20, 20, 34, .88); }
 .meta .pill {
   display: block; width: 30px; height: 11px; border-radius: 6px; transform: rotate(-22deg);
   background: linear-gradient(#6a4ca6, var(--shell-dark) 45%, #3f2c6b);
