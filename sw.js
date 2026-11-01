@@ -1,10 +1,10 @@
 // Service worker: tiene in cache tutta la console, così funziona anche senza rete.
 // Quando cambia un file, aumenta VERSION: i telefoni scaricano di nuovo tutto.
-const VERSION = 'gameboy-v11';
+const VERSION = 'gameboy-v12';
 const FILES = [
   './', 'index.html', 'shell.css', 'shell.js', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
-  'games/blocks.js', 'games/barrel-climb.js', 'games/mouse-quest.js', 'games/tilt-ball.js',
+  'games/blocks.js', 'games/barrel-climb.js', 'games/mouse-quest.js', 'games/mouse-castle.js', 'games/tilt-ball.js',
   'games/flick-hoops.js', 'games/slide-2048.js', 'games/space-raiders.js', 'games/galaxy-strike.js',
 ];
 
