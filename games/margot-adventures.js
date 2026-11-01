@@ -251,7 +251,7 @@ registerGame({
       });
       if (sk.phase === 'look') text(sk.t < 7 ? 'DOV’È FINITA? TOCCA UN NASCONDIGLIO' : 'PSST... UN ORECCHIO SPUNTA!', W / 2, H - 20, 11, 'center', '#6d4a2f');
       if (sk.phase === 'found' || sk.phase === 'end') { g.save(); g.translate(0, sk.spot === 1 ? 200 : 0); }
-      if (sk.phase === 'found') banner([sk.got ? 'TROVATA!' : 'ERA QUI!', (sk.round === 0 ? 'DA PICCOLA ' : '') + (sk.got ? '+' + sk.got : 'SI NASCONDEVA BENE'), 'TOCCA']);
+      if (sk.phase === 'found') banner([sk.got ? ['MARGOT', 'MAGGHINA', 'MARGHY'][sk.round % 3] + ' TROVATA!' : 'ERA QUI!', (sk.round === 0 ? 'DA PICCOLA ' : '') + (sk.got ? '+' + sk.got : 'SI NASCONDEVA BENE'), 'TOCCA']);
       if (sk.phase === 'end') banner(['MARGOT TROVATA!', 'PUNTI ' + sk.pts, 'RECORD ' + sk.best, 'TOCCA']);
       if (sk.phase === 'found' || sk.phase === 'end') g.restore();
     };
@@ -560,6 +560,7 @@ registerGame({
         text('IN RICORDO DI MARGOT', W / 2, 470, 15, 'center', '#fff4e0');
         text('AFFETTUOSA · CURIOSA · CORAGGIOSA', W / 2, 494, 11, 'center', '#f3dcc0');
         text('CHE SAPEVA APRIRE TUTTE LE PORTE', W / 2, 512, 11, 'center', '#f3dcc0');
+        text('MARGOT · MAGGHINA · MARGHY', W / 2, 536, 12, 'center', '#fff4e0');
         return;
       }
       g.fillStyle = ch.wall[0]; g.fillRect(0, 0, W, H);
