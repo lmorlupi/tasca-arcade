@@ -2,15 +2,16 @@ registerGame({
   id: 'mouse-castle',
   title: 'MOUSE CASTLE',
   color: '#a655b8',
-  blurb: 'Nel castello non si salta: sali le scale, entra nei tubi e nelle porte magiche, raccogli tutte le chiavi ed esci. Spingi le casse e usa arco, bomba, martello e pozione contro fantasmi e gatti.',
-  inputs: ['D-PAD', 'PUZZLE', 'A/B OGGETTO'],
+  blurb: 'Nel castello sali le scale, entra nei tubi e nelle porte magiche, raccogli tutte le chiavi ed esci. Con A salti fantasmi e gatti, con B spingi le casse e usi arco, bomba, martello e pozione.',
+  inputs: ['D-PAD', 'PUZZLE', 'A SALTO', 'B OGGETTO'],
   size: [352, 576],
   bg: '#1a1633',
   create(api) {
     const { cv, g, held } = api;
     const W = cv.width, H = cv.height;
     // 6 piani (0 in alto), alti 80 px; le scale salgono a 45 gradi di un piano su 5 colonne da 16 px.
-    const C = 16, FLOORS = 6, FH = 80, WALK = 70, CLIMB = 58;
+    // Il salto è corto: basta a scavalcare un nemico, non a cambiare piano.
+    const C = 16, FLOORS = 6, FH = 80, WALK = 70, CLIMB = 58, JUMP = 300, GRAV = 1000;
     const Y = f => 112 + f * FH;                  // pavimento del piano f
     const X = c => c * C + 8;                     // centro della colonna c (1..20)
     const XMIN = 24, XMAX = W - 24;
@@ -33,7 +34,7 @@ registerGame({
     // pipes [piano, col, piano uscita, col]  (si entra con ▼, a senso unico)   doors [piano, col, piano, col]  (▲, nei due sensi)
     // walls [piano, col, crepato?]   items [tipo, piano, col]: crate, bow, bomb, hammer, potion   foes [g fantasma | c gatto, piano, col]
     const LEVELS = [
-      { hint: 'SULLE SCALE CON SU E GIU', start: [5, 2], exit: [0, 18],
+      { hint: 'SCALE CON SU E GIU, A SALTA IL FANTASMA', start: [5, 2], exit: [0, 18],
         stairs: [[5, 8, 1], [4, 17, -1], [3, 6, 1], [2, 16, -1], [1, 4, 1]],
         keys: [[5, 16], [4, 3], [3, 18], [2, 3], [1, 17], [0, 4]], foes: [['g', 2, 9]] },
       { hint: 'GIU NEI TUBI: TI PORTANO LONTANO', start: [5, 1], exit: [0, 19],
@@ -42,11 +43,11 @@ registerGame({
       { hint: 'LE PORTE MAGICHE FERMANO I NEMICI', start: [5, 10], exit: [0, 2],
         stairs: [[5, 3, 1], [5, 17, -1], [3, 14, 1], [2, 5, 1], [1, 16, -1]], doors: [[4, 19, 3, 2]],
         keys: [[5, 1], [5, 20], [4, 4], [3, 10], [3, 20], [2, 2], [1, 18], [0, 17]], foes: [['g', 4, 15], ['c', 2, 13], ['g', 0, 6]] },
-      { hint: 'A: SPINGI LA CASSA CONTRO I NEMICI', start: [5, 1], exit: [0, 10],
+      { hint: 'B: SPINGI LA CASSA CONTRO I NEMICI', start: [5, 1], exit: [0, 10],
         stairs: [[5, 12, 1], [4, 6, -1], [3, 9, 1], [2, 19, -1], [1, 4, 1]],
         items: [['crate', 4, 13], ['crate', 1, 10]],
         keys: [[5, 19], [4, 2], [3, 6], [3, 18], [2, 3], [1, 1], [1, 19], [0, 16]], foes: [['g', 4, 3], ['c', 1, 6], ['g', 2, 8]] },
-      { hint: 'PRENDI L ARCO E TIRA CON A', start: [5, 19], exit: [0, 1],
+      { hint: 'PRENDI L ARCO E TIRA CON B', start: [5, 19], exit: [0, 1],
         stairs: [[5, 4, 1], [4, 16, -1], [3, 3, 1], [2, 15, 1], [1, 12, -1]],
         items: [['bow', 5, 10], ['bow', 2, 12]],
         keys: [[5, 1], [4, 19], [4, 3], [3, 18], [2, 2], [1, 4], [0, 12], [0, 19]], foes: [['g', 4, 12], ['c', 3, 7], ['g', 1, 8], ['c', 0, 15]] },
@@ -106,7 +107,7 @@ registerGame({
     };
 
     const resetPlayer = () => {
-      P = { f: start.f, x: start.x, face: 1, walk: 0, st: null, s: 0, anim: null, item: null, inv: 1.5, star: 0 };
+      P = { f: start.f, x: start.x, face: 1, walk: 0, st: null, s: 0, anim: null, item: null, inv: 1.5, star: 0, jy: 0, jv: 0 };
       foes.forEach(e => { if (!e.dead) { e.f = e.home.f; e.x = e.home.x; e.st = null; } });
       arrows = []; freeze = 1;
     };
@@ -130,7 +131,7 @@ registerGame({
     };
 
     // Posizione sullo schermo (piedi) di chi sta su un piano o su una scala.
-    const pos = o => o.st ? { x: o.st.x + (o.st.tx - o.st.x) * o.s, y: Y(o.st.f) - FH * o.s } : { x: o.x, y: Y(o.f) };
+    const pos = o => o.st ? { x: o.st.x + (o.st.tx - o.st.x) * o.s, y: Y(o.st.f) - FH * o.s } : { x: o.x, y: Y(o.f) - (o.jy || 0) };
     const floorOf = o => o.st ? (o.s < 0.15 ? o.st.f : o.s > 0.85 ? o.st.f - 1 : -1) : o.f;
     // Ostacoli orizzontali sul piano f: muri interi e casse ferme.
     const blockers = f => {
@@ -167,7 +168,11 @@ registerGame({
         if (P.s >= 1 || P.s <= 0) { P.s = P.s >= 1 ? 1 : 0; leaveStair(P); }
         return;
       }
-      if (dy) {
+      if (P.jy > 0 || P.jv > 0) {
+        P.jy += P.jv * dt; P.jv -= GRAV * dt;
+        if (P.jy <= 0) { P.jy = 0; P.jv = 0; api.beep(240, 0.03, 'triangle', 0.03); }
+      }
+      if (dy && !P.jy) {
         const st = stairs.find(s => dy < 0 ? s.f === P.f && Math.abs(P.x - s.x) < 7 : s.f - 1 === P.f && Math.abs(P.x - s.tx) < 7);
         if (st) { startStair(P, st, dy < 0 ? 0 : 1); return; }
       }
@@ -175,8 +180,12 @@ registerGame({
     };
 
     // ▲ porte (uscita compresa), ▼ tubi. Si usano alla pressione, non tenendo premuto.
+    const jump = () => {
+      if (P.st || P.anim || P.jy > 0) return;
+      P.jv = JUMP; P.jy = 0.01; api.haptic(6); api.beep(560, 0.06);
+    };
     const enter = k => {
-      if (P.st || P.anim) return;
+      if (P.st || P.anim || P.jy > 0) return;
       if (k === 'up') {
         if (Math.abs(P.x - exit.x) < 10 && P.f === exit.f) {
           if (got >= need) {
@@ -194,7 +203,7 @@ registerGame({
     };
 
     const useItem = () => {
-      if (P.st || P.anim) return;
+      if (P.st || P.anim || P.jy > 0) return;
       const cr = crates.find(k => !k.gone && !k.vx && k.f === P.f && (k.x - P.x) * P.face > 0 && Math.abs(k.x - P.x) < 22);
       if (cr) { cr.vx = P.face * 230; api.haptic(10); api.beep(200, 0.08, 'triangle', 0.06); return; }
       const it = P.item;
@@ -327,7 +336,8 @@ registerGame({
         else if (state === 'play' || state === 'pause' || state === 'intro') restartStage();
         else if (state === 'over') newGame(1);
       } else if (state === 'play') {
-        if (k === 'a' || k === 'b') useItem();
+        if (k === 'a') jump();
+        else if (k === 'b') useItem();
         else if (k === 'up' || k === 'down') enter(k);
       }
     };
@@ -352,7 +362,7 @@ registerGame({
         R(x, y, 32, h, '#7d86b8'); R(x, y, 32, 2, '#a9b2dc'); R(x, y + h - 2, 32, 2, '#4d5688'); R(x + 31, y, 1, h, '#4d5688');
       }
     };
-    const drawMouse = (x, y, face, walk, climb) => Art.drawMouseHD(g, x, y, face, walk, false, climb);
+    const drawMouse = (x, y, face, walk, climb, air) => Art.drawMouseHD(g, x, y, face, walk, !!air, climb);
     const drawKey = k => {
       const x = k.x, y = Y(k.f) - 16 + Math.sin(time * 4 + k.bob) * 2;
       g.fillStyle = '#f5d31c'; g.beginPath(); g.arc(x - 6, y, 6, 0, 7); g.fill();
@@ -412,8 +422,8 @@ registerGame({
         text('MOUSE', W / 2, 90, 46, 'center', '#a655b8'); text('CASTLE', W / 2, 142, 46, 'center');
         g.save(); g.translate(W / 2, 300); g.scale(3, 3); drawMouse(0, 0, 1, time * 6, false); g.restore();
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 340, 16, 'center', '#f5d31c');
-        text('NIENTE SALTI: SCALE, TUBI E PORTE', W / 2, 380, 11, 'center', '#aab3d8');
-        text('A/B: SPINGI LA CASSA O USA L OGGETTO', W / 2, 398, 11, 'center', '#aab3d8');
+        text('A: SALTA I NEMICI', W / 2, 380, 11, 'center', '#aab3d8');
+        text('B: SPINGI LA CASSA O USA L OGGETTO', W / 2, 398, 11, 'center', '#aab3d8');
         if (saved() > 1) { text('TOCCA: CONTINUA DAL QUADRO ' + saved(), W / 2, 428, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 448, 11, 'center', '#aab3d8'); }
         text('RECORD ' + hi, W / 2, 482, 13, 'center');
         return;
@@ -473,7 +483,7 @@ registerGame({
         if (P.anim && P.anim.type === 'pipe') {
           if (P.anim.phase === 'in') { g.beginPath(); g.rect(0, 0, W, p.y - 22); g.clip(); drawMouse(p.x, p.y + sink, P.face, 0, false); }
           else { const k = P.anim.t / P.anim.dur; drawMouse(p.x, Y(P.f) - FH + 30 + (FH - 30) * k * k, P.face, 0, false); }
-        } else drawMouse(p.x, p.y, P.face, P.walk, !!P.st);
+        } else drawMouse(p.x, p.y, P.face, P.walk, !!P.st, P.jy > 0);
         g.restore();
         if (P.star > 0) { g.strokeStyle = `hsla(${(time * 400) % 360},90%,65%,.8)`; g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y - 12, 16, 0, 7); g.stroke(); }
       }
