@@ -18,6 +18,7 @@ registerGame({
   id: 'modello',                 // unico, solo lettere minuscole, numeri e trattini
   title: 'MODELLO',              // nome nel catalogo (breve, maiuscolo)
   author: 'Il tuo nome',         // facoltativo: compare nella scheda
+  license: 'MIT',                // consigliato: la licenza con cui condividi il gioco (MIT, CC0, …)
   color: '#25c4f0',              // colore della cartuccia nel catalogo (#rrggbb)
   blurb: 'Muovi il quadrato con la croce, A cambia colore. Un esempio da copiare.',   // una o due frasi
   inputs: ['D-PAD', 'TOCCO'],    // etichette dei controlli; INCLINA, SWIPE e FLICK vengono evidenziate

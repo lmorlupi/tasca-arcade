@@ -36,7 +36,7 @@ Un gioco chiama `registerGame({ ... })` con questi campi:
 | `title` | sì | nome nel catalogo |
 | `size` | sì | `[larghezza, altezza]` del canvas |
 | `create(api)` | sì | crea il gioco e restituisce i suoi comandi |
-| `blurb`, `inputs`, `color`, `author`, `bg` | no | testo, etichette dei controlli, colore, autore, sfondo ai lati |
+| `blurb`, `inputs`, `color`, `author`, `license`, `bg` | no | testo, etichette dei controlli, colore, autore, licenza, sfondo ai lati |
 | `flexH` | no | l'altezza del canvas si adatta allo schermo (leggi `cv.height`) |
 | `tilt` | no | `true` se usa l'inclinazione: l'app chiede il permesso dei sensori |
 
@@ -63,6 +63,30 @@ direttamente sullo schermo. I giochi migliori usano **tocco diretto** (`onPointe
 - [ ] Funziona in verticale su un telefono (prova la larghezza 375 px) e senza errori nella console.
 - [ ] Il record si salva con `api.store`.
 - [ ] Il file è in `games/catalog.json` e ha un `id` nuovo.
+
+## Importare un gioco dall'app
+
+Nel catalogo il pulsante **+ IMPORTA UN GIOCO** permette di aggiungere un gioco da un link (file `.js`, anche «raw» di GitHub)
+o incollando il codice. Il gioco è lo stesso formato descritto sopra.
+
+- **Scatola isolata.** Un gioco importato gira in una finestra interna (`iframe` con `sandbox="allow-scripts"`) con regole
+  (CSP) che vietano rete, worker, form e frame. Non vede `localStorage`, cache, cookie né i file della console: parla con
+  la console solo per messaggi (tasti, suoni, vibrazione, record) e la console li limita e li controlla.
+  Provato con un gioco «cattivo» di prova: lettura dei dati della console, `fetch`, XHR, WebSocket, immagini e script
+  esterni, `eval`, worker, form, popup e navigazione della pagina risultano tutti bloccati.
+- **Prima di importare** il gioco gira nascosto solo per leggerne titolo, autore, licenza e dimensioni; poi compare una
+  scheda con l'avviso «di terzi, non verificato» e una casella da spuntare.
+- **Salvataggio.** Il codice resta sul telefono (anche offline); si può rimuovere dalla stessa schermata.
+- **Limiti.** Massimo 400 KB per gioco e 12 giochi importati. Un gioco che si blocca viene chiuso dopo pochi secondi.
+  Su iPhone non si può escludere che un ciclo infinito rallenti l'app: in quel caso chiudi e riapri.
+
+### Licenze e contenuti
+
+- **Importa solo giochi tuoi o con una licenza che lo permette.** Aggiungi nel gioco il campo `license` (per esempio
+  `'MIT'`, `'CC0'`): compare nella scheda. Senza licenza dichiarata il gioco, per legge, non si può riusare o ridistribuire.
+- **Giochi commerciali e copie non autorizzate** (per esempio i titoli Nintendo come Animal Crossing) **non si importano**:
+  non sono giochi web, richiederebbero un emulatore e copie illegali del gioco, e il progetto non li supporta.
+- Un gioco che usa nomi, personaggi, grafica o musiche di altri non entra nel catalogo principale.
 
 ## Aggiornamenti e offline
 
