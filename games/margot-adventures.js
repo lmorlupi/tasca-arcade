@@ -418,10 +418,11 @@ registerGame({
         for (const d of doors) {
           if (d.open) { d.t += dt; continue; }
           const dx = Math.abs(P.x - (d.c * T + T / 2));
-          if (dx < PW + T / 2 + 4 && !P.ground && GR * T - P.y > 20) {
+          const hh = GR * T - P.y;   // altezza dei piedi da terra: la maniglia sta a 34, il corpo di Margot e' alto 18
+          if (dx < PW + T / 2 + 5 && !P.ground && hh >= 4 && hh <= 46) {
             d.open = true; d.t = 0; for (let r = GR - 3; r < GR; r++) grid[r][d.c] = 0;
             score += 20; api.haptic(15); api.beep(520, 0.05, 'square', 0.05); setTimeout(() => api.beep(780, 0.1, 'triangle', 0.05), 70);
-            flash('MARGOT APRE LA PORTA!');
+            flash('MARGOT APRE LA PORTA!'); d.press = 1;
           } else if (dx < 80 && msgT <= 0 && !doorHint) { doorHint = true; flash('SALTA E TOCCA LA MANIGLIA!'); }
         }
         // il robot pulisci casa: parte dopo un po' e insegue Margot
@@ -623,13 +624,18 @@ registerGame({
         g.fillStyle = dg; g.fillRect(x, y - h, T, h);
         g.strokeStyle = 'rgba(90,58,34,.7)'; g.lineWidth = 1.2; g.strokeRect(x + 4, y - h + 6, T - 8, 24); g.strokeRect(x + 4, y - h + 36, T - 8, 26);
         const pulse = near ? 0.5 + Math.sin(time * 8) * 0.5 : 0;
-        if (near) { g.fillStyle = `rgba(255,236,160,${0.25 + pulse * 0.3})`; g.beginPath(); g.arc(x + T - 5, y - 34, 11, 0, 7); g.fill(); }
-        g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(x + T - 5, y - 34, 3.4, 0, 7); g.fill(); g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(x + T - 6, y - 35, 1.2, 0, 7); g.fill();
+        if (near) { g.fillStyle = `rgba(255,236,160,${0.25 + pulse * 0.3})`; g.beginPath(); g.arc(x + 9, y - 34, 13, 0, 7); g.fill(); }
+        // maniglia a leva (lato da cui arriva Margot)
+        g.fillStyle = '#8a6a1c'; g.beginPath(); g.arc(x + 5, y - 34, 4.6, 0, 7); g.fill();
+        g.strokeStyle = '#f2c94c'; g.lineWidth = 3.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(x + 5, y - 34); g.lineTo(x + 17, y - 34); g.stroke();
+        g.strokeStyle = '#fff3b0'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 7, y - 35.2); g.lineTo(x + 16, y - 35.2); g.stroke();
+        g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(x + 5, y - 34, 2.4, 0, 7); g.fill();
+        if (near) { g.fillStyle = '#e8455f'; g.beginPath(); const ay = y - 56 + Math.sin(time * 7) * 3; g.moveTo(x + 5, ay + 8); g.lineTo(x + 0, ay); g.lineTo(x + 10, ay); g.closePath(); g.fill(); }
       } else {
         g.fillStyle = 'rgba(30,22,36,.55)'; g.fillRect(x, y - h, T, h);
         const k = Math.min(1, d.t * 4), wdt = T * (1 - k) * 0.9 + 4;
         g.fillStyle = '#b57a47'; g.fillRect(x, y - h, wdt, h); g.fillStyle = '#d6a06a'; g.fillRect(x, y - h, 2, h);
-        g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(x + wdt - 2, y - 34, 2.4, 0, 7); g.fill();
+        g.strokeStyle = '#f2c94c'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(x + 3, y - 34); g.lineTo(x + 3 + Math.min(12, wdt - 2), y - 34 + 7); g.stroke();
       }
     };
 
