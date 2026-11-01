@@ -2,7 +2,7 @@ registerGame({
   id: 'flick-hoops',
   title: 'FLICK HOOPS',
   color: '#f58a25',
-  blurb: 'Lancia la palla con uno scatto del dito verso il canestro. Più forte e dritto scatti, meglio va. 60 secondi, il canestro si muove.',
+  blurb: 'Scatta col dito verso il canestro: vedi la traiettoria mentre trascini. Ogni tiro parte da un punto diverso, il canestro si muove, il tabellone vale doppio e tre canestri di fila ti mettono IN FIAMME: punti doppi. Ogni canestro regala secondi.',
   inputs: ['FLICK', 'TOCCO DIRETTO'],
   size: [360, 620],
   bg: '#141a2e',
@@ -16,13 +16,17 @@ registerGame({
     const HY = START.y - 340;
 
     let hi = api.store.get('hi', 0);
-    let state = 'ready', score = 0, timeLeft = 60, streak = 0, best = 0;
+    let state = 'ready', score = 0, timeLeft = 45, streak = 0, best = 0, fire = false, shakeT = 0, bankHit = false, lastSlot = 1, parts = [];
     let ball, hoop, shotT = 0, netWobble = 0, msg = '', msgT = 0, rimHit = false, scored = false;
     let drag = null, trail = [];
 
     const resetHoop = () => { hoop = { x: W / 2, y: HY, base: W / 2, amp: 0, t: 0 }; };
-    const newBall = () => { ball = { x: START.x, y: START.y, vx: 0, vy: 0, fly: false, pop: 0 }; rimHit = false; scored = false; };
-    const newGame = () => { score = 0; timeLeft = 60; streak = 0; best = 0; resetHoop(); newBall(); state = 'ready'; };
+    const newBall = () => {
+      let slot = (Math.random() * 3) | 0; if (slot === lastSlot && Math.random() < 0.7) slot = (slot + 1 + ((Math.random() * 2) | 0)) % 3; lastSlot = slot;
+      START.x = [W * 0.2, W * 0.5, W * 0.8][slot];
+      ball = { x: START.x, y: START.y, vx: 0, vy: 0, fly: false, pop: 0 }; rimHit = false; scored = false; bankHit = false;
+    };
+    const newGame = () => { score = 0; timeLeft = 45; streak = 0; best = 0; fire = false; parts = []; resetHoop(); newBall(); state = 'ready'; };
     const flash = s => { msg = s; msgT = 0.9; };
 
     const endGame = () => {
@@ -32,14 +36,20 @@ registerGame({
     };
 
     // Lancio: piccolo aiuto sull'asse orizzontale, così lo scatto non deve essere perfetto.
-    const launch = (vx, vy) => {
-      if (vy > -380) return false;
+    const aim = (vx, vy) => {
       const dy = START.y - hoop.y;
       const disc = vy * vy - 2 * GRAV * dy;
-      if (disc > 0) {
-        const t = (-vy + Math.sqrt(disc)) / GRAV;
-        vx = vx * 0.6 + ((hoop.x - START.x) / t) * 0.4;
-      }
+      if (disc > 0) { const t = (-vy + Math.sqrt(disc)) / GRAV; vx = vx * 0.6 + ((hoop.x - START.x) / t) * 0.4; }
+      return vx;
+    };
+    const flickVel = (last) => {
+      const old = trail.find(p => last.t - p.t < 110) || trail[0];
+      const dt = Math.max(16, last.t - old.t) / 1000, k = 0.62;
+      return [((last.x - old.x) / dt) * k, ((last.y - old.y) / dt) * k];
+    };
+    const launch = (vx, vy) => {
+      if (vy > -380) return false;
+      vx = aim(vx, vy);
       ball.vx = vx; ball.vy = vy; ball.fly = true; shotT = 0; rimHit = false; scored = false;
       if (state === 'ready') state = 'play';
       api.haptic(8); api.beep(300, 0.05, 'triangle', 0.05);
@@ -61,10 +71,8 @@ registerGame({
         if (e.cancelled) return;
         trail.push({ x: e.x, y: e.y, t: e.t });
         const last = trail[trail.length - 1];
-        const old = trail.find(p => last.t - p.t < 110) || trail[0];
-        const dt = Math.max(16, last.t - old.t) / 1000;
-        const k = 0.62;
-        launch(((last.x - old.x) / dt) * k, ((last.y - old.y) / dt) * k);
+        const [fvx, fvy] = flickVel(last);
+        launch(fvx, fvy);
       }
     };
 
@@ -76,17 +84,19 @@ registerGame({
       } else if (k === 'select') newGame();
     };
 
+    const burst = (x, y, n, c) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = 80 + Math.random() * 220; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, t: 0.5 + Math.random() * 0.5, c: i % 3 ? c : ['#ff5a8a', '#6fffa0', '#6fc8ff', '#fff'][i % 4], s: 3 + Math.random() * 3 }); } };
     const rimPoints = () => [[hoop.x - HOOP_HALF, hoop.y], [hoop.x + HOOP_HALF, hoop.y]];
 
     const update = dt => {
-      msgT = Math.max(0, msgT - dt);
+      msgT = Math.max(0, msgT - dt); shakeT = Math.max(0, shakeT - dt);
+      parts.forEach(q => { q.t -= dt; q.vy += 500 * dt; q.x += q.vx * dt; q.y += q.vy * dt; }); parts = parts.filter(q => q.t > 0);
       netWobble = Math.max(0, netWobble - dt * 2);
       ball.pop = Math.max(0, ball.pop - dt * 4);
 
       if (state === 'play' || state === 'ready') {
         hoop.t += dt;
         const lvl = Math.min(score / 2, 12);
-        hoop.amp = lvl >= 3 ? Math.min(100, (lvl - 2) * 12) : 0;
+        hoop.amp = lvl >= 1.5 ? Math.min(100, (lvl - 1) * 12) : 0;
         hoop.x = hoop.base + Math.sin(hoop.t * (1.2 + lvl * 0.08)) * hoop.amp;
         hoop.y = HY + (lvl >= 8 ? Math.sin(hoop.t * 1.7) * 30 : 0);
       }
@@ -112,19 +122,26 @@ registerGame({
             if (vn < 0) { ball.vx -= 1.55 * vn * nx; ball.vy -= 1.55 * vn * ny; rimHit = true; api.haptic(8); api.beep(240, 0.04, 'square', 0.04); }
           }
         }
+        // tabellone: tocca il quadrato rosso e il tiro vale doppio
+        if (!bankHit && ball.vy < 0 && Math.abs(ball.x - hoop.x) < 26 && ball.y < hoop.y - 12 && ball.y > hoop.y - 52 && ball.y > hoop.y - 90) { bankHit = true; ball.vy *= 0.55; ball.vx *= 0.5; api.haptic(10); api.beep(420, 0.05, 'triangle', 0.06); burst(ball.x, ball.y, 6, '#ffffff'); }
+        if (fire && ball.fly && ((shotT * 60) | 0) % 2 === 0) parts.push({ x: ball.x + (Math.random() - 0.5) * 10, y: ball.y + 6, vx: (Math.random() - 0.5) * 30, vy: 40 + Math.random() * 40, t: 0.4, c: Math.random() < 0.5 ? '#ffd24a' : '#ff6a2a', s: 4 });
         // canestro: la palla attraversa l'anello dall'alto
         if (!scored && prevY < hoop.y && ball.y >= hoop.y && ball.vy > 0 && Math.abs(ball.x - hoop.x) < HOOP_HALF - 8) {
           scored = true; netWobble = 1;
           const swish = !rimHit;
           streak++; best = Math.max(best, streak);
-          const pts = (swish ? 3 : 2) + (streak >= 3 ? 1 : 0);
-          score += pts;
-          flash(swish ? 'SWISH +' + pts : '+' + pts);
+          const far = Math.abs(START.x - hoop.base) > 100;
+          let pts = (swish ? 3 : 2) + (far ? 1 : 0) + (bankHit ? 2 : 0);
+          if (streak >= 3 && !fire) { fire = true; flash('IN FIAMME!'); api.haptic(40); }
+          if (fire) pts *= 2;
+          score += pts; timeLeft = Math.min(60, timeLeft + (swish ? 2 : 1));
+          shakeT = swish ? 0.3 : 0.15; burst(hoop.x, hoop.y + 8, swish ? 26 : 14, fire ? '#ff9a2a' : '#ffe27a');
+          flash((bankHit ? 'TABELLONE ' : swish ? 'SWISH ' : far ? 'DA LONTANO ' : '') + '+' + pts + (fire ? ' 🔥' : ''));
           api.haptic(swish ? 30 : 18); api.beep(swish ? 988 : 784, 0.12);
           if (swish) setTimeout(() => api.beep(1318, 0.12), 90);
         }
         if (ball.y > H + 40 || (shotT > 0.4 && ball.vy > 0 && ball.y > START.y + 30)) {
-          if (!scored) { streak = 0; }
+          if (!scored) { streak = 0; fire = false; }
           newBall(); ball.pop = 1;
         }
         if (scored && ball.y > hoop.y + 120) { newBall(); ball.pop = 1; }
@@ -155,6 +172,7 @@ registerGame({
     };
 
     const render = () => {
+      g.save(); if (shakeT > 0) g.translate((Math.random() - 0.5) * shakeT * 20, (Math.random() - 0.5) * shakeT * 20);
       const wl = g.createLinearGradient(0, 0, 0, H); wl.addColorStop(0, '#141a3a'); wl.addColorStop(0.7, '#2a3566'); wl.addColorStop(1, '#3a4585'); g.fillStyle = wl; g.fillRect(0, 0, W, H);
       for (const lx of [W * 0.2, W * 0.8]) { const sp = g.createRadialGradient(lx, 0, 4, lx, 0, H * 0.7); sp.addColorStop(0, 'rgba(255,240,200,.18)'); sp.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = sp; g.fillRect(0, 0, W, H); }
       g.fillStyle = 'rgba(255,255,255,.04)'; for (let x = 0; x < W; x += 40) g.fillRect(x, H * 0.45, 20, H * 0.2);
@@ -190,23 +208,29 @@ registerGame({
       if (!ball.fly) {
         g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(ball.x, ball.y + BR + 6, BR, 6, 0, 0, 7); g.fill();
       }
+      if (fire) { const fg = g.createRadialGradient(ball.x, ball.y, r * 0.5, ball.x, ball.y, r * 2.4); fg.addColorStop(0, 'rgba(255,200,60,.7)'); fg.addColorStop(1, 'rgba(255,80,20,0)'); g.fillStyle = fg; g.beginPath(); g.arc(ball.x, ball.y, r * 2.4, 0, 7); g.fill(); }
       drawBall(ball.x, ball.y, r);
 
       // guida dello scatto
       if (drag && trail.length > 1) {
-        g.strokeStyle = 'rgba(245,211,28,.7)'; g.lineWidth = 3; g.beginPath();
-        g.moveTo(trail[0].x, trail[0].y); trail.forEach(p => g.lineTo(p.x, p.y)); g.stroke();
+        const [fvx, fvy] = flickVel(trail[trail.length - 1]);
+        if (fvy < -380) {
+          const vx0 = aim(fvx, fvy); let px = ball.x, py = ball.y, vx = vx0, vy = fvy;
+          for (let i = 0; i < 26; i++) { for (let k = 0; k < 3; k++) { vy += GRAV * 0.016 / 3; px += vx * 0.016 / 3; py += vy * 0.016 / 3; } if (py > H) break; g.fillStyle = 'rgba(255,230,120,' + (0.85 - i * 0.03) + ')'; g.beginPath(); g.arc(px, py, 3.2 - i * 0.05, 0, 7); g.fill(); }
+        } else { g.fillStyle = 'rgba(255,230,120,.9)'; g.font = 'bold 12px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText('PIU\' FORTE!', ball.x, ball.y - 40); }
       }
-      if (state === 'ready' && !ball.fly) text('SCATTA VERSO L\'ALTO', W / 2, START.y - 120, 14, 'center', '#f5d31c');
+      parts.forEach(q => { g.globalAlpha = Math.max(0, Math.min(1, q.t * 2)); g.fillStyle = q.c; g.fillRect(q.x - q.s / 2, q.y - q.s / 2, q.s, q.s); }); g.globalAlpha = 1;
+      if (state === 'ready' && !ball.fly) text('SCATTA VERSO L\'ALTO · TABELLONE = PUNTI DOPPI', W / 2, START.y - 120, 11, 'center', '#f5d31c');
 
       // intestazione
       text('PUNTI ' + score, 10, 8, 16);
       text(Math.ceil(timeLeft) + 's', W / 2, 8, 16, 'center', timeLeft < 10 ? '#e5413b' : PAL[3]);
-      text('SERIE ' + streak, W - 10, 8, 16, 'right', streak >= 3 ? '#f5d31c' : PAL[3]);
+      text((fire ? 'IN FIAMME x2 ' : 'SERIE ') + streak, W - 10, 8, 16, 'right', fire ? '#ff9a2a' : streak >= 3 ? '#f5d31c' : PAL[3]);
       if (msgT > 0) text(msg, W / 2, 40, 22, 'center', '#f5d31c');
 
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['TEMPO!', 'PUNTI ' + score, 'MIGLIOR SERIE ' + best, 'TOCCA']);
+      g.restore();
     };
 
     newGame();
