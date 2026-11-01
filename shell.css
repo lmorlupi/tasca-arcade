@@ -5,9 +5,7 @@
   --screen-bg: #0b1020;
   --ink: #eef1ff;
   --muted: #aab3d8;
-  --rubber: radial-gradient(circle at 35% 28%, #5d5d6c 0%, #3d3d49 55%, #2b2b34 100%);
-  --rubber-down: radial-gradient(circle at 50% 38%, #2c2c35 0%, #23232b 100%);
-  --spring: cubic-bezier(.3, 1.7, .5, 1);
+  --spring: cubic-bezier(.25, 1.9, .45, 1);
 }
 html[data-shell="teal"]      { --shell: #2fb3a8; --shell-dark: #1f8a81; }
 html[data-shell="berry"]     { --shell: #d6456f; --shell-dark: #a82f53; }
@@ -28,76 +26,80 @@ button { touch-action: none; cursor: pointer; font: inherit; }
   width: min(96vw, 400px);
   background: var(--shell);
   border-radius: 14px 14px 56px 14px;
-  padding: 14px 14px 22px;
+  padding: 12px 12px 20px;
   box-shadow: inset -4px -4px 0 var(--shell-dark), 0 10px 30px rgba(0,0,0,.6);
 }
-.bezel { background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 4px 8px 8px; }
-.topline { display: flex; align-items: center; gap: 8px; height: 30px; margin-bottom: 2px; }
-.led { width: 6px; height: 6px; border-radius: 50%; background: #e5413b; flex: 0 0 auto; }
-.brand {
-  flex: 1; border: 0; background: none; padding: 0; color: #e4e2f0; text-align: center;
-  font-style: italic; font-weight: 800; font-size: 14px; letter-spacing: .24em;
-}
-.brand b { color: #ffe27a; font-weight: 800; }
-.home {
-  flex: 0 0 auto; width: 32px; height: 24px; border: 0; border-radius: 6px;
-  background: rgba(255,255,255,.14); color: #e4e2f0; font-size: 15px; line-height: 1; padding: 0;
-}
-.home:active { filter: brightness(.7); }
+.bezel { position: relative; background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 6px 5px 6px; }
+.bezel::before { content: ''; position: absolute; left: 9px; top: 2px; width: 4px; height: 4px; border-radius: 50%; background: #e5413b; }
 .screen { position: relative; background: var(--screen-bg); border: 2px solid #1a1a22; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; touch-action: none; }
 canvas.off { display: none; }
 
-/* Comandi. Il riscontro è immediato alla pressione; il ritorno ha un piccolo rimbalzo, come la gomma. */
-.pad { position: relative; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 0 4px; }
-.dpad { position: relative; width: 124px; height: 124px; touch-action: none; }
+/* Comandi. Alla pressione il tasto scende subito; al rilascio torna su con un piccolo rimbalzo, come la gomma. */
+.pad { position: relative; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 0 2px; touch-action: none; }
+
+.dpad { position: relative; width: 116px; height: 116px; touch-action: none; isolation: isolate; }
 .dpad::before { content: ''; position: absolute; inset: -14px -10px -14px -14px; }
-.dpad .cross { position: absolute; inset: 0; transform: perspective(260px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .14s var(--spring); }
-.dpad.down .cross { transition: transform .03s linear; }
-.dpad button {
-  position: absolute; width: 42px; height: 42px; border: 0; padding: 0; pointer-events: none;
-  background: linear-gradient(#52525f, #373742); color: #a8a8b6; font-size: 13px;
-  box-shadow: inset 0 2px 0 rgba(255,255,255,.14), inset 0 -3px 0 rgba(0,0,0,.4);
-  transition: filter .12s var(--spring), transform .12s var(--spring);
+.dpad::after {
+  content: ''; position: absolute; inset: -5px; border-radius: 50%; z-index: -1;
+  background: radial-gradient(circle, rgba(0,0,0,.2) 0 66%, rgba(0,0,0,.08) 100%);
+  box-shadow: inset 0 3px 5px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.18);
 }
-.dpad button.on { filter: brightness(.55); transform: translateY(1px); transition: none; }
-.dpad .up { left: 41px; top: 0; border-radius: 6px 6px 0 0; }
-.dpad .down { left: 41px; top: 82px; border-radius: 0 0 6px 6px; }
-.dpad .left { left: 0; top: 41px; border-radius: 6px 0 0 6px; }
-.dpad .right { left: 82px; top: 41px; border-radius: 0 6px 6px 0; }
-.dpad .mid { position: absolute; left: 41px; top: 41px; width: 42px; height: 42px; background: #3f3f4b; }
+.dpad .cross { position: absolute; inset: 0; transform: perspective(240px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .16s var(--spring); }
+.dpad.down .cross { transition: transform .025s linear; }
+.dpad button {
+  position: absolute; width: 39px; height: 39px; border: 0; padding: 0; pointer-events: none;
+  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #9d9dac; font-size: 12px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.16), inset 0 -3px 0 rgba(0,0,0,.45), 0 3px 3px rgba(0,0,0,.35);
+  transition: filter .14s var(--spring), transform .14s var(--spring);
+}
+.dpad button.on { filter: brightness(.55); transform: translateY(2px) scale(.97); transition: none; }
+.dpad .up { left: 38.5px; top: 0; border-radius: 7px 7px 0 0; }
+.dpad .down { left: 38.5px; top: 77px; border-radius: 0 0 7px 7px; }
+.dpad .left { left: 0; top: 38.5px; border-radius: 7px 0 0 7px; }
+.dpad .right { left: 77px; top: 38.5px; border-radius: 0 7px 7px 0; }
+.dpad .mid { position: absolute; left: 38.5px; top: 38.5px; width: 39px; height: 39px; background: #3d3d48; }
 .dpad .mid::after {
-  content: ''; position: absolute; inset: 11px; border-radius: 50%;
-  background: radial-gradient(circle at 50% 60%, #33333d, #44444f); box-shadow: inset 0 2px 3px rgba(0,0,0,.55);
+  content: ''; position: absolute; inset: 10px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, #2f2f39, #474753); box-shadow: inset 0 2px 3px rgba(0,0,0,.6);
 }
 
-.ab { position: relative; width: 124px; height: 90px; transform: rotate(-22deg); touch-action: none; }
+.ab {
+  position: relative; width: 120px; height: 86px; transform: rotate(-22deg); touch-action: none;
+  /* le due conche nella scocca, dove sta il pollice */
+  background:
+    radial-gradient(circle at 30px 57px, rgba(0,0,0,.22) 0 30px, transparent 31px),
+    radial-gradient(circle at 90px 31px, rgba(0,0,0,.22) 0 30px, transparent 31px);
+}
 .ab::before { content: ''; position: absolute; inset: -18px -14px; }
 .ab button {
-  position: absolute; width: 54px; height: 54px; border-radius: 50%; border: 0; pointer-events: none;
-  background: var(--rubber); color: #cfd0dc; font-weight: 800; font-size: 16px;
-  box-shadow: inset -2px -3px 0 rgba(0,0,0,.35), inset 2px 2px 0 rgba(255,255,255,.1), 0 5px 0 rgba(0,0,0,.4), 0 6px 6px rgba(0,0,0,.25);
-  transition: transform .14s var(--spring), box-shadow .14s var(--spring), background .14s;
+  position: absolute; width: 52px; height: 52px; border-radius: 50%; border: 0; pointer-events: none;
+  background: radial-gradient(120% 120% at 32% 22%, #707080 0%, #4a4a57 36%, #30303a 70%, #24242c 100%);
+  color: #d2d2de; font-weight: 800; font-size: 16px; text-shadow: 0 1px 0 rgba(0,0,0,.5);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.24), inset 0 -4px 6px rgba(0,0,0,.45), 0 6px 0 #1b1b22, 0 8px 8px rgba(0,0,0,.4);
+  transition: transform .16s var(--spring), box-shadow .16s var(--spring), background .16s;
 }
 .ab button.on {
-  transform: translateY(4px) scale(.95); background: var(--rubber-down);
-  box-shadow: inset 0 3px 6px rgba(0,0,0,.6), 0 1px 0 rgba(0,0,0,.4); transition: none;
+  transform: translateY(5px) scale(.96, .93);
+  background: radial-gradient(120% 120% at 50% 35%, #34343e 0%, #2a2a33 60%, #22222a 100%);
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.7), 0 1px 0 #1b1b22, 0 2px 3px rgba(0,0,0,.35); transition: none;
 }
-.ab .b { left: 4px; top: 34px; }
-.ab .a { left: 68px; top: 10px; }
+.ab .b { left: 4px; top: 31px; }
+.ab .a { left: 64px; top: 5px; }
 
-/* Select e Start: piccoli, al centro, in fondo, per lasciare spazio al gioco. */
-.meta { position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 0; z-index: 2; }
+/* Menu, Select e Start: piccoli, in colonna al centro, per lasciare spazio al gioco. */
+.meta { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); display: flex; flex-direction: column; z-index: 2; }
 .meta button {
-  display: flex; align-items: center; gap: 5px; border: 0; background: none; padding: 5px 8px; color: #fff;
+  display: flex; align-items: center; gap: 5px; border: 0; background: none; padding: 4px 8px; color: #fff;
   font-size: 11px; font-weight: 700; letter-spacing: .1em; text-shadow: 0 1px 0 rgba(0,0,0,.35); white-space: nowrap;
 }
 .meta .pill {
   display: block; width: 30px; height: 11px; border-radius: 6px; transform: rotate(-22deg);
-  background: linear-gradient(var(--shell-dark), #3f2c6b); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 0 rgba(0,0,0,.35);
-  transition: transform .14s var(--spring), box-shadow .14s var(--spring);
+  background: linear-gradient(#6a4ca6, var(--shell-dark) 45%, #3f2c6b);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 3px 0 rgba(0,0,0,.4);
+  transition: transform .16s var(--spring), box-shadow .16s var(--spring);
 }
-.meta button.on .pill { transform: rotate(-22deg) translateY(2px); box-shadow: inset 0 2px 3px rgba(0,0,0,.5); transition: none; }
+.meta button.on .pill, .meta .home:active .pill { transform: rotate(-22deg) translateY(3px); box-shadow: inset 0 2px 3px rgba(0,0,0,.55); transition: none; }
 
 .hap { position: fixed; left: -100px; top: 0; opacity: 0; pointer-events: none; }
 
@@ -120,7 +122,11 @@ canvas.off { display: none; }
 }
 .menu.off { display: none; }
 .menu header { display: flex; align-items: center; justify-content: space-between; margin: 2px 2px 10px; }
-.menu h1 { margin: 0; font-size: 13px; letter-spacing: .18em; }
+.menu .brand {
+  border: 0; background: none; padding: 0; color: var(--ink); touch-action: manipulation;
+  font-style: italic; font-weight: 800; font-size: 16px; letter-spacing: .24em;
+}
+.menu .brand b { color: #ffe27a; font-weight: 800; }
 .menu .snd { border: 0; background: rgba(255,255,255,.1); color: var(--ink); border-radius: 6px; padding: 4px 8px; font-size: 11px; touch-action: manipulation; }
 .menu .tip { margin: 0 2px 10px; padding: 8px 10px; border-radius: 8px; background: rgba(255,226,122,.12); color: #ffe27a; font-size: 11px; line-height: 1.4; }
 .cart {
@@ -144,13 +150,13 @@ canvas.off { display: none; }
   .gbc {
     position: fixed; inset: 0; width: 100%; height: 100%; border-radius: 0; box-shadow: none;
     display: flex; flex-direction: column;
-    padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
-             max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    padding: max(4px, env(safe-area-inset-top)) max(5px, env(safe-area-inset-right))
+             max(8px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
   }
   .bezel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border-radius: 8px 8px 28px 8px; }
   .screen { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
   canvas { width: auto; height: auto; max-width: 100%; max-height: 100%; }
-  .pad { flex: 0 0 auto; margin-top: 8px; margin-bottom: 6px; }
+  .pad { flex: 0 0 auto; margin-top: 8px; margin-bottom: 4px; }
 }
 @media (min-width: 521px) {
   .screen { height: 480px; display: flex; align-items: center; justify-content: center; }

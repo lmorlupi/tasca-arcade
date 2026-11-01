@@ -4,7 +4,7 @@ registerGame({
   color: '#25c4f0',
   blurb: 'Incastra i pezzi e completa le righe. Tocca per ruotare, trascina per spostare, scatta in basso per far cadere.',
   inputs: ['SWIPE', 'TAP', 'D-PAD'],
-  size: [340, 668],
+  size: [340, 626],
   create(api) {
     const { cv, g } = api;
     const COLS = 10, ROWS = 18, S = 4, C = 8 * S;
@@ -160,7 +160,7 @@ registerGame({
     };
 
     // Disegno: campo a tutta larghezza, striscia con i dati in alto.
-    const FX = 10, FY = 86, FW = COLS * C, FH = ROWS * C;
+    const FX = 10, FY = 46, FW = COLS * C, FH = ROWS * C;
     const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
     const cell = (px, py, type, size = C) => {
       const u = size / 8;
@@ -199,17 +199,15 @@ registerGame({
       if (state === 'title') { drawTitle(); return; }
 
       // dati
-      text('LIVELLO', 14, 8, 13, 'left', '#aab3d8'); text(String(level), 14, 24, 28);
-      text('RIGHE', 106, 8, 13, 'left', '#aab3d8');   text(String(lines), 106, 24, 28);
-      text('PUNTI', 188, 8, 13, 'left', '#aab3d8');   text(String(score), 188, 24, 28);
-      text('RECORD ' + hi, 14, 60, 14, 'left', '#aab3d8');
-      rect(268, 8, 66, 66, PAL[3]); rect(270, 10, 62, 62, PAL[0]);
+      text('LV ' + level, 12, 6, 16); text('RIGHE ' + lines, 66, 6, 16); text('PUNTI ' + score, 160, 6, 16);
+      text('RECORD ' + hi, 12, 27, 12, 'left', '#aab3d8');
+      rect(274, 4, 58, 34, PAL[3]); rect(276, 6, 54, 30, PAL[0]);
       const nm = next.m.filter(r => r.some(v => v));
       const nc = Math.max(...next.m.map(r => r.lastIndexOf(1))) + 1;
       const first = Math.min(...next.m.map(r => r.indexOf(1)).filter(i => i >= 0));
-      const w = nc - first, h = nm.length, cs = 14;
+      const w = nc - first, h = nm.length, cs = 10;
       nm.forEach((row, r) => row.forEach((v, c) => {
-        if (v) cell(270 + (62 - w * cs) / 2 + (c - first) * cs, 10 + (62 - h * cs) / 2 + r * cs, next.t, cs);
+        if (v) cell(276 + (54 - w * cs) / 2 + (c - first) * cs, 6 + (30 - h * cs) / 2 + r * cs, next.t, cs);
       }));
 
       // campo

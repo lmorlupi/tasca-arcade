@@ -4,20 +4,21 @@ registerGame({
   color: '#f58a25',
   blurb: 'Lancia la palla con uno scatto del dito verso il canestro. Più forte e dritto scatti, meglio va. 60 secondi, il canestro si muove.',
   inputs: ['FLICK', 'TOCCO DIRETTO'],
-  size: [360, 540],
+  size: [360, 620],
   create(api) {
     const { cv, g } = api;
     const W = cv.width, H = cv.height;
     const GRAV = 1400, BR = 20, HOOP_HALF = 40, RIM_R = 4;
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
     const START = { x: W / 2, y: H - 70 };
+    const HY = START.y - 340;
 
     let hi = api.store.get('hi', 0);
     let state = 'ready', score = 0, timeLeft = 60, streak = 0, best = 0;
     let ball, hoop, shotT = 0, netWobble = 0, msg = '', msgT = 0, rimHit = false, scored = false;
     let drag = null, trail = [];
 
-    const resetHoop = () => { hoop = { x: W / 2, y: 130, base: W / 2, amp: 0, t: 0 }; };
+    const resetHoop = () => { hoop = { x: W / 2, y: HY, base: W / 2, amp: 0, t: 0 }; };
     const newBall = () => { ball = { x: START.x, y: START.y, vx: 0, vy: 0, fly: false, pop: 0 }; rimHit = false; scored = false; };
     const newGame = () => { score = 0; timeLeft = 60; streak = 0; best = 0; resetHoop(); newBall(); state = 'ready'; };
     const flash = s => { msg = s; msgT = 0.9; };
@@ -85,7 +86,7 @@ registerGame({
         const lvl = Math.min(score / 2, 12);
         hoop.amp = lvl >= 3 ? Math.min(100, (lvl - 2) * 12) : 0;
         hoop.x = hoop.base + Math.sin(hoop.t * (1.2 + lvl * 0.08)) * hoop.amp;
-        hoop.y = 130 + (lvl >= 8 ? Math.sin(hoop.t * 1.7) * 30 : 0);
+        hoop.y = HY + (lvl >= 8 ? Math.sin(hoop.t * 1.7) * 30 : 0);
       }
       if (state === 'play') {
         timeLeft -= dt;

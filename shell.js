@@ -46,15 +46,26 @@
     } catch (e) {}
   };
 
-  // Clic meccanico dei tasti: un breve soffio di rumore filtrato, più secco alla pressione.
-  const click = down => {
+  // Clic meccanico dei tasti: un tic di rumore filtrato più un colpo sordo. La pressione è più secca e forte
+  // del rilascio; croce (plastica dura), A/B (gomma) e Select/Start (gomma morbida) hanno un timbro diverso.
+  const CLICK = {
+    pad:  { tick: 2600, thump: 150, tickGain: 0.34, thumpGain: 0.22 },
+    ab:   { tick: 1500, thump: 95,  tickGain: 0.28, thumpGain: 0.32 },
+    meta: { tick: 950,  thump: 70,  tickGain: 0.2,  thumpGain: 0.26 },
+  };
+  const click = (down, kind = 'ab') => {
     if (muted || !ac) return;
     try {
-      const n = (ac.sampleRate * 0.022) | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      const c = CLICK[kind], t = ac.currentTime, k = down ? 1 : 0.45;
+      const n = (ac.sampleRate * 0.018) | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
       for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
-      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain();
-      s.buffer = buf; f.type = 'bandpass'; f.frequency.value = down ? 1700 : 2600; gn.gain.value = down ? 0.3 : 0.14;
-      s.connect(f); f.connect(gn); gn.connect(ac.destination); s.start();
+      const s1 = ac.createBufferSource(), f = ac.createBiquadFilter(), g1 = ac.createGain();
+      s1.buffer = buf; f.type = 'bandpass'; f.frequency.value = c.tick * (down ? 1 : 1.25); f.Q.value = 1.2;
+      g1.gain.value = c.tickGain * k; s1.connect(f); f.connect(g1); g1.connect(ac.destination); s1.start(t);
+      const o = ac.createOscillator(), g2 = ac.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(c.thump * (down ? 1.4 : 1), t); o.frequency.exponentialRampToValueAtTime(c.thump * 0.6, t + 0.04);
+      g2.gain.setValueAtTime(c.thumpGain * k, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      o.connect(g2); g2.connect(ac.destination); o.start(t); o.stop(t + 0.06);
     } catch (e) {}
   };
 
@@ -73,7 +84,7 @@
   const feel = (k, down) => {
     const pad = k === 'left' || k === 'right' || k === 'up' || k === 'down';
     haptic(down ? (pad ? 5 : 10) : 3);
-    click(down);
+    click(down, pad ? 'pad' : (k === 'a' || k === 'b') ? 'ab' : 'meta');
   };
 
   // Inclinazione: giroscopio dell'iPhone; senza sensori ripiega sulla croce direzionale.
@@ -127,7 +138,7 @@
   const renderMenu = () => {
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><h1>CATALOGO</h1><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></header>${tip}` +
+    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">GAME<b>BOY</b></button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></header>${tip}` +
       games.map((d, i) => {
         const rec = ls.get(d.id + ':hi', 0);
         return `<button class="cart${i === sel ? ' sel' : ''}" data-i="${i}" style="--c:${d.color}">
@@ -137,6 +148,11 @@
       }).join('');
   };
   menuEl.addEventListener('click', e => {
+    if (e.target.closest('#brand')) {
+      setShell(SHELLS[(SHELLS.indexOf(document.documentElement.dataset.shell) + 1) % SHELLS.length]);
+      beep(700, 0.05); haptic(8);
+      return;
+    }
     const snd = e.target.closest('#snd');
     if (snd) { muted = !muted; ls.set('mute', muted); audioUnlock(); snd.textContent = muted ? 'SUONO OFF' : 'SUONO ON'; beep(660, 0.05); return; }
     const c = e.target.closest('.cart');
@@ -304,11 +320,6 @@
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--shell').trim();
   };
-  $('brand').addEventListener('click', () => {
-    setShell(SHELLS[(SHELLS.indexOf(document.documentElement.dataset.shell) + 1) % SHELLS.length]);
-    beep(700, 0.05); haptic(8);
-  });
-
   // Avvio
   const COLORS = ['#e5413b', '#f58a25', '#f5d31c', '#4cc24a', '#25c4f0', '#3d5fe0', '#a655b8'];
   const buildLogo = () => {
