@@ -193,7 +193,7 @@ canvas.off { display: none; }
 }
 .menu .impOut { margin: 10px 2px; font-size: 12px; line-height: 1.45; color: var(--ink); }
 .menu .impOut .warn, .menu .warn { color: #ffb4a8; }
-.menu .impCard { padding: 12px; border-left: 6px solid var(--c); border-radius: 8px; background: #1b2444; }
+.menu .impCard { padding: 12px; border: 2px solid var(--c); border-radius: 8px; background: #1b2444; }
 .menu .impCard small { color: var(--muted); }
 .menu .impCard .chk { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 4px; font-size: 12px; line-height: 1.4; }
 .menu .impCard .chk input { flex: 0 0 auto; width: 22px; height: 22px; margin: 0; }
