@@ -108,7 +108,7 @@ registerGame({
     const render = () => {
       g.fillStyle = '#081a30'; g.fillRect(0, 0, CW, CH);
       g.save(); g.translate(OX, OY); g.scale(S, S);
-      const bg = g.createRadialGradient(VW / 2, 300, 20, VW / 2, 300, 430); bg.addColorStop(0, '#1d5a8a'); bg.addColorStop(1, '#0c2a4a'); g.fillStyle = bg; g.fillRect(0, 0, VW, VH);
+      Cards.felt(g, VW, VH, '#2a6f9f', '#0a2646');
       if (state === 'title') {
         text('SCOPA', VW / 2, 120, 50, 'center', '#ffe66a');
         Cards.draw(g, { s: 0, n: 7 }, 70, 200, 70, { angle: -0.15 }); Cards.draw(g, { s: 2, n: 3 }, 140, 192, 70, { angle: -0.03 }); Cards.draw(g, { s: 1, n: 4 }, 210, 192, 70, { angle: 0.1 });

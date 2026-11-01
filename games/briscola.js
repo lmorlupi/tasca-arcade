@@ -60,7 +60,8 @@ registerGame({
       state = 'play'; wait = 0.5;
     };
     const play = (who, i) => {
-      const c = (who === 'P' ? hand : cpuHand).splice(i, 1)[0]; table.push({ c, who });
+      const from = who === 'P' ? (() => { const r = cardRect(i); return [r.x, r.y, r.w]; })() : [105 + i * 52, 52, 52];
+      const c = (who === 'P' ? hand : cpuHand).splice(i, 1)[0]; table.push({ c, who, from, t0: time });
       api.beep(who === 'P' ? 420 : 360, 0.04, 'square', 0.08); api.beep(1700, 0.01, 'square', 0.04);
       if (table.length === 2) { state = 'show'; wait = 1.1; } else turn = who === 'P' ? 'C' : 'P';
     };
@@ -96,8 +97,7 @@ registerGame({
     const render = () => {
       g.fillStyle = '#0a2a1c'; g.fillRect(0, 0, CW, CH);
       g.save(); g.translate(OX, OY); g.scale(S, S);
-      const bg = g.createRadialGradient(VW / 2, 300, 20, VW / 2, 300, 420); bg.addColorStop(0, '#1d6a44'); bg.addColorStop(1, '#0c3a26'); g.fillStyle = bg; g.fillRect(0, 0, VW, VH);
-      g.strokeStyle = 'rgba(255,255,255,.06)'; g.lineWidth = 1; for (let i = 0; i < VH; i += 22) { g.beginPath(); g.moveTo(0, i); g.lineTo(VW, i); g.stroke(); }
+      Cards.felt(g, VW, VH, '#2a7a4a', '#0c3a22');
       if (state === 'title') {
         text('BRISCOLA', VW / 2, 120, 44, 'center', '#ffe66a');
         Cards.draw(g, { s: 0, n: 1 }, 60, 200, 70, { angle: -0.18 }); Cards.draw(g, { s: 1, n: 3 }, 120, 190, 70, { angle: -0.06 }); Cards.draw(g, { s: 2, n: 10 }, 180, 190, 70, { angle: 0.06 }); Cards.draw(g, { s: 3, n: 9 }, 240, 200, 70, { angle: 0.18 });
@@ -115,7 +115,7 @@ registerGame({
       if (deck.length >= 1) Cards.draw(g, trump, 14 + 68, 244, 52, { angle: Math.PI / 2 });
       text('BRISCOLA', 40, 205, 10, 'center', '#ffe66a'); Cards.suitSymbol(g, trump.s, 40, 190, 9);
       // carte sul tavolo
-      table.forEach((t, i) => Cards.draw(g, t.c, 125 + i * 56 + (t.who === 'P' ? 10 : -10), 230 + (t.who === 'P' ? 20 : -20), 70, { lift: true }));
+      table.forEach((t, i) => { const tx = 125 + i * 56 + (t.who === 'P' ? 10 : -10), ty = 230 + (t.who === 'P' ? 20 : -20), k = Cards.ease((time - t.t0) / 0.28); Cards.draw(g, t.c, t.from[0] + (tx - t.from[0]) * k, t.from[1] + (ty - t.from[1]) * k, t.from[2] + (70 - t.from[2]) * k, { lift: true, angle: (1 - k) * (t.who === 'P' ? -0.15 : 0.15) }); });
       // mano del giocatore
       hand.forEach((c, i) => { const r = cardRect(i); Cards.draw(g, c, r.x, r.y, r.w, { sel: i === selI, lift: i === selI, dim: !(state === 'play' && turn === 'P') }); });
       if (msgT > 0) text(msg, VW / 2, 392, 14, 'center', '#ffe66a');
