@@ -28,7 +28,7 @@ registerGame({
     ];
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
-    let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
+    let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, chaser = { x: -90, on: false, t: 0, beep: 0 }, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
       seed |= 0; seed = seed + 0x6D2B79F5 | 0;
@@ -133,6 +133,7 @@ registerGame({
     const resetPlayer = () => {
       P = { x: 2 * T, y: GR * T, vx: 0, vy: 0, face: 1, ground: false, walk: 0, hurt: 0, cut: false };
       camX = 0; camY = 0; jumpBuf = 0; coyote = 0;
+      chaser = { x: -90, on: false, t: 0, beep: 0 };
     };
     const newGame = (from = 1) => { score = 0; lives = 3; level = from; caught = 0; doorHint = false; gen(level); resetPlayer(); state = 'play'; };
     const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
@@ -321,6 +322,19 @@ registerGame({
             score += 20; api.haptic(15); api.beep(520, 0.05, 'square', 0.05); setTimeout(() => api.beep(780, 0.1, 'triangle', 0.05), 70);
             flash('MARGOT APRE LA PORTA!');
           } else if (dx < 80 && msgT <= 0 && !doorHint) { doorHint = true; flash('SALTA E TOCCA LA MANIGLIA!'); }
+        }
+        // il robot pulisci casa: parte dopo un po' e insegue Margot
+        if (!chaser.on && P.x > 9 * T && door && P.x < door.x - 10 * T) { chaser.on = true; chaser.x = Math.max(-60, camX - 50); flash('ARRIVA IL ROBOT! SCAPPA!'); api.haptic(30); api.beep(120, 0.4, 'sawtooth', 0.06); }
+        if (chaser.on) {
+          chaser.t += dt;
+          const sp = Math.min(118, 78 + level * 5 + chaser.t * 0.8);
+          chaser.x += sp * dt;
+          const dx = P.x - chaser.x;
+          if (dx > 110 + 40 * 0) chaser.x += (dx - 110) * Math.min(1, dt * 1.2);   // non resta troppo indietro
+          chaser.beep -= dt;
+          if (chaser.beep <= 0 && dx > -40 && dx < 130) { chaser.beep = 0.35; api.beep(90 + Math.max(0, 130 - dx), 0.08, 'sawtooth', 0.03); api.haptic(3); }
+          if (!P.hidden && Math.abs(dx) < 26 && P.y > GR * T - 24 && P.y - PH < GR * T) { flash('IL ROBOT TI HA PRESA!'); hurt(); }
+          if (P.hidden && Math.abs(dx) < 26 && msgT <= 0) flash('SHH... IL ROBOT PASSA');
         }
         for (const k of cats) {
           if (k.dead) continue;
@@ -618,6 +632,12 @@ registerGame({
       memories.forEach(m => { if (!m.got) drawMemory(m); });
       treats.forEach(c => { if (!c.got && c.x > camX - 20 && c.x < camX + VW + 20) drawTreat(c); });
       crickets.forEach(c => { if (!c.gone && c.x > camX - 20 && c.x < camX + VW + 20) drawCricket(c); });
+      if (chaser.on) {
+        const gl2 = g.createRadialGradient(chaser.x, GR * T - 14, 6, chaser.x, GR * T - 14, 46); gl2.addColorStop(0, 'rgba(232,69,95,.35)'); gl2.addColorStop(1, 'rgba(232,69,95,0)');
+        g.fillStyle = gl2; g.fillRect(chaser.x - 50, GR * T - 62, 100, 70);
+        g.save(); g.translate(chaser.x, GR * T); g.scale(1.7, 1.7); g.translate(-chaser.x, -GR * T);
+        drawVacuum({ x: chaser.x, y: GR * T, t: chaser.t * 2, dead: 0 }); g.restore();
+      }
       cats.forEach(k => { if (k.x > camX - 40 && k.x < camX + VW + 40) drawVacuum(k); });
       const pose = state === 'dead' ? 'fall' : !P.ground ? (P.vy < 0 ? 'jump' : 'fall') : Math.abs(P.vx) > 14 ? 'walk' : 'idle';
       g.fillStyle = 'rgba(0,0,0,.18)'; if (P.ground) { g.beginPath(); g.ellipse(P.x, P.y, 17, 3, 0, 0, 7); g.fill(); }
@@ -636,6 +656,11 @@ registerGame({
       text('BOCCONCINI ' + got + '/' + need, 8, 6, 13, 'left', open ? '#9be88b' : '#fff4e0');
       text(String(score).padStart(5, '0'), W / 2 + 40, 6, 13, 'left', '#fff4e0');
       for (let i = 0; i < lives; i++) { g.fillStyle = '#e8745e'; g.beginPath(); g.arc(W - 14 - i * 18, 13, 6, 0, 7); g.fill(); }
+      if (chaser.on && chaser.x < camX - 24 && state === 'play') {
+        const a = 0.5 + 0.5 * Math.sin(time * 10); g.fillStyle = 'rgba(232,69,95,' + (0.5 + a * 0.5) + ')';
+        g.beginPath(); g.moveTo(6, H * 0.5); g.lineTo(26, H * 0.5 - 14); g.lineTo(26, H * 0.5 + 14); g.closePath(); g.fill();
+        text('ROBOT', 30, H * 0.5 - 6, 11, 'left', '#e8455f');
+      }
       if (caught > 0) text('GRILLI ' + caught, 8, 30, 11, 'left', '#2a2236');
       if (msgT > 0) { g.fillStyle = 'rgba(42,34,54,.7)'; g.fillRect(W / 2 - 120, 36, 240, 26); text(msg, W / 2, 41, 14, 'center', '#ffe9b8'); }
       if (state === 'win') banner(['BRAVO MARGOT!', 'QUADRO ' + (level + 1)]);
@@ -662,7 +687,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
+      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
     };
   },
 });
