@@ -46,6 +46,33 @@
     } catch (e) {}
   };
 
+  // Clic meccanico dei tasti: un breve soffio di rumore filtrato, più secco alla pressione.
+  const click = down => {
+    if (muted || !ac) return;
+    try {
+      const n = (ac.sampleRate * 0.022) | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain();
+      s.buffer = buf; f.type = 'bandpass'; f.frequency.value = down ? 1700 : 2600; gn.gain.value = down ? 0.3 : 0.14;
+      s.connect(f); f.connect(gn); gn.connect(ac.destination); s.start();
+    } catch (e) {}
+  };
+
+  // Riscontro dei tasti simulati: si abbassano, la croce si inclina, vibrazione e clic come su quelli veri.
+  const dpadEl = $('dpad');
+  const lite = (k, on) => {
+    document.querySelectorAll('[data-k="' + k + '"],[data-dir="' + k + '"]').forEach(b => b.classList.toggle('on', on));
+    if (k === 'left' || k === 'right' || k === 'up' || k === 'down') {
+      if (on) dpadEl.dataset.d = k;
+      else if (dpadEl.dataset.d === k) delete dpadEl.dataset.d;
+    }
+  };
+  const feel = (k, down) => {
+    const pad = k === 'left' || k === 'right' || k === 'up' || k === 'down';
+    haptic(down ? (pad ? 5 : 10) : 3);
+    click(down);
+  };
+
   // Inclinazione: giroscopio dell'iPhone; senza sensori ripiega sulla croce direzionale.
   const T = { seen: false, g: 0, b: 0, g0: null, b0: null, on: false };
   const onOri = e => {
@@ -135,7 +162,7 @@
       cv.style.aspectRatio = def.size[0] + ' / ' + def.size[1];
       cv.classList.remove('off'); menuEl.classList.add('off');
       cur = def; mode = 'game';
-      for (const k in held) if (k !== 'a' && k !== 'start') delete held[k];
+      for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
       tilt.calibrate();
       inst = def.create(apiFor(def));
       keepAwake();
@@ -148,6 +175,7 @@
     if (held[k]) return;
     held[k] = true;
     audioUnlock();
+    lite(k, true); feel(k, true);
     if (mode === 'boot') { endBoot(); return; }
     if (mode === 'menu') {
       if (k === 'up' || k === 'left') { sel = (sel + games.length - 1) % games.length; markSel(); beep(520, 0.03); }
@@ -158,6 +186,7 @@
   const release = k => {
     if (!held[k]) return;
     delete held[k];
+    lite(k, false); feel(k, false);
     if (mode === 'game' && inst && inst.onRelease) inst.onRelease(k);
   };
 
@@ -180,8 +209,8 @@
 
   document.querySelectorAll('[data-k]').forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); b.classList.add('on'); press(k); });
-    const up = () => { b.classList.remove('on'); release(k); };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(k); });
+    const up = () => release(k);
     b.addEventListener('pointerup', up);
     b.addEventListener('pointercancel', up);
     b.addEventListener('lostpointercapture', up);
@@ -196,9 +225,9 @@
   let dir = null, dpadId = null;
   const setDir = d => {
     if (d === dir) return;
-    if (dir) { release(dir); dirBtn[dir].classList.remove('on'); }
+    if (dir) release(dir);
     dir = d;
-    if (dir) { press(dir); dirBtn[dir].classList.add('on'); haptic(4); }
+    if (dir) press(dir);
   };
   const aim = e => {
     const r = dpad.getBoundingClientRect();

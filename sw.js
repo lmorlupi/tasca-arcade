@@ -1,6 +1,6 @@
 // Service worker: tiene in cache tutta la console, così funziona anche senza rete.
 // Quando cambia un file, aumenta VERSION: i telefoni scaricano di nuovo tutto.
-const VERSION = 'pocket-color-v1';
+const VERSION = 'pocket-color-v2';
 const FILES = [
   './', 'index.html', 'shell.css', 'shell.js', 'manifest.webmanifest',
   'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
