@@ -28,6 +28,7 @@ registerGame({
     ];
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
+    let coccole = 0, strokes = 0, petFx = [];
     let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, chaser = { x: -90, on: false, t: 0, beep: 0 }, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
@@ -135,7 +136,13 @@ registerGame({
       camX = 0; camY = 0; jumpBuf = 0; coyote = 0;
       chaser = { x: -90, on: false, t: 0, beep: 0 };
     };
-    const newGame = (from = 1) => { score = 0; lives = 3; level = from; caught = 0; doorHint = false; gen(level); resetPlayer(); state = 'play'; };
+    const pet = () => {
+      if (state !== 'rest') return;
+      strokes++; restT = Math.min(restT + 0.45, 4.5); const pts = 5 * coccole; score += pts; api.haptic(6); api.beep(300 + Math.min(300, strokes * 20), 0.07, 'sine', 0.04);
+      petFx.push({ x: P.x + (Math.random() * 16 - 8), y: P.y - 30, t: 0 });
+      if (strokes % 5 === 0) { flash('FA LE FUSA!  +' + pts * 5); score += pts * 5; api.haptic(15); }
+    };
+    const newGame = (from = 1) => { coccole = 0; strokes = 0; score = 0; lives = 3; level = from; caught = 0; doorHint = false; gen(level); resetPlayer(); state = 'play'; };
     const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
     const endGame = () => {
       state = 'over';
@@ -282,7 +289,9 @@ registerGame({
           [660, 784, 988].forEach((f, i) => setTimeout(() => api.beep(f, 0.14, 'sine', 0.05), i * 120));
         }
         for (const h of hugs) if (!h.used && Math.abs(h.x - P.x) < 18 && P.ground && held.down) {
-          h.used = true; state = 'rest'; restT = 2.2; lives = Math.min(5, lives + 1); score += 50; P.vx = 0;
+          h.used = true; state = 'rest'; restT = 2.6; lives = Math.min(5, lives + 1); P.vx = 0;
+          coccole++; strokes = 0; const bonus = 50 * coccole; score += bonus; api.store.set('coccole', api.store.get('coccole', 0) + 1);
+          flash('COCCOLE n.' + coccole + '  +' + bonus + '  · TOCCA A: CARTEZZA!'); msgT = 2.6;
           flash('TRA LE BRACCIA, AL CALDO'); api.haptic(20);
           [392, 494, 587].forEach((f, i) => setTimeout(() => api.beep(f, 0.3, 'sine', 0.04), i * 220));
         }
@@ -355,6 +364,7 @@ registerGame({
         }
       } else if (state === 'rest') {
         restT -= dt; if (restT <= 0) state = 'play';
+        petFx.forEach(f => f.t += dt); petFx = petFx.filter(f => f.t < 1);
       } else if (state === 'dead') {
         stateT -= dt; P.vy += GRAV * dt; P.y += P.vy * dt;
         if (stateT <= 0) { if (lives <= 0) endGame(); else { resetPlayer(); state = 'play'; } }
@@ -371,6 +381,7 @@ registerGame({
     const act = k => {
       if (state === 'seek') { seekKey(k); return; }
       if (state === 'title' && k === 'select') { seekStart(); return; }
+      if (state === 'rest' && (k === 'a' || k === 'b')) { pet(); return; }
       if (state === 'photo' || state === 'album') { if (k === 'a' || k === 'b' || k === 'start') nextPhoto(); return; }
       if (state === 'title' && k === 'b' && unlocked().length) { albumIdx = 0; state = 'album'; return; }
       if (k === 'start') {
@@ -385,6 +396,7 @@ registerGame({
       if (e.type !== 'down') return;
       if (state === 'seek') { seekPointer(e); return; }
       if (state === 'title' && e.y >= 388 && e.y <= 424) { seekStart(); return; }
+      if (state === 'rest') { pet(); return; }
       if (state === 'photo' || state === 'album') { nextPhoto(); return; }
       if (state === 'title' && unlocked().length && e.y > 100 && e.y < 345) { albumIdx = 0; state = 'album'; return; }
       if (state === 'title' || state === 'over') newGame();
@@ -648,6 +660,7 @@ registerGame({
       }
       if (!P.hidden) mg(P.x, P.y, 38, state === 'rest' ? 'idle' : pose, pose === 'walk' ? P.walk : time, P.face);
       if (P.hidden) blankets.forEach(b => { if (Math.abs(P.x - b.x) < b.w / 2) drawBlanket(b, true); });
+      if (state === 'rest') { petFx.forEach(f => { g.globalAlpha = 1 - f.t; g.fillStyle = '#e8455f'; g.font = 'bold 14px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('\u2665', f.x, f.y - f.t * 26); }); g.globalAlpha = 1; }
       if (state === 'rest') { g.fillStyle = '#e8455f'; for (let i = 0; i < 3; i++) { const t = (time * 0.8 + i / 3) % 1; g.globalAlpha = 1 - t; g.font = `bold ${9 + i * 2}px ui-monospace, monospace`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff4e0'; g.fillText('z', P.x + 8 + i * 5, P.y - 28 - t * 22); } g.globalAlpha = 1; }
       g.restore();
       g.restore();
@@ -662,6 +675,7 @@ registerGame({
         text('ROBOT', 30, H * 0.5 - 6, 11, 'left', '#e8455f');
       }
       if (caught > 0) text('GRILLI ' + caught, 8, 30, 11, 'left', '#2a2236');
+      if (coccole > 0) text('COCCOLE ' + coccole, 8, caught > 0 ? 44 : 30, 11, 'left', '#c0334d');
       if (msgT > 0) { g.fillStyle = 'rgba(42,34,54,.7)'; g.fillRect(W / 2 - 120, 36, 240, 26); text(msg, W / 2, 41, 14, 'center', '#ffe9b8'); }
       if (state === 'win') banner(['BRAVO MARGOT!', 'QUADRO ' + (level + 1)]);
       if (state === 'photo' || state === 'album') {
@@ -687,7 +701,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
+      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, get coccole() { return coccole; }, pet, get hugs2() { return hugs; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
     };
   },
 });
