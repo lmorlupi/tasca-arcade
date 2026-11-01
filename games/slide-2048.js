@@ -10,8 +10,10 @@ registerGame({
   create(api) {
     const { cv, g } = api;
     const W = cv.width, H = cv.height;
-    const N = 4, CELL = 72, GAP = 10, BOARD = N * CELL + (N + 1) * GAP;
-    const BX = (W - BOARD) / 2, BY = Math.max(130, Math.round((H - BOARD) / 2) + 24);
+    const N = 4, GAP = 10;
+    const CELL = Math.max(44, Math.min(72, Math.floor((H - 118 - 46 - (N + 1) * GAP) / N)));
+    const BOARD = N * CELL + (N + 1) * GAP;
+    const BX = (W - BOARD) / 2, BY = Math.min(Math.max(104, Math.round((H - BOARD) / 2) + 24), H - BOARD - 40);
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
     const TILE = {
       2: ['#d9e4ff', '#141a2e'], 4: ['#b9ceff', '#141a2e'], 8: ['#f58a25', '#fff'], 16: ['#f5651f', '#fff'],

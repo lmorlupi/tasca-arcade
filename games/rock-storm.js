@@ -7,6 +7,7 @@ registerGame({
   size: [360, 640],
   bg: '#05070f',
   flexH: true,
+  flexMin: 1.15,
   create(api) {
     const { cv, g, held } = api;
     const W = cv.width, H = cv.height;

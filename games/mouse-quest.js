@@ -4,18 +4,22 @@ registerGame({
   color: '#f5d31c',
   blurb: 'Un topo avventuriero raccoglie il formaggio, salta sui gatti e arriva alla tana. Croce per muoverti, A salta (più a lungo, più in alto), B tenuto premuto per correre.',
   inputs: ['D-PAD', '2 POLLICI', 'SALTO'],
-  size: [352, 576],
+  size: [480, 540],
+  flexH: true,
+  flexMin: 0.8,
   pixel: true,
   create(api) {
     const { cv, g, held } = api;
-    const W = cv.width, H = cv.height;
-    const SC = 4 / 3, VW = W / SC;
+    const CW = cv.width, CH = cv.height;
+    let W = CW, H = CH;
+    const SC = 1.75, VW = CW / SC, VISH = CH / SC;
+    const UIS = Math.min(CW / 352, CH / 576), UIX = (CW - 352 * UIS) / 2, UIY = (CH - 576 * UIS) / 2;
     const T = 24, VH = 18, GR = 15, PW = 7, PH = 20;
     const GRAV = 1300, JUMP = -520;
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
-    let grid, cols, cheese, cats, door, need, got, P, camX = 0, jumpBuf = 0, coyote = 0, time = 0;
+    let grid, cols, cheese, cats, door, need, got, P, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
       seed |= 0; seed = seed + 0x6D2B79F5 | 0;
@@ -70,7 +74,7 @@ registerGame({
 
     const resetPlayer = () => {
       P = { x: 2 * T, y: GR * T, vx: 0, vy: 0, face: 1, ground: false, walk: 0, hurt: 0, cut: false };
-      camX = 0; jumpBuf = 0; coyote = 0;
+      camX = 0; camY = 0; jumpBuf = 0; coyote = 0;
     };
     const newGame = () => { score = 0; lives = 3; level = 1; gen(level); resetPlayer(); state = 'play'; };
     const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
@@ -162,6 +166,7 @@ registerGame({
       for (const k of cats) if (k.dead > 0) k.dead -= dt;
       const want = Math.max(0, Math.min(cols * T - VW, P.x - VW / 2 + P.face * 28));
       camX += (want - camX) * Math.min(1, dt * 6);
+      const wantY = Math.max(0, Math.min(VH * T - VISH, P.y - VISH * 0.68)); camY += (wantY - camY) * Math.min(1, dt * 6);
     };
 
     const act = k => {
@@ -219,30 +224,33 @@ registerGame({
     };
 
     const render = () => {
-      const sky = g.createLinearGradient(0, 0, 0, H);
+      const sky = g.createLinearGradient(0, 0, 0, CH);
       sky.addColorStop(0, '#5db7ff'); sky.addColorStop(1, '#cdeeff');
-      g.fillStyle = sky; g.fillRect(0, 0, W, H);
+      g.fillStyle = sky; g.fillRect(0, 0, CW, CH);
 
       if (state === 'title') {
+        g.save(); g.translate(UIX, UIY); g.scale(UIS, UIS); W = 352; H = 576;
         g.save(); g.translate(0, 70);
         g.fillStyle = '#4cc24a'; g.fillRect(0, 330, W, 102); g.fillStyle = '#7a4a22'; g.fillRect(0, 348, W, 84);
         text('MOUSE', W / 2, 70, 44, 'center', '#a8500c'); text('QUEST', W / 2, 118, 44, 'center', '#fff');
         g.save(); g.translate(W / 2, 330); g.scale(3, 3); drawMouse(0, 0, 1, time * 6, false); g.restore();
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 190, 16, 'center', '#a8500c');
         text('RECORD ' + hi, W / 2, 230, 13, 'center', '#1f2744');
-        g.restore();
+        g.restore(); g.restore(); W = CW; H = CH;
         return;
       }
 
       g.save(); g.scale(SC, SC);
+      g.save(); g.translate(0, -Math.round(camY));
       // colline lontane
       g.fillStyle = '#8fd48a';
       for (let i = -1; i < 6; i++) { const hx = i * 140 - (camX * 0.25) % 140; g.beginPath(); g.arc(hx + 70, 372, 90, Math.PI, 0); g.fill(); }
       g.fillStyle = 'rgba(255,255,255,.85)';
       for (let i = 0; i < 4; i++) { const cx = ((i * 210 - camX * 0.1) % 840 + 840) % 840 - 100; g.beginPath(); g.arc(cx, 60 + i * 14, 14, 0, 7); g.arc(cx + 16, 56 + i * 14, 18, 0, 7); g.arc(cx + 34, 62 + i * 14, 13, 0, 7); g.fill(); }
 
-      g.save(); g.translate(-Math.round(camX), 0);
-      const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(cols - 1, c0 + 16);
+      g.restore();
+      g.save(); g.translate(-Math.round(camX), -Math.round(camY));
+      const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(cols - 1, c0 + Math.ceil(VW / T) + 1);
       for (let r = 0; r < VH; r++) for (let c = c0; c <= c1; c++) {
         const t = grid[r][c]; if (!t) continue;
         const X = c * T, Y = r * T;
@@ -286,7 +294,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, get state() { return state; }, get P() { return P; }, get cats() { return cats; }, get cheese() { return cheese; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
+      debug: { newGame, get state() { return state; }, get P() { return P; }, get cats() { return cats; }, get camY() { return camY; }, get cheese() { return cheese; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
     };
   },
 });
