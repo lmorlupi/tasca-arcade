@@ -46,30 +46,7 @@
     } catch (e) {}
   };
 
-  // Clic meccanico dei tasti: un tic di rumore filtrato più un colpo sordo. La pressione è più secca e forte
-  // del rilascio; croce (plastica dura), A/B (gomma) e Select/Start (gomma morbida) hanno un timbro diverso.
-  const CLICK = {
-    pad:  { tick: 2600, thump: 150, tickGain: 0.34, thumpGain: 0.22 },
-    ab:   { tick: 1500, thump: 95,  tickGain: 0.28, thumpGain: 0.32 },
-    meta: { tick: 950,  thump: 70,  tickGain: 0.2,  thumpGain: 0.26 },
-  };
-  const click = (down, kind = 'ab') => {
-    if (muted || !ac) return;
-    try {
-      const c = CLICK[kind], t = ac.currentTime, k = down ? 1 : 0.45;
-      const n = (ac.sampleRate * 0.018) | 0, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
-      const s1 = ac.createBufferSource(), f = ac.createBiquadFilter(), g1 = ac.createGain();
-      s1.buffer = buf; f.type = 'bandpass'; f.frequency.value = c.tick * (down ? 1 : 1.25); f.Q.value = 1.2;
-      g1.gain.value = c.tickGain * k; s1.connect(f); f.connect(g1); g1.connect(ac.destination); s1.start(t);
-      const o = ac.createOscillator(), g2 = ac.createGain();
-      o.type = 'sine'; o.frequency.setValueAtTime(c.thump * (down ? 1.4 : 1), t); o.frequency.exponentialRampToValueAtTime(c.thump * 0.6, t + 0.04);
-      g2.gain.setValueAtTime(c.thumpGain * k, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-      o.connect(g2); g2.connect(ac.destination); o.start(t); o.stop(t + 0.06);
-    } catch (e) {}
-  };
-
-  // Riscontro dei tasti simulati: si abbassano, la croce si inclina, vibrazione e clic come su quelli veri.
+  // Riscontro dei tasti simulati: si abbassano, la croce si inclina, vibrazione come su quelli veri.
   const dpadEl = $('dpad');
   const lite = (k, on) => {
     document.querySelectorAll('[data-k="' + k + '"],[data-dir="' + k + '"]').forEach(b => b.classList.toggle('on', on));
@@ -84,7 +61,6 @@
   const feel = (k, down) => {
     const pad = k === 'left' || k === 'right' || k === 'up' || k === 'down';
     haptic(down ? (pad ? 5 : 10) : 3);
-    click(down, pad ? 'pad' : (k === 'a' || k === 'b') ? 'ab' : 'meta');
   };
 
   // Inclinazione: giroscopio dell'iPhone; senza sensori ripiega sulla croce direzionale.
@@ -198,8 +174,8 @@
     lite(k, true); feel(k, true);
     if (mode === 'boot') { endBoot(); return; }
     if (mode === 'menu') {
-      if (k === 'up' || k === 'left') { sel = (sel + games.length - 1) % games.length; markSel(); beep(520, 0.03); }
-      else if (k === 'down' || k === 'right') { sel = (sel + 1) % games.length; markSel(); beep(520, 0.03); }
+      if (k === 'up' || k === 'left') { sel = (sel + games.length - 1) % games.length; markSel(); }
+      else if (k === 'down' || k === 'right') { sel = (sel + 1) % games.length; markSel(); }
       else if (k === 'a' || k === 'start') launch(games[sel]);
     } else if (mode === 'game' && inst && inst.onPress) inst.onPress(k);
   };
