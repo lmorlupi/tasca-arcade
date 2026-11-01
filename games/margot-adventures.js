@@ -103,6 +103,8 @@ registerGame({
       if (sb) blankets.push({ x: ((sb[0] + sb[1]) / 2 - 2) * T + T / 2, w: 50 });
       treats = treats.filter(t => !doors.some(d => Math.floor(t.x / T) === d.c && t.y > (GR - 3) * T));
       door = { x: (cols - 4) * T, y: GR * T };
+      treats.forEach((t, i) => { if (i % 7 === 3) t.kind = 'stick'; });
+      if (treats.length > 4) treats[Math.floor(treats.length * 0.55)].kind = 'tuna';
       need = Math.ceil(treats.length * 0.6); got = 0;
     };
 
@@ -285,7 +287,10 @@ registerGame({
         }
         for (const c of treats) {
           if (!c.got && Math.hypot(c.x - P.x, c.y - (P.y - 10)) < 15) {
-            c.got = true; got++; score += 10; api.haptic(8); api.beep(900 + Math.min(500, got * 25), 0.05, 'square', 0.04);
+            c.got = true; got++; score += c.kind === 'tuna' ? 100 : c.kind === 'stick' ? 30 : 10; api.haptic(c.kind ? 20 : 8);
+            if (c.kind === 'stick') { msg = 'CHE BUONI, I BASTONCINI!'; msgT = 1.4; }
+            if (c.kind === 'tuna') { msg = lives < 5 ? 'TONNO! +1 VITA' : 'TONNO! GNAM!'; msgT = 1.6; lives = Math.min(5, lives + 1); [523, 659, 784].forEach((f, i) => setTimeout(() => api.beep(f, 0.12, 'triangle', 0.05), i * 90)); }
+             api.beep(900 + Math.min(500, got * 25), 0.05, 'square', 0.04);
           }
         }
         for (const c of crickets) {
@@ -401,6 +406,24 @@ registerGame({
     };
     const drawTreat = c => {
       const y = c.y + Math.sin(time * 4 + c.x * 0.05) * 2, x = c.x;
+      if (c.kind === 'stick') {
+        g.save(); g.translate(x, y); g.rotate(-0.5 + Math.sin(time * 3 + x) * 0.1);
+        g.fillStyle = '#d9843a'; g.beginPath(); g.roundRect(-11, -3, 22, 6, 3); g.fill();
+        g.fillStyle = '#b3601f'; for (let k = -8; k < 10; k += 5) g.fillRect(k, -3, 1.4, 6);
+        g.fillStyle = '#e8455f'; g.beginPath(); g.roundRect(7, -3, 4, 6, 2); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(-9, -2.4, 14, 1.2); g.restore(); return;
+      }
+      if (c.kind === 'tuna') {
+        g.save(); g.translate(x, y + Math.sin(time * 5) * 1.5); g.scale(1.25, 1.25);
+        g.fillStyle = '#cfd6e0'; g.beginPath(); g.ellipse(0, -7, 9, 3, 0, 0, 7); g.fill();
+        const cg = g.createLinearGradient(-9, 0, 9, 0); cg.addColorStop(0, '#2f6fb3'); cg.addColorStop(.5, '#5aa0e0'); cg.addColorStop(1, '#2a5f9c');
+        g.fillStyle = cg; g.fillRect(-9, -7, 18, 14); g.fillStyle = '#cfd6e0'; g.beginPath(); g.ellipse(0, 7, 9, 3, 0, 0, 7); g.fill();
+        g.fillStyle = '#fff4e0'; g.beginPath(); g.ellipse(-0.5, 0, 4.5, 2.4, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo(3.5, 0); g.lineTo(7, -2.4); g.lineTo(7, 2.4); g.closePath(); g.fill();
+        g.fillStyle = '#e8455f'; g.fillRect(-9, -3.4, 18, 1.6);
+        g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(-7, -6, 2, 12); g.restore();
+        g.fillStyle = 'rgba(255,230,140,.9)'; for (let k = 0; k < 3; k++) { const a = time * 2 + k * 2.1; g.fillRect(x + Math.cos(a) * 16 - 1, y + Math.sin(a) * 12 - 1, 2, 2); }
+        return;
+      }
       g.save(); g.translate(x, y); g.rotate(Math.sin(time * 3 + x) * 0.15);
       const fg = g.createLinearGradient(0, -6, 0, 6); fg.addColorStop(0, '#ffd88a'); fg.addColorStop(1, '#e49a3c');
       g.fillStyle = fg; g.beginPath(); g.ellipse(-1, 0, 8, 5, 0, 0, 7); g.fill();
