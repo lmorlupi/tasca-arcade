@@ -96,11 +96,11 @@ canvas.off { display: none; }
 /* Menu, Select e Start: una riga sopra lo schermo, affiancati. */
 .meta { display: flex; justify-content: center; gap: 10px; margin-bottom: 2px; }
 .meta button {
-  display: flex; align-items: center; gap: 4px; border: 0; background: none; padding: 5px 6px; color: #fff;
+  display: flex; align-items: center; gap: 4px; border: 0; background: none; padding: 3px 4px; color: #fff;
   font-size: 11px; font-weight: 700; letter-spacing: calc(var(--e) * .06); white-space: nowrap;
 }
 /* Etichetta su fondo scuro: resta leggibile con qualsiasi colore di scocca. */
-.meta span { padding: 1px 6px; border-radius: 99px; background: rgba(20, 20, 34, .88); }
+.meta span { padding: 3px 9px; border-radius: 99px; background: rgba(20, 20, 34, .88); }
 .meta .pill {
   display: block; width: 24px; height: 10px; border-radius: 6px; transform: rotate(-22deg);
   background: linear-gradient(#6a4ca6, var(--shell-dark) 45%, #3f2c6b);
