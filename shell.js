@@ -206,7 +206,7 @@
 
   document.querySelectorAll('[data-k="select"],[data-k="start"]').forEach(b => {
     const k = b.dataset.k;
-    b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(k); });
+    b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (err) {} press(k); });
     const up = () => release(k);
     b.addEventListener('pointerup', up);
     b.addEventListener('pointercancel', up);
@@ -231,6 +231,19 @@
   document.addEventListener('touchstart', e => { if (!e.target.closest('.menu')) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', e => { if (e.scale && e.scale !== 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('dblclick', e => e.preventDefault());
+  // Se la pagina è rimasta ingrandita da un pizzico precedente, riporta lo zoom a 1 (meglio che si può).
+  if (window.visualViewport) {
+    let fixing = false;
+    visualViewport.addEventListener('resize', () => {
+      if (fixing || visualViewport.scale <= 1.02) return;
+      const m = document.querySelector('meta[name="viewport"]');
+      if (!m) return;
+      fixing = true;
+      const c = m.content;
+      m.content = c.replace('maximum-scale=1', 'maximum-scale=1.01');
+      setTimeout(() => { m.content = c; fixing = false; }, 80);
+    });
+  }
 
   // Croce direzionale: un'unica superficie. Il dito può scivolare e premere gli angoli per le diagonali.
   const dpad = dpadEl;
@@ -241,18 +254,18 @@
     for (const d of want) if (!padOn.has(d)) { padOn.add(d); press(d); }
   };
   const aim = e => {
-    const r = dpad.getBoundingClientRect();
-    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const r = dpad.getBoundingClientRect(), h = r.width / 2;
+    const nx = (e.clientX - (r.left + r.width / 2)) / h, ny = (e.clientY - (r.top + r.height / 2)) / h;
+    const ax = Math.abs(nx), ay = Math.abs(ny);
+    // Soglie con isteresi: una direzione già premuta resta attiva finché il pollice non torna quasi al centro.
+    const onH = padOn.has('left') || padOn.has('right'), onV = padOn.has('up') || padOn.has('down');
     const want = new Set();
-    if (Math.hypot(dx, dy) >= r.width * 0.1) {
-      const ax = Math.abs(dx), ay = Math.abs(dy);
-      if (ax > r.width * 0.08 && ax > ay * 0.45) want.add(dx < 0 ? 'left' : 'right');
-      if (ay > r.width * 0.08 && ay > ax * 0.45) want.add(dy < 0 ? 'up' : 'down');
-    }
+    if (ax > (onH ? .12 : .2) && ax > ay * (onH ? .4 : .55)) want.add(nx < 0 ? 'left' : 'right');
+    if (ay > (onV ? .12 : .2) && ay > ax * (onV ? .4 : .55)) want.add(ny < 0 ? 'up' : 'down');
     setDirs(want);
   };
   const dpadEnd = e => { if (e.pointerId === dpadId) { dpadId = null; setDirs(new Set()); } };
-  dpad.addEventListener('pointerdown', e => { e.preventDefault(); dpad.setPointerCapture(e.pointerId); dpadId = e.pointerId; aim(e); });
+  dpad.addEventListener('pointerdown', e => { e.preventDefault(); try { dpad.setPointerCapture(e.pointerId); } catch (err) {} dpadId = e.pointerId; aim(e); });
   dpad.addEventListener('pointermove', e => { if (e.pointerId === dpadId) aim(e); });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => dpad.addEventListener(t, dpadEnd));
 
@@ -276,7 +289,7 @@
     for (const k of [...abOn]) if (!want.has(k)) { abOn.delete(k); release(k); }
     for (const k of want) if (!abOn.has(k)) { abOn.add(k); press(k); }
   };
-  ab.addEventListener('pointerdown', e => { e.preventDefault(); ab.setPointerCapture(e.pointerId); abPtr.set(e.pointerId, abKeys(e)); abSync(); });
+  ab.addEventListener('pointerdown', e => { e.preventDefault(); try { ab.setPointerCapture(e.pointerId); } catch (err) {} abPtr.set(e.pointerId, abKeys(e)); abSync(); });
   ab.addEventListener('pointermove', e => { if (abPtr.has(e.pointerId)) { abPtr.set(e.pointerId, abKeys(e)); abSync(); } });
   const abEnd = e => { if (abPtr.delete(e.pointerId)) abSync(); };
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => ab.addEventListener(t, abEnd));

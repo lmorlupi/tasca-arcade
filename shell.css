@@ -34,47 +34,54 @@ button { touch-action: none; cursor: pointer; font: inherit; }
 canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; touch-action: none; }
 canvas.off { display: none; }
 
-/* Comandi. Alla pressione il tasto scende subito; al rilascio torna su con un piccolo rimbalzo, come la gomma. */
-.pad { position: relative; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding: 0 2px; touch-action: none; }
+/* Comandi. Tutte le misure sono in em: la fascia dei tasti si rimpicciolisce con la larghezza dello schermo
+   (10px da 380px in su), così Menu, Select e Start non finiscono mai sopra croce e pulsanti.
+   Alla pressione il tasto scende subito; al rilascio torna su con un piccolo rimbalzo, come la gomma. */
+.pad {
+  position: relative; display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px; padding: 0 calc(var(--e) * 1.6) 0 calc(var(--e) * 1); touch-action: none; --e: min(10px, 2.63vw);
+}
 
-.dpad { position: relative; width: 116px; height: 116px; touch-action: none; isolation: isolate; }
-.dpad::before { content: ''; position: absolute; inset: -14px -10px -14px -14px; }
+/* Croce a sinistra */
+.dpad { position: relative; width: calc(var(--e) * 14.4); height: calc(var(--e) * 14.4); touch-action: none; isolation: isolate; }
+.dpad::before { content: ''; position: absolute; inset: calc(var(--e) * -2) calc(var(--e) * -1.2) calc(var(--e) * -2) calc(var(--e) * -2); }
 .dpad::after {
-  content: ''; position: absolute; inset: -5px; border-radius: 50%; z-index: -1;
+  content: ''; position: absolute; inset: calc(var(--e) * -.7); border-radius: 50%; z-index: -1;
   background: radial-gradient(circle, rgba(0,0,0,.2) 0 66%, rgba(0,0,0,.08) 100%);
   box-shadow: inset 0 3px 5px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.18);
 }
-.dpad .cross { position: absolute; inset: 0; transform: perspective(240px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .16s var(--spring); }
+.dpad .cross { position: absolute; inset: 0; transform: perspective(calc(var(--e) * 24)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .16s var(--spring); }
 .dpad.down .cross { transition: transform .025s linear; }
 .dpad button {
-  position: absolute; width: 39px; height: 39px; border: 0; padding: 0; pointer-events: none;
-  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #babacb; font-size: 12px;
+  position: absolute; width: calc(var(--e) * 4.8); height: calc(var(--e) * 4.8); border: 0; padding: 0; pointer-events: none;
+  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #babacb; font-size: calc(var(--e) * 1.45);
   box-shadow: inset 0 2px 0 rgba(255,255,255,.16), inset 0 -3px 0 rgba(0,0,0,.45), 0 3px 3px rgba(0,0,0,.35);
   transition: filter .14s var(--spring), transform .14s var(--spring);
 }
 .dpad button.on { filter: brightness(.55); transform: translateY(2px) scale(.97); transition: none; }
-.dpad .up { left: 38.5px; top: 0; border-radius: 7px 7px 0 0; }
-.dpad .down { left: 38.5px; top: 77px; border-radius: 0 0 7px 7px; }
-.dpad .left { left: 0; top: 38.5px; border-radius: 7px 0 0 7px; }
-.dpad .right { left: 77px; top: 38.5px; border-radius: 0 7px 7px 0; }
-.dpad .mid { position: absolute; left: 38.5px; top: 38.5px; width: 39px; height: 39px; background: #3d3d48; }
+.dpad .up { left: calc(var(--e) * 4.800000000000001); top: 0; border-radius: 7px 7px 0 0; }
+.dpad .down { left: calc(var(--e) * 4.800000000000001); top: calc(var(--e) * 9.600000000000001); border-radius: 0 0 7px 7px; }
+.dpad .left { left: 0; top: calc(var(--e) * 4.800000000000001); border-radius: 7px 0 0 7px; }
+.dpad .right { left: calc(var(--e) * 9.600000000000001); top: calc(var(--e) * 4.800000000000001); border-radius: 0 7px 7px 0; }
+.dpad .mid { position: absolute; left: calc(var(--e) * 4.800000000000001); top: calc(var(--e) * 4.800000000000001); width: calc(var(--e) * 4.8); height: calc(var(--e) * 4.8); background: #3d3d48; }
 .dpad .mid::after {
-  content: ''; position: absolute; inset: 10px; border-radius: 50%;
+  content: ''; position: absolute; inset: calc(var(--e) * 1.2); border-radius: 50%;
   background: radial-gradient(circle at 50% 60%, #2f2f39, #474753); box-shadow: inset 0 2px 3px rgba(0,0,0,.6);
 }
 
+/* A e B a destra: A più in alto, inclinati come sul vero apparecchio */
 .ab {
-  position: relative; width: 120px; height: 86px; transform: rotate(-22deg); touch-action: none;
+  position: relative; width: calc(var(--e) * 12.6); height: calc(var(--e) * 9); transform: rotate(-22deg); touch-action: none;
   /* le due conche nella scocca, dove sta il pollice */
   background:
-    radial-gradient(circle at 30px 57px, rgba(0,0,0,.22) 0 30px, transparent 31px),
-    radial-gradient(circle at 90px 31px, rgba(0,0,0,.22) 0 30px, transparent 31px);
+    radial-gradient(circle at calc(var(--e) * 3.15) calc(var(--e) * 6.05), rgba(0,0,0,.22) 0 calc(var(--e) * 3.15), transparent calc(var(--e) * 3.25)),
+    radial-gradient(circle at calc(var(--e) * 9.45) calc(var(--e) * 3.25), rgba(0,0,0,.22) 0 calc(var(--e) * 3.15), transparent calc(var(--e) * 3.25));
 }
-.ab::before { content: ''; position: absolute; inset: -18px -14px; }
+.ab::before { content: ''; position: absolute; inset: calc(var(--e) * -1.8) calc(var(--e) * -1.4); }
 .ab button {
-  position: absolute; width: 52px; height: 52px; border-radius: 50%; border: 0; pointer-events: none;
+  position: absolute; width: calc(var(--e) * 5.5); height: calc(var(--e) * 5.5); border-radius: 50%; border: 0; pointer-events: none;
   background: radial-gradient(120% 120% at 32% 22%, #707080 0%, #4a4a57 36%, #30303a 70%, #24242c 100%);
-  color: #d2d2de; font-weight: 800; font-size: 16px; text-shadow: 0 1px 0 rgba(0,0,0,.5);
+  color: #d2d2de; font-weight: 800; font-size: calc(var(--e) * 1.7); text-shadow: 0 1px 0 rgba(0,0,0,.5);
   box-shadow: inset 0 2px 1px rgba(255,255,255,.24), inset 0 -4px 6px rgba(0,0,0,.45), 0 6px 0 #1b1b22, 0 8px 8px rgba(0,0,0,.4);
   transition: transform .16s var(--spring), box-shadow .16s var(--spring), background .16s;
 }
@@ -83,19 +90,19 @@ canvas.off { display: none; }
   background: radial-gradient(120% 120% at 50% 35%, #34343e 0%, #2a2a33 60%, #22222a 100%);
   box-shadow: inset 0 3px 8px rgba(0,0,0,.7), 0 1px 0 #1b1b22, 0 2px 3px rgba(0,0,0,.35); transition: none;
 }
-.ab .b { left: 4px; top: 31px; }
-.ab .a { left: 64px; top: 5px; }
+.ab .b { left: calc(var(--e) * .4); top: calc(var(--e) * 3.3); }
+.ab .a { left: calc(var(--e) * 6.7); top: calc(var(--e) * .5); }
 
-/* Menu, Select e Start: piccoli, in colonna al centro, per lasciare spazio al gioco. */
-.meta { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); display: flex; flex-direction: column; z-index: 2; }
+/* Menu, Select e Start: una riga sopra lo schermo, affiancati. */
+.meta { display: flex; justify-content: center; gap: 10px; margin-bottom: 2px; }
 .meta button {
-  display: flex; align-items: center; gap: 5px; border: 0; background: none; padding: 4px 8px; color: #fff;
-  font-size: 11px; font-weight: 700; letter-spacing: .1em; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px; border: 0; background: none; padding: 5px 6px; color: #fff;
+  font-size: 11px; font-weight: 700; letter-spacing: calc(var(--e) * .06); white-space: nowrap;
 }
 /* Etichetta su fondo scuro: resta leggibile con qualsiasi colore di scocca. */
 .meta span { padding: 1px 6px; border-radius: 99px; background: rgba(20, 20, 34, .88); }
 .meta .pill {
-  display: block; width: 30px; height: 11px; border-radius: 6px; transform: rotate(-22deg);
+  display: block; width: 24px; height: 10px; border-radius: 6px; transform: rotate(-22deg);
   background: linear-gradient(#6a4ca6, var(--shell-dark) 45%, #3f2c6b);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 3px 0 rgba(0,0,0,.4);
   transition: transform .16s var(--spring), box-shadow .16s var(--spring);
@@ -160,6 +167,7 @@ canvas.off { display: none; }
   .pad { flex: 0 0 auto; margin-top: 8px; margin-bottom: 4px; }
 }
 @media (min-width: 521px) {
+  .pad { --e: 10px; }
   .screen { height: 480px; display: flex; align-items: center; justify-content: center; }
   canvas { width: auto; height: auto; max-width: 100%; max-height: 100%; }
 }
