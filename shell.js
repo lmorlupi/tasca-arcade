@@ -111,17 +111,55 @@
   const standalone = () => navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
   const HOT = { INCLINA: 1, SWIPE: 1, FLICK: 1 };
 
+  // Offline e aggiornamenti: il service worker tiene tutto in cache; "AGGIORNA" controlla se c'è una versione nuova
+  // (con eventuali giochi nuovi) e, se la trova, la scarica e ricarica l'app dal catalogo.
+  const verEl = () => document.getElementById('ver');
+  let pinned = false;   // un messaggio d'errore resta finché non si ridisegna il catalogo
+  const setStatus = (t, pin) => { pinned = !!pin; const e = verEl(); if (e) e.textContent = t; };
+  let verTag = '';
+  const showVersion = async () => {
+    try {
+      const keys = await caches.keys();
+      const k = keys.filter(n => /^gameboy-v\d+/.test(n)).sort().pop();
+      verTag = k ? k.replace('gameboy-', '').toUpperCase() : '';
+    } catch (e) {}
+    if (pinned) return;
+    const online = navigator.onLine;
+    setStatus((verTag ? 'VERSIONE ' + verTag + ' · ' : '') + (online ? 'ONLINE' : 'OFFLINE: GIOCHI SALVATI SUL TELEFONO'));
+  };
+  let lastCheck = 0;
+  const checkUpdate = async manual => {
+    lastCheck = Date.now();
+    if (!('serviceWorker' in navigator)) { if (manual) setStatus('AGGIORNAMENTI NON DISPONIBILI SU QUESTO BROWSER'); return; }
+    if (!navigator.onLine) { if (manual) setStatus('SEI OFFLINE: USO LA VERSIONE SALVATA'); return; }
+    try {
+      if (manual) setStatus('CONTROLLO AGGIORNAMENTI...');
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) { if (manual) setStatus('PRIMO SALVATAGGIO IN CORSO: RIPROVA TRA UN ATTIMO'); return; }
+      await reg.update();
+      await new Promise(r => setTimeout(r, 1800));
+      if (reg.installing || reg.waiting) { if (manual) setStatus('SCARICO LA NUOVA VERSIONE...'); }
+      else if (manual) { await showVersion(); setStatus('GIÀ AGGIORNATO · ' + (verEl() ? verEl().textContent : '')); }
+    } catch (e) { if (manual) setStatus('SERVER NON RAGGIUNGIBILE: USO LA VERSIONE SALVATA'); }
+  };
+  addEventListener('online', () => { if (mode === 'menu') { showVersion(); checkUpdate(false); } });
+  addEventListener('offline', () => { if (mode === 'menu') showVersion(); });
+
+  // I testi dei giochi di terzi finiscono nel catalogo: vanno resi innocui.
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const renderMenu = () => {
+    pinned = false;
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">GAME<b>BOY</b></button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></header>${tip}` +
+    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">GAME<b>BOY</b></button><span class="tools"><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
       games.map((d, i) => {
         const rec = ls.get(d.id + ':hi', 0);
-        return `<button class="cart${i === sel ? ' sel' : ''}" data-i="${i}" style="--c:${d.color}">
-          <span class="tab"></span><span class="title">${d.title}</span><span class="rec">${rec ? 'RECORD ' + rec : ''}</span>
-          <span class="desc">${d.blurb}</span>
-          <span class="chips">${d.inputs.map(t => `<i${HOT[t] ? ' class="hot"' : ''}>${t}</i>`).join('')}</span></button>`;
+        return `<button class="cart${i === sel ? ' sel' : ''}" data-i="${i}" style="--c:${/^#[0-9a-fA-F]{3,8}$/.test(d.color) ? d.color : '#25c4f0'}">
+          <span class="tab"></span><span class="title">${esc(d.title)}</span><span class="rec">${rec ? 'RECORD ' + rec : ''}</span>
+          <span class="desc">${esc(d.blurb)}${d.author ? ' <em>di ' + esc(d.author) + '</em>' : ''}</span>
+          <span class="chips">${d.inputs.map(t => `<i${HOT[t] ? ' class="hot"' : ''}>${esc(t)}</i>`).join('')}</span></button>`;
       }).join('');
+    showVersion();
   };
   menuEl.addEventListener('click', e => {
     if (e.target.closest('#brand')) {
@@ -129,6 +167,7 @@
       beep(700, 0.05); haptic(8);
       return;
     }
+    if (e.target.closest('#upd')) { checkUpdate(true); return; }
     const snd = e.target.closest('#snd');
     if (snd) { muted = !muted; ls.set('mute', muted); audioUnlock(); snd.textContent = muted ? 'SUONO OFF' : 'SUONO ON'; beep(660, 0.05); return; }
     const c = e.target.closest('.cart');
@@ -147,6 +186,7 @@
     cv.classList.add('off'); menuEl.classList.remove('off');
     screenEl.style.background = '';
     renderMenu();
+    if (Date.now() - lastCheck > 600000) checkUpdate(false);
   };
 
   const launch = async def => {
@@ -168,7 +208,7 @@
       cur = def; mode = 'game';
       for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
       tilt.calibrate();
-      inst = def.create(apiFor(def));
+      try { inst = def.create(apiFor(def)); } catch (e) { console.error('Errore in', def.id, e); inst = null; toMenu(); setStatus('IL GIOCO NON SI AVVIA: ' + def.title, true); return; }
       keepAwake();
       beep(880, 0.08); haptic(8);
     } finally { launching = false; }
@@ -357,20 +397,54 @@
   const frame = now => {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (mode === 'game' && inst) {
-      inst.update(dt);
-      g.setTransform(1, 0, 0, 1, 0, 0);
-      inst.render(g);
+      try {
+        inst.update(dt);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        inst.render(g);
+      } catch (e) {
+        // Un gioco con un errore non deve bloccare la console: si torna al catalogo.
+        console.error('Errore durante il gioco', cur && cur.id, e);
+        const t = cur ? cur.title : '';
+        toMenu(); setStatus('ERRORE NEL GIOCO ' + t + ': TORNO AL CATALOGO', true);
+      }
     }
     requestAnimationFrame(frame);
   };
 
-  window.registerGame = def => games.push(def);
+  // Chi aggiunge un gioco lo registra con registerGame(). I campi obbligatori vengono controllati: un gioco
+  // incompleto viene scartato senza rompere il catalogo.
+  window.registerGame = def => {
+    const ok = def && typeof def.id === 'string' && typeof def.title === 'string' && typeof def.create === 'function'
+      && Array.isArray(def.size) && def.size.length === 2 && def.size[0] > 0 && def.size[1] > 0;
+    if (!ok) { console.warn('Gioco scartato: mancano id, title, size o create()', def && def.id); return; }
+    if (games.some(x => x.id === def.id)) { console.warn('Gioco scartato: id già usato', def.id); return; }
+    def.inputs = Array.isArray(def.inputs) ? def.inputs : [];
+    def.color = def.color || '#25c4f0';
+    def.blurb = def.blurb || '';
+    games.push(def);
+  };
+
+  // Il catalogo è l'elenco in games/catalog.json: aggiungere un gioco = un file in games/ + una riga nell'elenco.
+  const loadScript = src => new Promise(res => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = () => res(true);
+    s.onerror = () => { console.warn('Gioco non caricato:', src); res(false); };
+    document.head.appendChild(s);
+  });
+  const loadCatalog = async () => {
+    try {
+      const cat = await (await fetch('games/catalog.json')).json();
+      for (const f of cat.games) await loadScript('games/' + f);
+    } catch (e) { console.warn('Catalogo non leggibile', e); }
+  };
   window.Shell = {
-    start() {
+    async start() {
+      await loadCatalog();
       setShell(ls.get('shell', 'grape'));
       buildLogo();
       cv.classList.add('off');
       renderMenu();
+      checkUpdate(false);
       bootTimer = setTimeout(endBoot, 2600);
       requestAnimationFrame(frame);
     },

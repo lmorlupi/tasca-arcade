@@ -1,0 +1,13 @@
+{
+  "games": [
+    "blocks.js",
+    "barrel-climb.js",
+    "mouse-quest.js",
+    "mouse-castle.js",
+    "tilt-ball.js",
+    "flick-hoops.js",
+    "slide-2048.js",
+    "space-raiders.js",
+    "galaxy-strike.js"
+  ]
+}

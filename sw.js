@@ -1,15 +1,25 @@
 // Service worker: tiene in cache tutta la console, così funziona anche senza rete.
 // Quando cambia un file, aumenta VERSION: i telefoni scaricano di nuovo tutto.
-const VERSION = 'gameboy-v12';
-const FILES = [
+const VERSION = 'gameboy-v16';
+// File della console. I giochi non sono qui: si leggono da games/catalog.json, così aggiungerne uno
+// non richiede di toccare questo file (basta aumentare VERSION).
+const BASE = [
   './', 'index.html', 'shell.css', 'shell.js', 'manifest.webmanifest',
-  'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
-  'games/blocks.js', 'games/barrel-climb.js', 'games/mouse-quest.js', 'games/mouse-castle.js', 'games/tilt-ball.js',
-  'games/flick-hoops.js', 'games/slide-2048.js', 'games/space-raiders.js', 'games/galaxy-strike.js',
+  'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'games/catalog.json',
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil((async () => {
+    const c = await caches.open(VERSION);
+    // cache: 'reload' salta la cache del browser: GitHub Pages tiene i file ~10 minuti e altrimenti si salverebbe la versione vecchia.
+    await Promise.all(BASE.map(u => c.add(new Request(u, { cache: 'reload' }))));
+    try {
+      const cat = await (await fetch('games/catalog.json', { cache: 'reload' })).json();
+      // Un gioco che non si scarica non deve impedire l'installazione di tutto il resto.
+      await Promise.allSettled(cat.games.map(f => c.add(new Request('games/' + f, { cache: 'reload' }))));
+    } catch (err) {}
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', e => {
