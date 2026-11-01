@@ -5,7 +5,6 @@ registerGame({
   blurb: 'Gli alieni restano in formazione, poi si buttano in picchiata verso di te. Trascina il dito per schivare: la nave spara da sola mentre tocchi.',
   inputs: ['TRASCINA', 'AUTO-FUOCO', 'VIBRAZIONE'],
   size: [360, 640],
-  pixel: true,
   bg: '#070b18',
   flexH: true,
   flexMin: 1.15,
@@ -26,10 +25,7 @@ registerGame({
     ];
     const COLOR = [['#f5d31c'], ['#e5413b'], ['#4cc24a', '#a655b8']];
     const PTS = [50, 80, 150];
-    const bmp = (rows, x, y, px, color) => {
-      g.fillStyle = color;
-      rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') g.fillRect(Math.round(x + i * px), Math.round(y + j * px), px, px); });
-    };
+    const bmp = (rows, x, y, px, color) => Art.bmpGlow(g, rows, x, y, px, color);
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, wave = 1, time = 0;
@@ -185,15 +181,10 @@ registerGame({
       g.fillStyle = PAL[0]; g.fillRect(x + 2, y + 2, w - 4, h - 4);
       rows.forEach((t, i) => text(t, W / 2, y + 12 + i * 26, 18, 'center'));
     };
-    const drawShip = (x, y, s = 1) => {
-      g.fillStyle = '#eef1ff'; g.fillRect(x - 3 * s, y - 14 * s, 6 * s, 20 * s);
-      g.fillStyle = '#3d5fe0'; g.fillRect(x - 12 * s, y - 2 * s, 24 * s, 8 * s);
-      g.fillStyle = '#e5413b'; g.fillRect(x - 16 * s, y + 4 * s, 8 * s, 6 * s); g.fillRect(x + 8 * s, y + 4 * s, 8 * s, 6 * s);
-      g.fillStyle = '#25c4f0'; g.fillRect(x - 2 * s, y - 8 * s, 4 * s, 6 * s);
-    };
+    const drawShip = (x, y, s = 1) => Art.fighter(g, x, y - 2 * s, s * 1.05, performance.now() / 1000, '#e8eeff', '#e5413b');
 
     const render = () => {
-      g.fillStyle = PAL[0]; g.fillRect(0, 0, W, H);
+      Art.nebula(g, W, H, 0);
       stars.forEach(s => { g.fillStyle = s.s > 1.4 ? '#eef1ff' : '#5a6aa0'; g.fillRect(s.x, s.y, s.s, s.s); });
 
       if (state === 'title') {

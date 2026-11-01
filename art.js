@@ -306,5 +306,126 @@
     g.restore();
     return { w, h };
   }
-  window.Art = { drawMargot, drawPortrait, portrait, sideFrame, drawPhoto, photo: k => (ready(k) ? PHOTO[k] : null), ready };
+
+  // ---- Personaggi in vettoriale ad alta definizione per i giochi del topo ----
+  const ell = (g, x, y, rx, ry, fill, rot) => { g.fillStyle = fill; g.beginPath(); g.ellipse(x, y, rx, ry, rot || 0, 0, 7); g.fill(); };
+  const lin = (g, x0, y0, x1, y1, a, b) => { const k = g.createLinearGradient(x0, y0, x1, y1); k.addColorStop(0, a); k.addColorStop(1, b); return k; };
+  // (x, y) = piedi; f = direzione (1 o -1); walk = fase dei passi
+  function drawMouseHD(g, x, y, f, walk, air, climb) {
+    const ph = walk * Math.PI, bob = air || climb ? 0 : Math.abs(Math.sin(ph)) * 1.1, by = y - bob;
+    g.save();
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x, y + 0.5, 9, 2.1, 0, 0, 7); g.fill();
+    // coda sottile e ricurva
+    g.strokeStyle = '#e7a0ac'; g.lineWidth = 1.7; g.lineCap = 'round'; g.beginPath();
+    const sw = Math.sin(ph * 1.0) * 2.5;
+    g.moveTo(x - f * 7, by - 7); g.bezierCurveTo(x - f * 13, by - 5 + sw, x - f * 15, by - 13 - sw, x - f * 11, by - 16 + sw); g.stroke();
+    // zampe posteriori e anteriori
+    const stepA = air ? 3 : Math.sin(ph) * 3, stepB = air ? -2 : -Math.sin(ph) * 3;
+    ell(g, x - f * 4 + stepA, by - 1.6, 3.2, 2, '#e3b9a0'); ell(g, x + f * 3 + stepB, by - 1.6, 3.2, 2, '#e3b9a0');
+    // corpo
+    ell(g, x - f * 1, by - 8.5, 8.2, 6.4, lin(g, x, by - 15, x, by - 2, '#c9ae93', '#8e7459'));
+    ell(g, x + f * 1, by - 6.5, 4.6, 3.6, '#ead7c4');
+    // sciarpa verde con codina
+    g.fillStyle = lin(g, x, by - 15, x, by - 10, '#43c27a', '#228a52'); g.beginPath(); g.ellipse(x + f * 3, by - 12, 4.2, 2.6, f * 0.5, 0, 7); g.fill();
+    g.beginPath(); g.moveTo(x + f * 1, by - 11); g.lineTo(x - f * (5 + Math.sin(ph) * 1), by - 9.5); g.lineTo(x - f * 3, by - 8); g.closePath(); g.fill();
+    // braccino
+    ell(g, x + f * 5, by - 7 + (climb ? -3 : 0), 2.1, 1.7, '#e3b9a0');
+    // orecchie (dietro la testa)
+    ell(g, x + f * 2.5, by - 20.5, 4.6, 5, '#b99a7c'); ell(g, x + f * 2.5, by - 20.3, 2.9, 3.4, '#f2a9bd');
+    ell(g, x + f * 8, by - 20, 4.3, 4.7, '#b99a7c'); ell(g, x + f * 8, by - 19.8, 2.6, 3.1, '#f2a9bd');
+    // testa con muso appuntito
+    g.fillStyle = lin(g, x, by - 20, x, by - 10, '#d2b99e', '#a98e73'); g.beginPath();
+    g.moveTo(x + f * 12.5, by - 11.5); g.quadraticCurveTo(x + f * 11, by - 18, x + f * 5, by - 19); g.quadraticCurveTo(x - f * 0.5, by - 17, x + f * 1, by - 11); g.quadraticCurveTo(x + f * 6, by - 8.5, x + f * 12.5, by - 11.5); g.fill();
+    ell(g, x + f * 12.3, by - 11.8, 1.5, 1.2, '#f08aa4');                      // naso
+    // occhio grande con riflesso
+    ell(g, x + f * 7.3, by - 14.8, 2.1, 2.5, '#141a2e'); ell(g, x + f * 7.9, by - 15.6, 0.8, 0.9, '#fff');
+    // guancia e baffi
+    ell(g, x + f * 5.2, by - 12, 1.7, 1.1, 'rgba(240,138,164,.55)');
+    g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 0.5; g.beginPath();
+    g.moveTo(x + f * 10, by - 11.2); g.lineTo(x + f * 15, by - 12.6); g.moveTo(x + f * 10, by - 10.6); g.lineTo(x + f * 15.2, by - 10.4); g.stroke();
+    g.restore();
+  }
+  function drawCatHD(g, x, y, f, t, dead) {
+    g.save();
+    if (dead) { ell(g, x, y - 2.2, 13, 2.6, '#d98b2b'); g.restore(); return; }
+    const wag = Math.sin(t * 8) * 3;
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x, y + 0.5, 14, 2.4, 0, 0, 7); g.fill();
+    g.strokeStyle = '#d98b2b'; g.lineWidth = 3.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - f * 10, y - 8); g.bezierCurveTo(x - f * 18, y - 10, x - f * 19, y - 19 + wag, x - f * 14, y - 22 + wag); g.stroke();
+    g.strokeStyle = '#7a3f10'; g.lineWidth = 1; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(x - f * (14 + k * 1.5), y - 12 - k * 3); g.lineTo(x - f * (11 + k * 1.5), y - 11 - k * 3); g.stroke(); }
+    ell(g, x - f * 1, y - 8.5, 11.5, 8, lin(g, x, y - 16, x, y - 1, '#f0a846', '#c9731a'));
+    g.strokeStyle = 'rgba(122,63,16,.55)'; g.lineWidth = 1.3; for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(x + k * 3.6, y - 15.5); g.lineTo(x + k * 3.6 + 1, y - 10); g.stroke(); }
+    ell(g, x - f * 6, y - 1.8, 3.6, 2.2, '#b87a35'); ell(g, x + f * 6, y - 1.8, 3.6, 2.2, '#b87a35');
+    ell(g, x + f * 3, y - 14, 8.2, 7.4, lin(g, x, y - 21, x, y - 8, '#f6b657', '#d98b2b'));
+    g.fillStyle = '#e0952f'; g.beginPath(); g.moveTo(x + f * 3 - 7, y - 18); g.lineTo(x + f * 3 - 6, y - 25.5); g.lineTo(x + f * 3 - 1, y - 20); g.moveTo(x + f * 3 + 7, y - 18); g.lineTo(x + f * 3 + 6, y - 25.5); g.lineTo(x + f * 3 + 1, y - 20); g.fill();
+    ell(g, x + f * 3 - 5, y - 20.5, 1.6, 2.4, '#f2a9bd', 0.25); ell(g, x + f * 3 + 5, y - 20.5, 1.6, 2.4, '#f2a9bd', -0.25);
+    ell(g, x + f * 3 - 3, y - 14.5, 2.1, 2.3, '#fff3c4'); ell(g, x + f * 3 + 3.2, y - 14.5, 2.1, 2.3, '#fff3c4');
+    ell(g, x + f * 3 - 3 + f * 0.4, y - 14.4, 0.8, 1.9, '#141a2e'); ell(g, x + f * 3 + 3.2 + f * 0.4, y - 14.4, 0.8, 1.9, '#141a2e');
+    ell(g, x + f * 3 + 0.1, y - 11, 1.2, 0.9, '#f08aa4');
+    g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 0.5; g.beginPath(); g.moveTo(x + f * 3 + 2, y - 10.6); g.lineTo(x + f * 3 + 9, y - 11.6); g.moveTo(x + f * 3 + 2, y - 9.8); g.lineTo(x + f * 3 + 9, y - 9); g.moveTo(x + f * 3 - 2, y - 10.6); g.lineTo(x + f * 3 - 9, y - 11.6); g.moveTo(x + f * 3 - 2, y - 9.8); g.lineTo(x + f * 3 - 9, y - 9); g.stroke();
+    g.restore();
+  }
+  function drawCheeseHD(g, x, y) {
+    g.save(); g.translate(x, y);
+    g.fillStyle = 'rgba(0,0,0,.15)'; g.beginPath(); g.ellipse(0, 7.5, 9, 1.8, 0, 0, 7); g.fill();
+    g.fillStyle = lin(g, 0, -6, 0, 7, '#ffe56a', '#e8a91c'); g.beginPath(); g.moveTo(-9, 6); g.lineTo(9, 6); g.lineTo(9, -3); g.lineTo(-9, 3); g.closePath(); g.fill();
+    g.fillStyle = '#fff3a8'; g.beginPath(); g.moveTo(-9, 3); g.lineTo(9, -3); g.lineTo(6, -6); g.lineTo(-9, 0); g.closePath(); g.fill();
+    ell(g, -3.5, 3, 1.7, 1.5, '#c98a12'); ell(g, 3.5, 0.8, 1.9, 1.6, '#c98a12'); ell(g, 6.3, 4, 1.1, 1, '#c98a12');
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(-7.5, 3.6, 4, 1);
+    g.restore();
+  }
+
+  // ---- Navicelle e alieni ad alta definizione (usati dai giochi spaziali) ----
+  // Disegna una griglia di '#' come celle luminose con riflesso, ombra e alone.
+  function bmpGlow(g, rows, x, y, px, color) {
+    g.save();
+    g.globalAlpha = 0.16; g.fillStyle = color;
+    rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') g.fillRect(x + i * px - px * 0.55, y + j * px - px * 0.55, px * 2.1, px * 2.1); });
+    g.globalAlpha = 1;
+    rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') {
+      const cx = x + i * px, cy = y + j * px;
+      g.fillStyle = color; g.fillRect(cx, cy, px, px);
+      g.fillStyle = 'rgba(255,255,255,.38)'; g.fillRect(cx, cy, px, px * 0.34);
+      g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(cx, cy + px * 0.72, px, px * 0.28);
+      g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(cx + px * 0.86, cy, px * 0.14, px);
+    } });
+    g.restore();
+  }
+  // Caccia stellare: (x, y) = punto sotto il muso; s = scala
+  function fighter(g, x, y, s, t, hull, accent) {
+    s = s || 1; hull = hull || '#dfe6ff'; accent = accent || '#3d6bff';
+    g.save(); g.translate(x, y); g.scale(s, s);
+    const fl = 7 + Math.sin(t * 40) * 2.5;
+    const fg = g.createLinearGradient(0, 8, 0, 8 + fl * 1.8); fg.addColorStop(0, '#fff6b0'); fg.addColorStop(0.4, '#ffb03a'); fg.addColorStop(1, 'rgba(255,80,40,0)');
+    g.fillStyle = fg; g.beginPath(); g.moveTo(-4, 8); g.quadraticCurveTo(0, 8 + fl * 2, 4, 8); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(-10, 8); g.quadraticCurveTo(-9, 8 + fl * 1.1, -7, 8); g.closePath(); g.fill(); g.beginPath(); g.moveTo(10, 8); g.quadraticCurveTo(9, 8 + fl * 1.1, 7, 8); g.closePath(); g.fill();
+    // ali
+    const wg = g.createLinearGradient(-16, 0, 16, 0); wg.addColorStop(0, accent); wg.addColorStop(0.5, '#9bb4ff'); wg.addColorStop(1, accent);
+    g.fillStyle = wg; g.beginPath(); g.moveTo(-3, -4); g.lineTo(-16, 6); g.lineTo(-15, 9); g.lineTo(-5, 6); g.lineTo(5, 6); g.lineTo(15, 9); g.lineTo(16, 6); g.lineTo(3, -4); g.closePath(); g.fill();
+    g.fillStyle = '#e5413b'; g.fillRect(-16, 5, 3, 3); g.fillRect(13, 5, 3, 3);
+    // fusoliera
+    const bg = g.createLinearGradient(-5, 0, 5, 0); bg.addColorStop(0, '#9aa8d6'); bg.addColorStop(0.45, hull); bg.addColorStop(1, '#8793c0');
+    g.fillStyle = bg; g.beginPath(); g.moveTo(0, -15); g.quadraticCurveTo(5.5, -6, 5, 7); g.lineTo(-5, 7); g.quadraticCurveTo(-5.5, -6, 0, -15); g.closePath(); g.fill();
+    // cabina
+    const cg = g.createLinearGradient(0, -10, 0, -2); cg.addColorStop(0, '#9ff3ff'); cg.addColorStop(1, '#1fa7d6');
+    g.fillStyle = cg; g.beginPath(); g.ellipse(0, -6, 2.4, 4.2, 0, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(-1.2, -9, 1, 3);
+    g.restore();
+  }
+  function saucer(g, x, y, t) {
+    g.save(); g.translate(x, y);
+    const bg = g.createLinearGradient(0, -6, 0, 6); bg.addColorStop(0, '#ff8f8a'); bg.addColorStop(1, '#a8181a');
+    g.fillStyle = 'rgba(255,90,80,.18)'; g.beginPath(); g.ellipse(0, 2, 24, 9, 0, 0, 7); g.fill();
+    g.fillStyle = '#9ff3ff'; g.beginPath(); g.ellipse(0, -4, 8, 6, 0, Math.PI, 0); g.fill();
+    g.fillStyle = bg; g.beginPath(); g.ellipse(0, 2, 17, 6, 0, 0, 7); g.fill();
+    for (let i = -2; i <= 2; i++) { g.fillStyle = (((t * 8) | 0) + i) % 2 ? '#ffe66a' : '#fff'; g.beginPath(); g.arc(i * 6.5, 3, 1.5, 0, 7); g.fill(); }
+    g.restore();
+  }
+  // Sfondo spaziale con nebulose e stelle che brillano
+  function nebula(g, W, H, t) {
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#05081a'); bg.addColorStop(1, '#0b0f2e'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    [[0.2, 0.25, 0.5, 'rgba(110,60,200,.22)'], [0.85, 0.6, 0.55, 'rgba(30,120,220,.18)'], [0.4, 0.95, 0.45, 'rgba(200,60,120,.12)']].forEach(([a, b, r, c]) => {
+      const gr = g.createRadialGradient(a * W, b * H, 0, a * W, b * H, r * Math.max(W, H)); gr.addColorStop(0, c); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    });
+  }
+  window.Art = { bmpGlow, fighter, saucer, nebula, drawMouseHD, drawCatHD, drawCheeseHD, drawMargot, drawPortrait, portrait, sideFrame, drawPhoto, photo: k => (ready(k) ? PHOTO[k] : null), ready };
 })();

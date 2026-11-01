@@ -5,7 +5,6 @@ registerGame({
   blurb: 'Ondate di invasori scendono a gruppi. Trascina il dito per guidare la nave: spara da sola mentre tocchi. Ripara dietro gli scudi.',
   inputs: ['TRASCINA', 'AUTO-FUOCO', 'VIBRAZIONE'],
   size: [360, 640],
-  pixel: true,
   bg: '#0b1020',
   flexH: true,
   flexMin: 1.15,
@@ -29,10 +28,7 @@ registerGame({
     const TYPE_COLOR = ['#a655b8', '#25c4f0', '#4cc24a'];
     const TYPE_PTS = [30, 20, 10];
 
-    const bmp = (rows, x, y, px, color) => {
-      g.fillStyle = color;
-      rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') g.fillRect(Math.round(x + i * px), Math.round(y + j * px), px, px); });
-    };
+    const bmp = (rows, x, y, px, color) => Art.bmpGlow(g, rows, x, y, px, color);
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, wave = 1;
@@ -214,16 +210,13 @@ registerGame({
       g.fillStyle = PAL[0]; g.fillRect(x + 2, y + 2, w - 4, h - 4);
       rows.forEach((t, i) => text(t, W / 2, y + 12 + i * 26, 18, 'center'));
     };
-    const drawShip = (x, y) => {
-      g.fillStyle = '#eef1ff'; g.fillRect(x - 14, y, 28, 8);
-      g.fillStyle = '#25c4f0'; g.fillRect(x - 8, y - 6, 16, 8);
-      g.fillStyle = '#e5413b'; g.fillRect(x - 2, y - 14, 4, 10);
-      g.fillStyle = '#5a6aa0'; g.fillRect(x - 14, y + 6, 6, 4); g.fillRect(x + 8, y + 6, 6, 4);
-    };
+    const drawShip = (x, y) => Art.fighter(g, x, y - 4, 1.05, time2, '#dfe6ff', '#2f6bff');
 
+    let time2 = 0;
     const render = () => {
-      g.fillStyle = PAL[0]; g.fillRect(0, 0, W, H);
-      g.fillStyle = '#5a6aa0'; stars.forEach(s => g.fillRect(s.x, s.y, s.s, s.s));
+      time2 = performance.now() / 1000;
+      Art.nebula(g, W, H, time2);
+      stars.forEach(s => { g.fillStyle = s.s > 1.3 ? 'rgba(235,240,255,' + (0.6 + 0.4 * Math.sin(time2 * 3 + s.x)) + ')' : '#5a6aa0'; g.fillRect(s.x, s.y, s.s, s.s); });
 
       if (state === 'title') {
         text('SPACE', W / 2, 150, 44, 'center', '#4cc24a'); text('RAIDERS', W / 2, 198, 44, 'center');
@@ -236,19 +229,18 @@ registerGame({
 
       for (const a of aliens) if (a.alive) { const [x, y] = apos(a); bmp(SPR[a.type][frame], x, y, 3, TYPE_COLOR[a.type]); }
       for (const s of shields) {
-        g.fillStyle = '#4cc24a';
-        s.cells.forEach((row, r) => row.forEach((on, c) => { if (on) g.fillRect(s.x + c * PX, SHIELD_Y + r * PX, PX, PX); }));
+        s.cells.forEach((row, r) => row.forEach((on, c) => { if (on) { const sx = s.x + c * PX, sy = SHIELD_Y + r * PX; g.fillStyle = '#4cc24a'; g.fillRect(sx, sy, PX, PX); g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(sx, sy, PX, PX * 0.3); g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(sx, sy + PX * 0.75, PX, PX * 0.25); } }));
       }
-      if (ufo) { g.fillStyle = '#e5413b'; g.fillRect(ufo.x - 14, 52, 28, 7); g.fillRect(ufo.x - 8, 47, 16, 6); g.fillStyle = '#f5d31c'; g.fillRect(ufo.x - 8, 56, 3, 3); g.fillRect(ufo.x + 5, 56, 3, 3); }
-      if (bullet) { g.fillStyle = '#eef1ff'; g.fillRect(bullet.x - 1.5, bullet.y, 3, 10); }
-      g.fillStyle = '#f5d31c'; ebullets.forEach(b => { g.fillRect(b.x - 1.5, b.y - 8, 3, 8); g.fillRect(b.x - 3, b.y - 5, 6, 2); });
+      if (ufo) Art.saucer(g, ufo.x, 54, time2);
+      if (bullet) { const bgd = g.createLinearGradient(0, bullet.y, 0, bullet.y + 14); bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(1, 'rgba(120,200,255,0)'); g.fillStyle = bgd; g.fillRect(bullet.x - 1.8, bullet.y - 2, 3.6, 16); g.fillStyle = 'rgba(120,200,255,.25)'; g.fillRect(bullet.x - 4, bullet.y, 8, 12); }
+      ebullets.forEach(b => { const eg = g.createLinearGradient(0, b.y - 12, 0, b.y); eg.addColorStop(0, 'rgba(255,200,40,0)'); eg.addColorStop(1, '#ffe27a'); g.fillStyle = eg; g.fillRect(b.x - 1.8, b.y - 12, 3.6, 12); g.fillStyle = 'rgba(255,170,40,.28)'; g.beginPath(); g.arc(b.x, b.y - 2, 5, 0, 7); g.fill(); });
       if (deadT <= 0 && !(ship.inv > 0 && ((ship.inv * 10) | 0) % 2 === 0)) drawShip(ship.x, SHIP_Y);
       parts.forEach(p => { g.fillStyle = p.c; g.fillRect(p.x, p.y, 3, 3); });
       g.fillStyle = '#4cc24a'; g.fillRect(0, H - 22, W, 2);
 
       text('PUNTI ' + String(score).padStart(5, '0'), 10, 8, 14);
       text('ONDATA ' + wave, W / 2, 8, 14, 'center');
-      for (let i = 0; i < lives; i++) drawShip(W - 26 - i * 34, 12);
+      for (let i = 0; i < lives; i++) Art.fighter(g, W - 24 - i * 28, 22, 0.62, 0, '#dfe6ff', '#2f6bff');
       if (flashT > 0) text(flashMsg, W / 2, 80, 20, 'center', '#f5d31c');
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);

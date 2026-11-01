@@ -7,7 +7,6 @@ registerGame({
   size: [480, 540],
   flexH: true,
   flexMin: 0.8,
-  pixel: true,
   create(api) {
     const { cv, g, held } = api;
     const CW = cv.width, CH = cv.height;
@@ -193,35 +192,9 @@ registerGame({
       rows.forEach((t, i) => text(t, W / 2, y + 12 + i * 26, 18, 'center'));
     };
 
-    const drawMouse = (x, y, face, walk, air, hurtPose) => {
-      const f = face, step = Math.floor(walk) % 2 === 0;
-      R(x - 9 * f - 1, y - 4, 7, 2, '#c98a52');                               // coda
-      R(x - 6, y - 10, 12, 8, '#9a7b5a');                                     // corpo
-      R(x - 6, y - 12, 12, 3, '#2f9e5b');                                     // sciarpa
-      R(x - 5 + (f > 0 ? 3 : 0), y - 20, 8, 8, '#b08d66');                    // testa
-      R(x + f * 3 - 1, y - 17, 2, 2, '#141a2e');                              // occhio
-      R(x + f * 6 - 1, y - 14, 3, 2, '#f2a0b8');                              // naso
-      g.fillStyle = '#b08d66'; g.beginPath(); g.arc(x - 3 * f, y - 21, 5, 0, 7); g.arc(x + 4 * f, y - 21, 5, 0, 7); g.fill();
-      g.fillStyle = '#f2a0b8'; g.beginPath(); g.arc(x - 3 * f, y - 21, 2.5, 0, 7); g.arc(x + 4 * f, y - 21, 2.5, 0, 7); g.fill();
-      if (air) { R(x - 7, y - 3, 5, 3, '#6b4a2b'); R(x + 3, y - 4, 5, 3, '#6b4a2b'); }
-      else { R(step ? x - 6 : x - 4, y - 3, 5, 3, '#6b4a2b'); R(step ? x + 2 : x + 1, y - 3, 5, 3, '#6b4a2b'); }
-    };
-    const drawCat = k => {
-      const f = k.dir, wag = Math.sin(k.t * 8) * 2;
-      if (k.dead > 0) { R(k.x - 11, k.y - 5, 22, 5, '#d98b2b'); return; }
-      R(k.x - 12 * f - 2, k.y - 14 + wag, 4, 10, '#d98b2b');
-      R(k.x - 11, k.y - 14, 22, 12, '#d98b2b');
-      R(k.x - 9, k.y - 4, 5, 4, '#a8631a'); R(k.x + 4, k.y - 4, 5, 4, '#a8631a');
-      R(k.x + f * 3 - 6, k.y - 26, 12, 12, '#e69a3a');
-      g.fillStyle = '#e69a3a'; g.beginPath(); g.moveTo(k.x + f * 3 - 6, k.y - 26); g.lineTo(k.x + f * 3 - 6, k.y - 32); g.lineTo(k.x + f * 3 - 1, k.y - 26); g.moveTo(k.x + f * 3 + 6, k.y - 26); g.lineTo(k.x + f * 3 + 6, k.y - 32); g.lineTo(k.x + f * 3 + 1, k.y - 26); g.fill();
-      R(k.x + f * 3 - 4, k.y - 22, 3, 3, '#141a2e'); R(k.x + f * 3 + 1, k.y - 22, 3, 3, '#141a2e');
-      R(k.x + f * 3 - 1, k.y - 18, 2, 2, '#f2a0b8');
-    };
-    const drawCheese = c => {
-      const y = c.y + Math.sin(time * 4 + c.x * 0.05) * 2;
-      g.fillStyle = '#f5d31c'; g.beginPath(); g.moveTo(c.x - 8, y + 6); g.lineTo(c.x + 8, y + 6); g.lineTo(c.x + 8, y - 4); g.lineTo(c.x - 8, y + 2); g.fill();
-      g.fillStyle = '#c99a00'; g.fillRect(c.x - 3, y + 1, 3, 3); g.fillRect(c.x + 3, y - 2, 3, 3);
-    };
+    const drawMouse = (x, y, face, walk, air, hurtPose) => Art.drawMouseHD(g, x, y, face, walk, air, false);
+    const drawCat = k => Art.drawCatHD(g, k.x, k.y, k.dir, k.t, k.dead > 0);
+    const drawCheese = c => Art.drawCheeseHD(g, c.x, c.y + Math.sin(time * 4 + c.x * 0.05) * 2);
 
     const render = () => {
       const sky = g.createLinearGradient(0, 0, 0, CH);

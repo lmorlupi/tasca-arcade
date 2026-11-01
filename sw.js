@@ -1,6 +1,6 @@
 // Service worker: tiene in cache tutta la console, così funziona anche senza rete.
 // Quando cambia un file, aumenta VERSION: i telefoni scaricano di nuovo tutto.
-const VERSION = 'arcade-v40';
+const VERSION = 'arcade-v42';
 // File della console. I giochi non sono qui: si leggono da games/catalog.json, così aggiungerne uno
 // non richiede di toccare questo file (basta aumentare VERSION).
 const BASE = [

@@ -5,7 +5,6 @@ registerGame({
   blurb: 'Nel castello: raccogli tutte le chiavi, sali le scale, spingi i blocchi, evita fantasmi e ghiaccioli e usa le caselle W per teletrasportarti. Poi esci dalla porta.',
   inputs: ['D-PAD', 'PUZZLE', 'SALTO'],
   size: [352, 576],
-  pixel: true,
   bg: '#1a1633',
   create(api) {
     const { cv, g, held } = api;
@@ -334,17 +333,7 @@ registerGame({
       R(X, Y, T, 3, '#a9b2dc'); R(X, Y + T - 3, T, 3, '#4d5688');
       R(X, Y + 15, T, 2, '#4d5688'); R(X + 15, Y, 2, 16, '#4d5688'); R(X + 7, Y + 17, 2, 15, '#4d5688'); R(X + 23, Y + 17, 2, 15, '#4d5688');
     };
-    const drawMouse = (x, y, face, walk, air, ladder) => {
-      const f = face, step = Math.floor(walk) % 2 === 0;
-      R(x - 9 * f - 1, y - 4, 7, 2, '#c98a52');
-      R(x - 6, y - 10, 12, 8, '#9a7b5a'); R(x - 6, y - 12, 12, 3, '#2f9e5b');
-      R(x - 5 + (f > 0 ? 3 : 0), y - 20, 8, 8, '#b08d66'); R(x + f * 3 - 1, y - 17, 2, 2, '#141a2e'); R(x + f * 6 - 1, y - 14, 3, 2, '#f2a0b8');
-      g.fillStyle = '#b08d66'; g.beginPath(); g.arc(x - 3 * f, y - 21, 5, 0, 7); g.arc(x + 4 * f, y - 21, 5, 0, 7); g.fill();
-      g.fillStyle = '#f2a0b8'; g.beginPath(); g.arc(x - 3 * f, y - 21, 2.5, 0, 7); g.arc(x + 4 * f, y - 21, 2.5, 0, 7); g.fill();
-      if (ladder) { R(step ? x - 8 : x + 5, y - 14, 3, 5, '#b08d66'); R(step ? x + 5 : x - 8, y - 10, 3, 5, '#b08d66'); R(x - 4, y - 2, 3, 2, '#6b4a2b'); R(x + 1, y - 2, 3, 2, '#6b4a2b'); }
-      else if (air) { R(x - 7, y - 3, 5, 3, '#6b4a2b'); R(x + 3, y - 4, 5, 3, '#6b4a2b'); }
-      else { R(step ? x - 6 : x - 4, y - 3, 5, 3, '#6b4a2b'); R(step ? x + 2 : x + 1, y - 3, 5, 3, '#6b4a2b'); }
-    };
+    const drawMouse = (x, y, face, walk, air, ladder) => Art.drawMouseHD(g, x, y, face, walk, air, ladder);
     const drawKey = (k) => {
       const x = k.c * T + T / 2, y = keyY(k) + Math.sin(time * 4 + k.bob) * 2;
       g.fillStyle = '#f5d31c'; g.beginPath(); g.arc(x - 6, y, 6, 0, 7); g.fill();
