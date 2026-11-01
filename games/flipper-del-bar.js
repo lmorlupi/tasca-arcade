@@ -22,23 +22,26 @@ registerGame({
     // Suoni sintetizzati (nessun file) e vibrazioni piu' decise
     const tone = (f, d, type, v, at) => at ? setTimeout(() => api.beep(f, d, type, v), at) : api.beep(f, d, type, v);
     const hap = (...ms) => { ms.forEach((m, i) => { if (i === 0) api.haptic(m); else setTimeout(() => api.haptic(m), i * 55); }); };
-    // Stile elettromeccanico anni '70-'80: campanelli (toni non armonici), solenoidi, relè e il "knocker" delle partite extra.
-    const bell = (f, v, at) => { tone(f, 0.38, 'sine', v, at); tone(f * 2.76, 0.22, 'sine', v * 0.55, at); tone(f * 5.4, 0.12, 'sine', v * 0.3, at); };
-    const knock = (at) => { tone(70, 0.11, 'square', 0.14, at); tone(48, 0.15, 'sine', 0.16, at); tone(2400, 0.01, 'square', 0.04, at); };
+    // Stile elettromeccanico: raffiche di scatti e campanelli sottili (1-6 kHz, note ricorrenti intorno a 950, 1300 e 2000 Hz),
+    // e il colpo sordo delle bobine intorno ai 190 Hz. Tutto sintetizzato.
+    const bell = (f, v, at) => { tone(f, 0.5, 'sine', v, at); tone(f * 2.4, 0.28, 'sine', v * 0.5, at); tone(f * 4.1, 0.14, 'sine', v * 0.28, at); };
+    const ticks = (n, v, at0) => { const F = [1350, 2050, 2550, 1700]; for (let k = 0; k < n; k++) { const at = (at0 || 0) + k * (95 + (k % 2) * 28); tone(F[k % 4], 0.018, 'square', v, at || undefined); tone(F[(k + 1) % 4] * 1.5, 0.01, 'square', v * 0.5, at + 6); } };
+    const thud = (v, at) => { tone(190, 0.11, 'sine', v, at); tone(95, 0.09, 'triangle', v * 0.7, at); tone(2400, 0.008, 'square', v * 0.3, at); };
+    const knock = (at) => { thud(0.16, at); tone(60, 0.16, 'sine', 0.16, at); };
     const sfx = {
-      flipper() { tone(62, 0.07, 'square', 0.11); tone(124, 0.05, 'sawtooth', 0.07, 6); tone(2600, 0.008, 'square', 0.04, 3); tone(1700, 0.008, 'square', 0.03, 22); hap(30); },
-      flipperHit() { tone(200, 0.04, 'square', 0.08); tone(100, 0.07, 'triangle', 0.1, 8); hap(42); },
-      bumper(i) { bell(440 + (i || 0) * 70, 0.09); tone(95, 0.05, 'square', 0.1); hap(50, 22); },
-      sling() { tone(210, 0.04, 'square', 0.11); tone(2300, 0.01, 'square', 0.05, 4); tone(420, 0.04, 'sawtooth', 0.05, 14); hap(38, 16); },
-      target() { bell(784, 0.07); hap(26); },
-      drop() { tone(280, 0.04, 'square', 0.09); tone(140, 0.08, 'triangle', 0.1, 25); tone(1900, 0.008, 'square', 0.04, 3); hap(28); },
-      lane(i) { bell(990 + i * 120, 0.05); hap(14); },
-      saucer() { tone(150, 0.12, 'triangle', 0.1); for (let k = 0; k < 3; k++) tone(260 - k * 50, 0.05, 'square', 0.06, 40 + k * 40); hap(45, 25); },
-      eject() { tone(90, 0.07, 'square', 0.12); tone(1800, 0.01, 'square', 0.05, 3); tone(520, 0.1, 'square', 0.06, 30); hap(55); },
-      launch() { tone(55, 0.18, 'sine', 0.14); for (let k = 0; k < 5; k++) tone(300 - k * 40, 0.035, 'triangle', 0.05, 40 + k * 22); tone(2000, 0.01, 'square', 0.05, 150); hap(70, 30); },
-      drain() { for (let k = 0; k < 4; k++) tone(260 - k * 50, 0.14, 'sawtooth', 0.07, k * 100); knock(420); hap(120, 60, 30); },
-      jingle() { bell(523, 0.08); bell(659, 0.08, 140); bell(784, 0.08, 280); bell(1046, 0.09, 420); knock(560); hap(45, 35, 35); },
-      wall(v) { if (v > 260) tone(1300 + Math.random() * 400, 0.01, 'square', Math.min(0.04, v / 18000)); },
+      flipper() { thud(0.12); ticks(1, 0.05, 4); hap(30); },
+      flipperHit() { thud(0.1); tone(1350, 0.02, 'square', 0.06, 6); hap(42); },
+      bumper(i) { bell([950, 1300, 2000][(i || 0) % 3], 0.09); ticks(2, 0.05, 8); thud(0.07); hap(50, 22); },
+      sling() { thud(0.1); ticks(2, 0.05, 6); hap(38, 16); },
+      target() { bell(1300, 0.08); ticks(2, 0.04, 40); hap(26); },
+      drop() { thud(0.09); ticks(1, 0.05, 20); tone(950, 0.05, 'triangle', 0.06, 30); hap(28); },
+      lane(i) { bell([950, 1300, 2000][i % 3], 0.06); hap(14); },
+      saucer() { thud(0.1); ticks(4, 0.04, 40); hap(45, 25); },
+      eject() { thud(0.12); ticks(2, 0.05, 20); bell(2000, 0.05, 40); hap(55); },
+      launch() { tone(55, 0.18, 'sine', 0.14); ticks(5, 0.04, 40); thud(0.1, 150); hap(70, 30); },
+      drain() { for (let k = 0; k < 4; k++) tone(260 - k * 50, 0.14, 'sawtooth', 0.06, k * 100); knock(420); hap(120, 60, 30); },
+      jingle() { bell(950, 0.08); bell(1300, 0.08, 150); bell(2000, 0.08, 300); ticks(8, 0.04, 450); knock(560); hap(45, 35, 35); },
+      wall(v) { if (v > 260) tone(1500 + Math.random() * 600, 0.01, 'square', Math.min(0.04, v / 18000)); },
     };
     let lastN = [0, -1], mult = 0, bonusN = 0, laneLit = [false, false, false], saucer = { x: 180, y: 192, t: 0, ball: false }, slingL = 0, slingR = 0, extraLit = false;
     const MULTS = [1, 2, 3, 5, 10];
