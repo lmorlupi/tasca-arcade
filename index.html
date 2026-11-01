@@ -62,7 +62,15 @@
 <script>
   Shell.start();
   // Offline: il service worker salva tutti i file al primo caricamento (serve https o localhost).
-  if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // Quando arriva una versione nuova la pagina si ricarica da sola, ma mai nel mezzo di una partita.
+  if ('serviceWorker' in navigator) {
+    const had = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!had) return;
+      if (Shell.mode === 'game') Shell.reloadOnMenu = true; else location.reload();
+    });
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
 </script>
 </body>
 </html>

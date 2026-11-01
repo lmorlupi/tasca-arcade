@@ -140,6 +140,7 @@
   };
 
   const toMenu = () => {
+    if (window.Shell && window.Shell.reloadOnMenu) { location.reload(); return; }
     if (inst && inst.destroy) inst.destroy();
     inst = null; cur = null; mode = 'menu';
     letSleep();
@@ -211,7 +212,9 @@
     b.addEventListener('pointercancel', up);
     b.addEventListener('lostpointercapture', up);
   });
-  $('home').addEventListener('click', () => { if (mode === 'game') toMenu(); });
+  const goHome = () => { if (mode === 'game') toMenu(); };
+  $('home').addEventListener('pointerup', goHome);
+  $('home').addEventListener('click', goHome);
   document.addEventListener('contextmenu', e => e.preventDefault());
 
   // iPhone: Safari ignora user-scalable=no. Blocchiamo a mano il doppio tocco e il pizzico, così premere
@@ -223,7 +226,9 @@
     if (now - lastTouchEnd < 400) e.preventDefault();
     lastTouchEnd = now;
   }, { passive: false });
-  document.addEventListener('touchstart', e => { if (e.touches.length > 1 && !e.target.closest('.menu')) e.preventDefault(); }, { passive: false });
+  // Fuori dal catalogo ogni tocco ha già i suoi eventi puntatore: fermare il tocco "classico" toglie al
+  // browser ogni appiglio per lo zoom del doppio tap (e il click ritardato). Il catalogo resta normale.
+  document.addEventListener('touchstart', e => { if (!e.target.closest('.menu')) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', e => { if (e.scale && e.scale !== 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('dblclick', e => e.preventDefault());
 
