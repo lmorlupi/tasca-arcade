@@ -774,13 +774,14 @@ registerGame({
       if (P.hidden) blankets.forEach(b => { if (Math.abs(P.x - b.x) < b.w / 2) drawBlanket(b, true); });
       if (state === 'rest') {
         const scr = time - lastPet < 0.35, hx = P.x + P.face * 9 + Math.sin(time * 2.4) * (scr ? 2 : 6) + (scr ? Math.sin(time * 42) * 2.2 : 0), hy = P.y - 42 + Math.sin(time * 4.8) * 1.2 + (scr ? Math.sin(time * 38) * 1.4 : 0);
-        g.save(); g.translate(hx, hy - 6); g.rotate(Math.sin(time * 2.4 + 1.2) * 0.08);
+        g.save(); g.translate(hx, hy - 6); g.rotate(Math.sin(time * 2.4 + 1.2) * 0.08); g.scale(1.7, 1.7);
+        g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(4, -8, 22, 0, 7); g.fill(); g.lineJoin = 'round'; g.strokeStyle = '#5a3320'; g.lineWidth = 1.1;
         const skin = g.createLinearGradient(-10, -8, 10, 12); skin.addColorStop(0, '#f8d9bb'); skin.addColorStop(1, '#e4ac85');
-        g.fillStyle = '#7fa3c7'; g.beginPath(); g.moveTo(8, -14); g.lineTo(34, -48); g.lineTo(48, -38); g.lineTo(20, -4); g.closePath(); g.fill();
-        g.fillStyle = '#fff4e0'; g.beginPath(); g.moveTo(5, -12); g.lineTo(13, -22); g.lineTo(25, -13); g.lineTo(17, -3); g.closePath(); g.fill();
-        g.fillStyle = skin; g.beginPath(); g.ellipse(0, -5, 10, 8, 0, 0, 7); g.fill();
-        [[-7, 9], [-2.5, 12], [2.5, 11], [7, 8]].forEach(([fx, fl]) => { g.beginPath(); g.roundRect(fx - 2.1, -3, 4.2, fl + 3, 2.1); g.fill(); });
-        g.beginPath(); g.ellipse(-11, -6, 5, 2.6, 0.7, 0, 7); g.fill();
+        g.fillStyle = '#3f6fb0'; g.beginPath(); g.moveTo(8, -14); g.lineTo(34, -48); g.lineTo(48, -38); g.lineTo(20, -4); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = '#fff4e0'; g.beginPath(); g.moveTo(5, -12); g.lineTo(13, -22); g.lineTo(25, -13); g.lineTo(17, -3); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = skin; g.beginPath(); g.ellipse(0, -5, 10, 8, 0, 0, 7); g.fill(); g.stroke();
+        [[-7, 9], [-2.5, 12], [2.5, 11], [7, 8]].forEach(([fx, fl]) => { g.beginPath(); g.roundRect(fx - 2.1, -3, 4.2, fl + 3, 2.1); g.fill(); g.stroke(); });
+        g.beginPath(); g.ellipse(-11, -6, 5, 2.6, 0.7, 0, 7); g.fill(); g.stroke();
         g.strokeStyle = 'rgba(150,90,60,.35)'; g.lineWidth = 0.7; for (const fx of [-4.7, 0, 4.7]) { g.beginPath(); g.moveTo(fx, 2); g.lineTo(fx, 10); g.stroke(); }
         g.restore();
         if (time - lastPet < 0.35) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.2; for (let k = 0; k < 3; k++) { const a = time * 30 + k * 2; g.beginPath(); g.moveTo(hx - 10 + k * 7, hy + 6); g.lineTo(hx - 12 + k * 7 + Math.sin(a) * 3, hy + 12); g.stroke(); } }
