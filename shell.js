@@ -1,4 +1,4 @@
-// Console Pocket Color: avvio, catalogo, controlli, sensori, vibrazione e suono.
+// Console Gameboy: avvio, catalogo, controlli, sensori, vibrazione e suono.
 // Ogni gioco è una cartuccia registrata con registerGame({ id, title, color, blurb, inputs, size, create(api) }).
 (() => {
   const $ = id => document.getElementById(id);
@@ -63,8 +63,11 @@
   const lite = (k, on) => {
     document.querySelectorAll('[data-k="' + k + '"],[data-dir="' + k + '"]').forEach(b => b.classList.toggle('on', on));
     if (k === 'left' || k === 'right' || k === 'up' || k === 'down') {
-      if (on) dpadEl.dataset.d = k;
-      else if (dpadEl.dataset.d === k) delete dpadEl.dataset.d;
+      // La croce si inclina verso quello che premi, anche in diagonale.
+      const rx = (held.up ? 1 : 0) - (held.down ? 1 : 0), ry = (held.right ? 1 : 0) - (held.left ? 1 : 0);
+      dpadEl.style.setProperty('--rx', rx * 10 + 'deg');
+      dpadEl.style.setProperty('--ry', ry * 10 + 'deg');
+      dpadEl.classList.toggle('down', !!(rx || ry));
     }
   };
   const feel = (k, down) => {
@@ -154,6 +157,7 @@
 
   const launch = async def => {
     if (launching || !def) return;
+    endBoot();
     launching = true;
     audioUnlock();
     try {
@@ -207,7 +211,7 @@
     else if (mode === 'game') keepAwake();
   });
 
-  document.querySelectorAll('[data-k]').forEach(b => {
+  document.querySelectorAll('[data-k="select"],[data-k="start"]').forEach(b => {
     const k = b.dataset.k;
     b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(k); });
     const up = () => release(k);
@@ -218,29 +222,54 @@
   $('home').addEventListener('click', () => { if (mode === 'game') toMenu(); });
   document.addEventListener('contextmenu', e => e.preventDefault());
 
-  // Croce direzionale: un'unica superficie, si può far scivolare il dito da una direzione all'altra.
-  const dpad = $('dpad');
-  const dirBtn = {};
-  dpad.querySelectorAll('[data-dir]').forEach(b => { dirBtn[b.dataset.dir] = b; });
-  let dir = null, dpadId = null;
-  const setDir = d => {
-    if (d === dir) return;
-    if (dir) release(dir);
-    dir = d;
-    if (dir) press(dir);
+  // Croce direzionale: un'unica superficie. Il dito può scivolare e premere gli angoli per le diagonali.
+  const dpad = dpadEl;
+  let dpadId = null;
+  const padOn = new Set();
+  const setDirs = want => {
+    for (const d of [...padOn]) if (!want.has(d)) { padOn.delete(d); release(d); }
+    for (const d of want) if (!padOn.has(d)) { padOn.add(d); press(d); }
   };
   const aim = e => {
     const r = dpad.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < r.width * 0.12) return setDir(null);
-    const ax = Math.abs(dx), ay = Math.abs(dy);
-    if (ay > ax * 1.2) setDir(dy < 0 ? 'up' : 'down');
-    else if (ax > ay * 1.2) setDir(dx < 0 ? 'left' : 'right');
+    const want = new Set();
+    if (Math.hypot(dx, dy) >= r.width * 0.1) {
+      const ax = Math.abs(dx), ay = Math.abs(dy);
+      if (ax > r.width * 0.08 && ax > ay * 0.45) want.add(dx < 0 ? 'left' : 'right');
+      if (ay > r.width * 0.08 && ay > ax * 0.45) want.add(dy < 0 ? 'up' : 'down');
+    }
+    setDirs(want);
   };
-  const dpadEnd = e => { if (e.pointerId === dpadId) { dpadId = null; setDir(null); } };
+  const dpadEnd = e => { if (e.pointerId === dpadId) { dpadId = null; setDirs(new Set()); } };
   dpad.addEventListener('pointerdown', e => { e.preventDefault(); dpad.setPointerCapture(e.pointerId); dpadId = e.pointerId; aim(e); });
   dpad.addEventListener('pointermove', e => { if (e.pointerId === dpadId) aim(e); });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => dpad.addEventListener(t, dpadEnd));
+
+  // A e B: una sola superficie. Il pollice può rotolare da un tasto all'altro e, a cavallo, premerli insieme.
+  const ab = $('ab');
+  const abBtn = { a: ab.querySelector('[data-k="a"]'), b: ab.querySelector('[data-k="b"]') };
+  const abPtr = new Map(), abOn = new Set();
+  const abKeys = e => {
+    const near = ['a', 'b'].map(k => {
+      const r = abBtn[k].getBoundingClientRect();
+      return [k, Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)), r.width / 2];
+    });
+    const hit = near.filter(([, d, rad]) => d < rad + 12).map(n => n[0]);
+    if (hit.length) return hit;
+    const best = near.sort((x, y) => x[1] - y[1])[0];
+    return best[1] < best[2] + 36 ? [best[0]] : [];
+  };
+  const abSync = () => {
+    const want = new Set();
+    abPtr.forEach(keys => keys.forEach(k => want.add(k)));
+    for (const k of [...abOn]) if (!want.has(k)) { abOn.delete(k); release(k); }
+    for (const k of want) if (!abOn.has(k)) { abOn.add(k); press(k); }
+  };
+  ab.addEventListener('pointerdown', e => { e.preventDefault(); ab.setPointerCapture(e.pointerId); abPtr.set(e.pointerId, abKeys(e)); abSync(); });
+  ab.addEventListener('pointermove', e => { if (abPtr.has(e.pointerId)) { abPtr.set(e.pointerId, abKeys(e)); abSync(); } });
+  const abEnd = e => { if (abPtr.delete(e.pointerId)) abSync(); };
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => ab.addEventListener(t, abEnd));
 
   // Tocco diretto sullo schermo: coordinate in pixel del canvas del gioco.
   const ptr = type => e => {
@@ -270,16 +299,20 @@
 
   // Colore della scocca: un tocco sul nome cambia colore.
   const SHELLS = ['grape', 'teal', 'berry', 'dandelion', 'kiwi'];
-  const setShell = n => { document.body.dataset.shell = n; ls.set('shell', n); };
+  const setShell = n => {
+    document.documentElement.dataset.shell = n; ls.set('shell', n);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--shell').trim();
+  };
   $('brand').addEventListener('click', () => {
-    setShell(SHELLS[(SHELLS.indexOf(document.body.dataset.shell) + 1) % SHELLS.length]);
+    setShell(SHELLS[(SHELLS.indexOf(document.documentElement.dataset.shell) + 1) % SHELLS.length]);
     beep(700, 0.05); haptic(8);
   });
 
   // Avvio
   const COLORS = ['#e5413b', '#f58a25', '#f5d31c', '#4cc24a', '#25c4f0', '#3d5fe0', '#a655b8'];
   const buildLogo = () => {
-    $('logo').innerHTML = 'POCKET COLOR'.split('').map((c, i) =>
+    $('logo').innerHTML = 'GAMEBOY'.split('').map((c, i) =>
       `<span style="color:${COLORS[i % COLORS.length]};animation-delay:${i * 0.05}s">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
   };
   let bootTimer = 0;

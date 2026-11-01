@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-shell="grape">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pocket Color">
-<meta name="theme-color" content="#1c1c1c">
+<meta name="apple-mobile-web-app-title" content="Gameboy">
+<meta name="theme-color" content="#7b5cb8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="shell.css">
-<title>Pocket Color</title>
+<title>Gameboy</title>
 </head>
-<body data-shell="grape">
+<body>
 <main class="gbc">
   <div class="bezel">
     <div class="topline">
       <i class="led" aria-hidden="true"></i>
-      <span class="label">DOT MATRIX WITH STEREO SOUND</span>
+      <button class="brand" id="brand" aria-label="Cambia colore della scocca">GAME<b>BOY</b></button>
       <button class="home" id="home" aria-label="Torna al catalogo">⌂</button>
     </div>
     <div class="screen" id="screen">
@@ -31,7 +31,6 @@
       </section>
     </div>
   </div>
-  <div class="brand" id="brand">POCKET <b>COLOR</b></div>
   <div class="pad">
     <div class="dpad" id="dpad">
       <div class="cross">
@@ -42,14 +41,14 @@
         <button class="down" data-dir="down" aria-label="Giù">▼</button>
       </div>
     </div>
-    <div class="ab">
+    <div class="meta">
+      <button data-k="select" aria-label="Select"><i class="pill"></i><span>SELECT</span></button>
+      <button data-k="start" aria-label="Start"><i class="pill"></i><span>START</span></button>
+    </div>
+    <div class="ab" id="ab">
       <button class="b" data-k="b" aria-label="B">B</button>
       <button class="a" data-k="a" aria-label="A">A</button>
     </div>
-  </div>
-  <div class="meta">
-    <button data-k="select" aria-label="Select"><span>SELECT</span></button>
-    <button data-k="start" aria-label="Start"><span>START</span></button>
   </div>
 </main>
 <!-- Su iPhone un interruttore nascosto, toccato da script, dà la vibrazione. -->

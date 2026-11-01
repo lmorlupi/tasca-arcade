@@ -4,22 +4,22 @@ registerGame({
   color: '#e5413b',
   blurb: 'Scala le travi, salta i barili del gorilla e raggiungi la principessa. Due pollici: croce per muoversi, A per saltare.',
   inputs: ['D-PAD', 'MULTI-TOCCO', 'SALTO'],
-  size: [480, 576],
+  size: [480, 768],
   create(api) {
     // Il gioco lavora in un mondo logico di 240x288; il canvas lo ingrandisce di 2.
     const { cv, g, held } = api;
-    const W = 240, H = 288, S = 2;
+    const W = 240, H = 384, S = 2;
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
 
     // Travi: da y sinistra a y destra. Il barile scende verso il lato più basso.
     const GIRDERS = [
-      { x0: 0,   x1: 240, yL: 280, yR: 272 },
-      { x0: 0,   x1: 224, yL: 230, yR: 238 },
-      { x0: 16,  x1: 240, yL: 192, yR: 184 },
-      { x0: 0,   x1: 224, yL: 138, yR: 146 },
-      { x0: 16,  x1: 240, yL: 100, yR: 92 },
-      { x0: 0,   x1: 224, yL: 46,  yR: 54 },
-      { x0: 120, x1: 200, yL: 26,  yR: 26 },
+      { x0: 0,   x1: 240, yL: 372, yR: 364 },
+      { x0: 0,   x1: 224, yL: 316, yR: 324 },
+      { x0: 16,  x1: 240, yL: 262, yR: 254 },
+      { x0: 0,   x1: 224, yL: 204, yR: 212 },
+      { x0: 16,  x1: 240, yL: 150, yR: 142 },
+      { x0: 0,   x1: 224, yL: 94,  yR: 102 },
+      { x0: 120, x1: 200, yL: 52,  yR: 52 },
     ];
     const GOAL = 6;
     const gy = (k, x) => {
@@ -255,7 +255,7 @@ registerGame({
     };
 
     const drawGorilla = () => {
-      const x = 28, y = 47, arms = throwT < 0.4;
+      const x = 28, y = Math.round(gy(5, 28)), arms = throwT < 0.4;
       rect(x - 11, y - 18, 22, 18, '#8a4b1f');
       rect(x - 7, y - 14, 14, 10, '#c98a52');
       rect(x - 6, y - 28, 12, 11, '#8a4b1f');
@@ -267,7 +267,7 @@ registerGame({
       rect(x - 10, y - 2, 7, 2, '#6b3a17'); rect(x + 3, y - 2, 7, 2, '#6b3a17');
     };
     const drawPrincess = () => {
-      const x = 160, y = 26;
+      const x = 160, y = GIRDERS[GOAL].yL;
       rect(x - 3, y - 8, 6, 8, '#ff7ab8');
       rect(x - 2, y - 12, 4, 4, '#f2c79a');
       rect(x - 3, y - 14, 6, 3, '#f5d31c');

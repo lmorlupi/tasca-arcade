@@ -4,9 +4,9 @@ registerGame({
   color: '#25c4f0',
   blurb: 'Incastra i pezzi e completa le righe. Tocca per ruotare, trascina per spostare, scatta in basso per far cadere.',
   inputs: ['SWIPE', 'TAP', 'D-PAD'],
-  size: [480, 576],
+  size: [340, 668],
   create(api) {
-    const { cv, g, held: padHeld } = api;
+    const { cv, g } = api;
     const COLS = 10, ROWS = 18, S = 4, C = 8 * S;
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
     const COLORS = ['#25c4f0', '#f5d31c', '#a655b8', '#4cc24a', '#e5413b', '#3d5fe0', '#f58a25'];
@@ -159,7 +159,8 @@ registerGame({
       }
     };
 
-    // Disegno
+    // Disegno: campo a tutta larghezza, striscia con i dati in alto.
+    const FX = 10, FY = 86, FW = COLS * C, FH = ROWS * C;
     const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
     const cell = (px, py, type, size = C) => {
       const u = size / 8;
@@ -169,37 +170,54 @@ registerGame({
       rect(px, py, u, size - u, 'rgba(255,255,255,.35)');
       rect(px + 2 * u, py + 2 * u, size - 5 * u, size - 5 * u, 'rgba(255,255,255,.12)');
     };
-    const text = (s, x, y, size, align) => {
-      g.font = `bold ${size * S}px ui-monospace, Menlo, Consolas, monospace`;
-      g.textAlign = align || 'left'; g.textBaseline = 'top'; g.fillStyle = PAL[3];
+    const text = (s, x, y, px, align, c) => {
+      g.font = `bold ${px}px ui-monospace, Menlo, Consolas, monospace`;
+      g.textAlign = align || 'left'; g.textBaseline = 'top'; g.fillStyle = c || PAL[3];
       g.fillText(s, x, y);
     };
 
     const banner = rows => {
-      const w = COLS * C, h = (rows.length * 11 + 8) * S, y = (cv.height - h) / 2;
-      rect(2 * S, y, w - 4 * S, h, PAL[3]);
-      rect(3 * S, y + S, w - 6 * S, h - 2 * S, PAL[0]);
-      rows.forEach((t, i) => text(t, w / 2, y + (5 + i * 11) * S, 8, 'center'));
+      const w = FW - 24, h = rows.length * 40 + 24, x = 12, y = (FH - h) / 2;
+      rect(x, y, w, h, PAL[3]);
+      rect(x + 3, y + 3, w - 6, h - 6, PAL[0]);
+      rows.forEach((t, i) => text(t, FW / 2, y + 14 + i * 40, 26, 'center'));
     };
 
     const drawTitle = () => {
       const w = cv.width;
-      text('BLOCKS', w / 2, 22 * S, 22, 'center');
-      rect((w - 100 * S) / 2, 52 * S, 100 * S, S, PAL[3]);
-      if (((performance.now() / 500) | 0) % 2 === 0) text('PREMI START', w / 2, 92 * S, 9, 'center');
-      text('HI ' + hi, w / 2, 112 * S, 7, 'center');
-      text('TOCCA RUOTA  TRASCINA MUOVE', w / 2, 126 * S, 5, 'center');
+      text('BLOCKS', w / 2, 170, 64, 'center');
+      rect(w / 2 - 110, 250, 220, 3, PAL[3]);
+      if (((performance.now() / 500) | 0) % 2 === 0) text('PREMI START', w / 2, 330, 28, 'center', '#f5d31c');
+      text('RECORD ' + hi, w / 2, 392, 22, 'center');
+      text('TOCCA: RUOTA', w / 2, 470, 18, 'center', '#aab3d8');
+      text('TRASCINA: MUOVI', w / 2, 498, 18, 'center', '#aab3d8');
+      text('SCATTO IN BASSO: CADE', w / 2, 526, 18, 'center', '#aab3d8');
     };
 
     const render = () => {
       rect(0, 0, cv.width, cv.height, PAL[0]);
       if (state === 'title') { drawTitle(); return; }
-      const fw = COLS * C;
-      for (let c = 1; c < COLS; c++) rect(c * C, 0, 1, cv.height, PAL[1]);
-      for (let r = 1; r < ROWS; r++) rect(0, r * C, fw, 1, PAL[1]);
-      rect(fw, 0, 2 * S, cv.height, PAL[3]);
-      rect(fw + 2 * S, 0, S, cv.height, PAL[2]);
 
+      // dati
+      text('LIVELLO', 14, 8, 13, 'left', '#aab3d8'); text(String(level), 14, 24, 28);
+      text('RIGHE', 106, 8, 13, 'left', '#aab3d8');   text(String(lines), 106, 24, 28);
+      text('PUNTI', 188, 8, 13, 'left', '#aab3d8');   text(String(score), 188, 24, 28);
+      text('RECORD ' + hi, 14, 60, 14, 'left', '#aab3d8');
+      rect(268, 8, 66, 66, PAL[3]); rect(270, 10, 62, 62, PAL[0]);
+      const nm = next.m.filter(r => r.some(v => v));
+      const nc = Math.max(...next.m.map(r => r.lastIndexOf(1))) + 1;
+      const first = Math.min(...next.m.map(r => r.indexOf(1)).filter(i => i >= 0));
+      const w = nc - first, h = nm.length, cs = 14;
+      nm.forEach((row, r) => row.forEach((v, c) => {
+        if (v) cell(270 + (62 - w * cs) / 2 + (c - first) * cs, 10 + (62 - h * cs) / 2 + r * cs, next.t, cs);
+      }));
+
+      // campo
+      g.save(); g.translate(FX, FY);
+      rect(0, 0, FW, FH, '#0f1527');
+      for (let c = 1; c < COLS; c++) rect(c * C, 0, 1, FH, PAL[1]);
+      for (let r = 1; r < ROWS; r++) rect(0, r * C, FW, 1, PAL[1]);
+      g.strokeStyle = PAL[2]; g.lineWidth = 3; g.strokeRect(-1.5, -1.5, FW + 3, FH + 3);
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         const v = board[r][c];
         if (v === null) continue;
@@ -221,26 +239,9 @@ registerGame({
           if (v && cur.y + r >= 0) cell((cur.x + c) * C, (cur.y + r) * C, cur.t);
         }));
       }
-
-      const px = fw + 4 * S + 8 * S;
-      text('LEVEL', px, 6 * S, 7);  text(String(level), px, 15 * S, 7);
-      text('LINES', px, 28 * S, 7); text(String(lines), px, 37 * S, 7);
-      text('SCORE', px, 50 * S, 7); text(String(score), px, 59 * S, 7);
-      text('HI', px, 72 * S, 7);    text(String(hi), px, 81 * S, 7);
-      text('NEXT', px, 96 * S, 7);
-      rect(px, 105 * S, 26 * S, 24 * S, PAL[3]);
-      rect(px + S, 106 * S, 24 * S, 22 * S, PAL[0]);
-      const nm = next.m.filter(r => r.some(v => v));
-      const nc = Math.max(...next.m.map(r => r.lastIndexOf(1))) + 1;
-      const first = Math.min(...next.m.map(r => r.indexOf(1)).filter(i => i >= 0));
-      const w = nc - first, h = nm.length, cs = 6 * S;
-      nm.forEach((row, r) => row.forEach((v, c) => {
-        if (!v) return;
-        cell(px + S + ((24 * S - w * cs) / 2) + (c - first) * cs, 106 * S + ((22 * S - h * cs) / 2) + r * cs, next.t, cs);
-      }));
-
       if (state === 'pause') banner(['PAUSA', 'START']);
-      if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'START']);
+      if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
+      g.restore();
     };
 
     return {

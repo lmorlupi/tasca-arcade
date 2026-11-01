@@ -4,11 +4,11 @@ registerGame({
   color: '#4cc24a',
   blurb: 'Inclina l\'iPhone per far rotolare la sfera nel labirinto. Evita i buchi, raccogli le monete, raggiungi l\'uscita. A azzera l\'inclinazione.',
   inputs: ['INCLINA', 'VIBRAZIONE', 'D-PAD'],
-  size: [468, 568],
+  size: [468, 784],
   tilt: true,
   create(api) {
     const { cv, g, tilt } = api;
-    const T = 36, COLS = 13, ROWS = 15, HUD = 28, R = 11;
+    const T = 36, COLS = 13, ROWS = 21, HUD = 28, R = 11;
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
 
     let hi = api.store.get('hi', 0);

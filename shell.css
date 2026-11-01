@@ -3,15 +3,16 @@
   --shell-dark: #5a3f94;
   --bezel: #3f3d4a;
   --screen-bg: #0b1020;
-  --btn: #3a3a46;
-  --btn-face: #cfd0dc;
   --ink: #eef1ff;
   --muted: #aab3d8;
+  --rubber: radial-gradient(circle at 35% 28%, #5d5d6c 0%, #3d3d49 55%, #2b2b34 100%);
+  --rubber-down: radial-gradient(circle at 50% 38%, #2c2c35 0%, #23232b 100%);
+  --spring: cubic-bezier(.3, 1.7, .5, 1);
 }
-body[data-shell="teal"]      { --shell: #2fb3a8; --shell-dark: #1f8a81; }
-body[data-shell="berry"]     { --shell: #d6456f; --shell-dark: #a82f53; }
-body[data-shell="dandelion"] { --shell: #e8c43a; --shell-dark: #bd9a1c; }
-body[data-shell="kiwi"]      { --shell: #69c24a; --shell-dark: #4a9a30; }
+html[data-shell="teal"]      { --shell: #2fb3a8; --shell-dark: #1f8a81; }
+html[data-shell="berry"]     { --shell: #d6456f; --shell-dark: #a82f53; }
+html[data-shell="dandelion"] { --shell: #e8c43a; --shell-dark: #bd9a1c; }
+html[data-shell="kiwi"]      { --shell: #69c24a; --shell-dark: #4a9a30; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: #1c1c1c; overscroll-behavior: none; }
@@ -22,75 +23,81 @@ body {
   touch-action: manipulation;
 }
 button { touch-action: none; cursor: pointer; font: inherit; }
-button:active, button.on { filter: brightness(.75); }
 
 .gbc {
   width: min(96vw, 400px);
   background: var(--shell);
   border-radius: 14px 14px 56px 14px;
-  padding: 18px 18px 26px;
+  padding: 14px 14px 22px;
   box-shadow: inset -4px -4px 0 var(--shell-dark), 0 10px 30px rgba(0,0,0,.6);
 }
-.bezel { background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 8px 14px 8px; }
-.topline { display: flex; align-items: center; gap: 8px; height: 26px; margin-bottom: 4px; }
+.bezel { background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 4px 8px 8px; }
+.topline { display: flex; align-items: center; gap: 8px; height: 30px; margin-bottom: 2px; }
 .led { width: 6px; height: 6px; border-radius: 50%; background: #e5413b; flex: 0 0 auto; }
-.label { flex: 1; color: #e4e2f0; font-size: 11px; letter-spacing: .06em; text-align: center; }
+.brand {
+  flex: 1; border: 0; background: none; padding: 0; color: #e4e2f0; text-align: center;
+  font-style: italic; font-weight: 800; font-size: 14px; letter-spacing: .24em;
+}
+.brand b { color: #ffe27a; font-weight: 800; }
 .home {
-  flex: 0 0 auto; width: 30px; height: 24px; border: 0; border-radius: 6px;
+  flex: 0 0 auto; width: 32px; height: 24px; border: 0; border-radius: 6px;
   background: rgba(255,255,255,.14); color: #e4e2f0; font-size: 15px; line-height: 1; padding: 0;
 }
-.screen { position: relative; background: var(--screen-bg); border: 3px solid #1a1a22; overflow: hidden; }
+.home:active { filter: brightness(.7); }
+.screen { position: relative; background: var(--screen-bg); border: 2px solid #1a1a22; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; touch-action: none; }
 canvas.off { display: none; }
 
-.brand {
-  display: inline-block; margin: 10px 4px 2px; padding: 3px 12px; border-radius: 99px; align-self: flex-start;
-  font-style: italic; font-weight: 800; color: #fff; font-size: 16px; letter-spacing: .02em; background: rgba(20, 20, 34, .88);
-}
-.brand b { color: #ffe27a; }
-
-.pad { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 0 4px; }
-.dpad { position: relative; width: 132px; height: 132px; touch-action: none; }
-.dpad::before { content: ''; position: absolute; inset: -20px; }
+/* Comandi. Il riscontro è immediato alla pressione; il ritorno ha un piccolo rimbalzo, come la gomma. */
+.pad { position: relative; display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 0 4px; }
+.dpad { position: relative; width: 124px; height: 124px; touch-action: none; }
+.dpad::before { content: ''; position: absolute; inset: -14px -10px -14px -14px; }
+.dpad .cross { position: absolute; inset: 0; transform: perspective(260px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .14s var(--spring); }
+.dpad.down .cross { transition: transform .03s linear; }
 .dpad button {
-  position: absolute; width: 44px; height: 44px; border: 0; background: var(--btn); padding: 0;
-  color: #a8a8b6; font-size: 14px; pointer-events: none;
+  position: absolute; width: 42px; height: 42px; border: 0; padding: 0; pointer-events: none;
+  background: linear-gradient(#52525f, #373742); color: #a8a8b6; font-size: 13px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.14), inset 0 -3px 0 rgba(0,0,0,.4);
+  transition: filter .12s var(--spring), transform .12s var(--spring);
 }
-/* Riscontro dei tasti: la croce si inclina verso la direzione premuta, A/B e i pulsanti si abbassano. */
-.dpad .cross { position: absolute; inset: 0; transition: transform .09s ease-out; }
-.dpad[data-d="left"] .cross  { transform: perspective(260px) rotateY(-10deg); }
-.dpad[data-d="right"] .cross { transform: perspective(260px) rotateY(10deg); }
-.dpad[data-d="up"] .cross    { transform: perspective(260px) rotateX(10deg); }
-.dpad[data-d="down"] .cross  { transform: perspective(260px) rotateX(-10deg); }
-.dpad button { box-shadow: inset 0 2px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.4); transition: filter .08s; }
-.dpad button.on { filter: brightness(.55); }
-.dpad .up { left: 44px; top: 0; border-radius: 6px 6px 0 0; }
-.dpad .down { left: 44px; top: 88px; border-radius: 0 0 6px 6px; }
-.dpad .left { left: 0; top: 44px; border-radius: 6px 0 0 6px; }
-.dpad .right { left: 88px; top: 44px; border-radius: 0 6px 6px 0; }
-.dpad .mid { position: absolute; left: 44px; top: 44px; width: 44px; height: 44px; background: var(--btn); }
-.ab { position: relative; width: 132px; height: 96px; transform: rotate(-22deg); }
+.dpad button.on { filter: brightness(.55); transform: translateY(1px); transition: none; }
+.dpad .up { left: 41px; top: 0; border-radius: 6px 6px 0 0; }
+.dpad .down { left: 41px; top: 82px; border-radius: 0 0 6px 6px; }
+.dpad .left { left: 0; top: 41px; border-radius: 6px 0 0 6px; }
+.dpad .right { left: 82px; top: 41px; border-radius: 0 6px 6px 0; }
+.dpad .mid { position: absolute; left: 41px; top: 41px; width: 42px; height: 42px; background: #3f3f4b; }
+.dpad .mid::after {
+  content: ''; position: absolute; inset: 11px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, #33333d, #44444f); box-shadow: inset 0 2px 3px rgba(0,0,0,.55);
+}
+
+.ab { position: relative; width: 124px; height: 90px; transform: rotate(-22deg); touch-action: none; }
+.ab::before { content: ''; position: absolute; inset: -18px -14px; }
 .ab button {
-  position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 0;
-  background: var(--btn); color: var(--btn-face); font-weight: 800; font-size: 16px;
-  box-shadow: inset -3px -3px 0 rgba(0,0,0,.3), 0 4px 0 rgba(0,0,0,.35);
-  transition: transform .09s ease-out, box-shadow .09s ease-out, filter .09s;
+  position: absolute; width: 54px; height: 54px; border-radius: 50%; border: 0; pointer-events: none;
+  background: var(--rubber); color: #cfd0dc; font-weight: 800; font-size: 16px;
+  box-shadow: inset -2px -3px 0 rgba(0,0,0,.35), inset 2px 2px 0 rgba(255,255,255,.1), 0 5px 0 rgba(0,0,0,.4), 0 6px 6px rgba(0,0,0,.25);
+  transition: transform .14s var(--spring), box-shadow .14s var(--spring), background .14s;
 }
 .ab button.on {
-  transform: translateY(3px) scale(.95); filter: brightness(.8);
-  box-shadow: inset -2px -2px 0 rgba(0,0,0,.4), 0 1px 0 rgba(0,0,0,.35); transition-duration: .02s;
+  transform: translateY(4px) scale(.95); background: var(--rubber-down);
+  box-shadow: inset 0 3px 6px rgba(0,0,0,.6), 0 1px 0 rgba(0,0,0,.4); transition: none;
 }
-.ab button::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; }
-.ab .b { left: 4px; top: 36px; }
-.ab .a { left: 72px; top: 12px; }
-.meta { display: flex; justify-content: center; gap: 28px; margin-top: 22px; transform: rotate(-22deg); }
+.ab .b { left: 4px; top: 34px; }
+.ab .a { left: 68px; top: 10px; }
+
+/* Select e Start: piccoli, al centro, in fondo, per lasciare spazio al gioco. */
+.meta { position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 0; z-index: 2; }
 .meta button {
-  width: 54px; height: 14px; border-radius: 8px; border: 0; background: var(--shell-dark); position: relative;
-  box-shadow: inset -2px -2px 0 rgba(0,0,0,.25);
+  display: flex; align-items: center; gap: 5px; border: 0; background: none; padding: 5px 8px; color: #fff;
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-shadow: 0 1px 0 rgba(0,0,0,.35); white-space: nowrap;
 }
-.meta button { transition: transform .09s ease-out, box-shadow .09s ease-out; }
-.meta button.on { transform: translateY(2px); filter: brightness(.8); box-shadow: inset -1px -1px 0 rgba(0,0,0,.45); transition-duration: .02s; }
-.meta span { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.meta .pill {
+  display: block; width: 30px; height: 11px; border-radius: 6px; transform: rotate(-22deg);
+  background: linear-gradient(var(--shell-dark), #3f2c6b); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 0 rgba(0,0,0,.35);
+  transition: transform .14s var(--spring), box-shadow .14s var(--spring);
+}
+.meta button.on .pill { transform: rotate(-22deg) translateY(2px); box-shadow: inset 0 2px 3px rgba(0,0,0,.5); transition: none; }
 
 .hap { position: fixed; left: -100px; top: 0; opacity: 0; pointer-events: none; }
 
@@ -100,7 +107,7 @@ canvas.off { display: none; }
   background: #f4f1e8; color: #3a3a46; transition: opacity .4s;
 }
 .boot.gone { opacity: 0; pointer-events: none; }
-.boot .logo { font-size: 26px; font-weight: 900; font-style: italic; letter-spacing: .04em; white-space: nowrap; }
+.boot .logo { font-size: 30px; font-weight: 900; font-style: italic; letter-spacing: .06em; white-space: nowrap; }
 .boot .logo span { display: inline-block; animation: drop .7s cubic-bezier(.3, 1.4, .5, 1) both; }
 .boot p { margin: 18px 0 0; font-size: 11px; letter-spacing: .2em; opacity: 0; animation: blink 1.2s 1.2s infinite; }
 @keyframes drop { from { transform: translateY(-160px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -132,19 +139,18 @@ canvas.off { display: none; }
 
 /* Telefono: la console occupa tutto lo schermo; lo schermo di gioco prende lo spazio che resta. */
 @media (max-width: 520px) {
-  html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+  html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; background: var(--shell); }
   body { display: block; }
   .gbc {
-    width: 100%; height: 100%; border-radius: 0; box-shadow: none;
+    position: fixed; inset: 0; width: 100%; height: 100%; border-radius: 0; box-shadow: none;
     display: flex; flex-direction: column;
-    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-             max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+             max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
   .bezel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border-radius: 8px 8px 28px 8px; }
   .screen { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
   canvas { width: auto; height: auto; max-width: 100%; max-height: 100%; }
-  .brand, .pad, .meta { flex: 0 0 auto; }
-  .meta { margin-bottom: 32px; }
+  .pad { flex: 0 0 auto; margin-top: 8px; margin-bottom: 6px; }
 }
 @media (min-width: 521px) {
   .screen { height: 480px; display: flex; align-items: center; justify-content: center; }

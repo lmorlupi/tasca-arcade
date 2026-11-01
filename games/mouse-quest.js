@@ -4,10 +4,11 @@ registerGame({
   color: '#f5d31c',
   blurb: 'Un topo avventuriero raccoglie il formaggio, salta sui gatti e arriva alla tana. Croce per muoverti, A salta (più a lungo, più in alto), B tenuto premuto per correre.',
   inputs: ['D-PAD', '2 POLLICI', 'SALTO'],
-  size: [360, 432],
+  size: [352, 576],
   create(api) {
     const { cv, g, held } = api;
     const W = cv.width, H = cv.height;
+    const SC = 4 / 3, VW = W / SC;
     const T = 24, VH = 18, GR = 15, PW = 7, PH = 20;
     const GRAV = 1300, JUMP = -520;
 
@@ -158,7 +159,7 @@ registerGame({
         if (stateT <= 0) nextLevel();
       }
       for (const k of cats) if (k.dead > 0) k.dead -= dt;
-      const want = Math.max(0, Math.min(cols * T - W, P.x - W / 2 + P.face * 28));
+      const want = Math.max(0, Math.min(cols * T - VW, P.x - VW / 2 + P.face * 28));
       camX += (want - camX) * Math.min(1, dt * 6);
     };
 
@@ -222,14 +223,17 @@ registerGame({
       g.fillStyle = sky; g.fillRect(0, 0, W, H);
 
       if (state === 'title') {
+        g.save(); g.translate(0, 70);
         g.fillStyle = '#4cc24a'; g.fillRect(0, 330, W, 102); g.fillStyle = '#7a4a22'; g.fillRect(0, 348, W, 84);
         text('MOUSE', W / 2, 70, 44, 'center', '#a8500c'); text('QUEST', W / 2, 118, 44, 'center', '#fff');
         g.save(); g.translate(W / 2, 330); g.scale(3, 3); drawMouse(0, 0, 1, time * 6, false); g.restore();
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 190, 16, 'center', '#a8500c');
         text('RECORD ' + hi, W / 2, 230, 13, 'center', '#1f2744');
+        g.restore();
         return;
       }
 
+      g.save(); g.scale(SC, SC);
       // colline lontane
       g.fillStyle = '#8fd48a';
       for (let i = -1; i < 6; i++) { const hx = i * 140 - (camX * 0.25) % 140; g.beginPath(); g.arc(hx + 70, 372, 90, Math.PI, 0); g.fill(); }
@@ -257,9 +261,10 @@ registerGame({
       g.fillStyle = '#5e3716'; g.fillRect(door.x - 2, door.y - 44, T + 4, 44);
       g.fillStyle = open ? '#2f9e5b' : '#7a1d1a'; g.beginPath(); g.arc(door.x + T / 2, door.y - 22, 11, Math.PI, 0); g.fillRect(door.x + T / 2 - 11, door.y - 22, 22, 22); g.fill();
       g.fillStyle = '#141a2e'; g.beginPath(); g.arc(door.x + T / 2, door.y - 20, 7, Math.PI, 0); g.fillRect(door.x + T / 2 - 7, door.y - 20, 14, 20); g.fill();
-      cheese.forEach(c => { if (!c.got && c.x > camX - 20 && c.x < camX + W + 20) drawCheese(c); });
-      cats.forEach(k => { if (k.x > camX - 40 && k.x < camX + W + 40) drawCat(k); });
+      cheese.forEach(c => { if (!c.got && c.x > camX - 20 && c.x < camX + VW + 20) drawCheese(c); });
+      cats.forEach(k => { if (k.x > camX - 40 && k.x < camX + VW + 40) drawCat(k); });
       if (!(state === 'dead' && ((stateT * 10) | 0) % 2 === 0 && false)) drawMouse(P.x, P.y, P.face, P.walk, !P.ground, state === 'dead');
+      g.restore();
       g.restore();
 
       g.fillStyle = 'rgba(11,16,32,.72)'; g.fillRect(0, 0, W, 26);

@@ -1,6 +1,6 @@
 {
-  "name": "Pocket Color",
-  "short_name": "Pocket Color",
+  "name": "Gameboy",
+  "short_name": "Gameboy",
   "description": "Console a colori con un catalogo di giochi pensati per il telefono.",
   "start_url": "index.html",
   "scope": ".",

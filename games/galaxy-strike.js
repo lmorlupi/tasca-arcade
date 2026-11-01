@@ -4,7 +4,7 @@ registerGame({
   color: '#3d5fe0',
   blurb: 'Gli alieni restano in formazione, poi si buttano in picchiata verso di te. Trascina il dito per schivare: la nave spara da sola mentre tocchi.',
   inputs: ['TRASCINA', 'AUTO-FUOCO', 'VIBRAZIONE'],
-  size: [360, 540],
+  size: [360, 640],
   create(api) {
     const { cv, g, held } = api;
     const W = cv.width, H = cv.height;
