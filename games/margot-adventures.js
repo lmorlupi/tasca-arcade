@@ -548,7 +548,7 @@ registerGame({
         g.fillStyle = 'rgba(255,230,140,.9)'; for (let k = 0; k < 3; k++) { const a = time * 2 + k * 2.1; g.fillRect(x + Math.cos(a) * 16 - 1, y + Math.sin(a) * 12 - 1, 2, 2); }
         return;
       }
-      g.save(); g.translate(x, y); g.rotate(Math.sin(time * 3 + x) * 0.15); g.scale(1.4, 1.4);
+      g.save(); g.translate(x, y); g.rotate(Math.sin(time * 3 + x) * 0.15); g.scale(1.05, 1.05);
       g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(0, 0, 13, 0, 7); g.fill();
       g.strokeStyle = '#0d2a4a'; g.lineWidth = 1.6; g.lineJoin = 'round';
       const fg = g.createLinearGradient(0, -6, 0, 6); fg.addColorStop(0, '#3fd0ff'); fg.addColorStop(1, '#1670d0');
