@@ -28,7 +28,7 @@ registerGame({
     ];
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
-    let coccole = 0, strokes = 0, petFx = [];
+    let coccole = 0, strokes = 0, petFx = [], purrT = 0, purrN = 0;
     let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, chaser = { x: -90, on: false, t: 0, beep: 0 }, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
@@ -271,8 +271,97 @@ registerGame({
       else if (sk.t > 0.5) seekNext();
     };
 
+
+    // PALLINA DI STAGNOLA e CACCIA AI GRILLI: due giochi veloci, tutti da ridere
+    const FLOOR = 430;
+    let mm = null;
+    const crinkle = () => { for (let i = 0; i < 4; i++) setTimeout(() => api.beep(1800 + Math.random() * 1800, 0.025, 'square', 0.02), i * 28); };
+    const newCricket = () => ({ x: 50 + Math.random() * 250, y: 0, vx: 0, vy: 0, dir: Math.random() < 0.5 ? -1 : 1, hop: 0.3 + Math.random(), gone: 0, t: Math.random() * 6 });
+    const miniStart = kind => {
+      mm = { kind, t: 40, score: 0, combo: 0, M: { x: 80, dir: 1, sw: 0, walk: 0, mv: false }, tx: null, phase: 'play', msg: '', msgT: 0, best: api.store.get(kind + 'Best', 0), things: [], clock: 0 };
+      if (kind === 'foil') mm.things.push({ x: 230, vx: 0, y: 0, vy: 0, rot: 0 }); else for (let i = 0; i < 3; i++) mm.things.push(newCricket());
+      state = 'mini';
+    };
+    const mmSay = (t) => { mm.msg = t; mm.msgT = 1; };
+    const QUIPS = ['AH, LA FURBETTA!', 'CHE SALTO, MAGGHINA!', 'UNO PER LA MERENDA!', 'MARGHY NON SBAGLIA!', 'GRILLO CATTURATO!', 'IMBATTIBILE!'];
+    const miniSwat = () => {
+      if (!mm || mm.phase !== 'play' || mm.M.sw > 0) return;
+      const M = mm.M; M.sw = 0.3; const reach = M.x + M.dir * 28; let hit = false;
+      if (mm.kind === 'foil') {
+        const b = mm.things[0], d = Math.abs(b.x - reach);
+        if (d < 34 && b.y > -24) { const q = 1 - d / 34; b.vx = M.dir * (200 + 190 * q); b.vy = -110 - 70 * q; mm.combo++; const pts = 10 * mm.combo + (q > 0.7 ? 15 : 0); mm.score += pts; mmSay((q > 0.7 ? 'ZAMPATA PERFETTA! +' : 'ZAMPATA! +') + pts); crinkle(); api.haptic(14); hit = true; }
+      } else {
+        for (const c of mm.things) if (c.gone <= 0 && Math.abs(c.x - reach) < 32 && c.y > -34) { c.gone = 1.1; mm.combo++; const pts = 20 * mm.combo; mm.score += pts; mmSay(QUIPS[(Math.random() * QUIPS.length) | 0] + ' +' + pts); api.haptic(18); api.beep(700, 0.07, 'triangle', 0.05); hit = true; break; }
+      }
+      if (!hit) { mm.combo = 0; api.beep(220, 0.05, 'square', 0.03); if (mm.kind === 'crickets' && Math.random() < 0.4) mmSay('MANCATO! SALTANO TROPPO!'); }
+    };
+    const miniUpdate = dt => {
+      mm.clock += dt; mm.msgT = Math.max(0, mm.msgT - dt);
+      if (mm.phase !== 'play') return;
+      const M = mm.M; M.sw = Math.max(0, M.sw - dt); mm.t -= dt;
+      const di = (held.right ? 1 : 0) - (held.left ? 1 : 0), spd = held.b ? 200 : 135; M.mv = false;
+      if (di) { M.dir = di; M.x += di * spd * dt; mm.tx = null; M.mv = true; }
+      else if (mm.tx != null) { const d = mm.tx - M.x; if (Math.abs(d) < 5) mm.tx = null; else { M.dir = d > 0 ? 1 : -1; M.x += M.dir * 150 * dt; M.mv = true; } }
+      M.x = Math.max(26, Math.min(326, M.x)); if (M.mv) M.walk += dt * 11;
+      for (const c of mm.things) {
+        if (mm.kind === 'foil') {
+          c.x += c.vx * dt; c.vx *= Math.exp(-0.5 * dt); c.vy += 900 * dt; c.y += c.vy * dt;
+          if (c.y > 0) { c.y = 0; c.vy = c.vy > 70 ? -c.vy * 0.4 : 0; }
+          if (c.x < 18) { c.x = 18; c.vx = Math.abs(c.vx) * 0.85; crinkle(); } if (c.x > 334) { c.x = 334; c.vx = -Math.abs(c.vx) * 0.85; crinkle(); }
+          c.rot += c.vx * dt / 13;
+        } else {
+          if (c.gone > 0) { c.gone -= dt; if (c.gone <= 0) Object.assign(c, newCricket()); continue; }
+          c.t += dt; c.vy += 760 * dt; c.x += c.vx * dt; c.y += c.vy * dt;
+          if (c.y >= 0) { c.y = 0; c.vy = 0; c.vx *= 0.5; c.hop -= dt;
+            if (c.hop <= 0) { const near = Math.abs(c.x - M.x) < 80; if (near) c.dir = c.x > M.x ? 1 : -1; else if (Math.random() < 0.3) c.dir = -c.dir; c.vy = -(200 + Math.random() * 110); c.vx = c.dir * (70 + Math.random() * 70 + (near ? 50 : 0)); c.hop = near ? 0.35 + Math.random() * 0.3 : 0.6 + Math.random() * 0.9; } }
+          if (c.x < 20) { c.x = 20; c.dir = 1; c.vx = Math.abs(c.vx); } if (c.x > 332) { c.x = 332; c.dir = -1; c.vx = -Math.abs(c.vx); }
+        }
+      }
+      if (mm.t <= 0) { mm.phase = 'end'; mm.t = 0; mm.clock = 0; if (mm.score > mm.best) { mm.best = mm.score; api.store.set(mm.kind + 'Best', mm.best); } api.haptic(30); }
+    };
+    const drawMini = () => {
+      const bg = g.createLinearGradient(0, 0, 0, FLOOR); bg.addColorStop(0, '#f6ead6'); bg.addColorStop(1, '#ead3ac'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < W; x += 30) g.fillRect(x, 0, 12, FLOOR);
+      g.fillStyle = '#a8764a'; g.fillRect(0, FLOOR, W, H - FLOOR); g.fillStyle = '#c18b58'; g.fillRect(0, FLOOR, W, 8);
+      g.fillStyle = 'rgba(0,0,0,.08)'; for (let x = 0; x < W; x += 58) g.fillRect(x, FLOOR + 8, 2, H - FLOOR);
+      text(mm.kind === 'foil' ? 'LA PALLINA DI STAGNOLA' : 'CACCIA AI GRILLI', W / 2, 10, 17, 'center', '#8a4a22');
+      text('TEMPO ' + Math.ceil(mm.t) + '   PUNTI ' + mm.score + (mm.combo > 1 ? '   x' + mm.combo : ''), W / 2, 36, 12, 'center', '#6d4a2f');
+      if (mm.kind === 'foil') {
+        const b = mm.things[0], cx = b.x, cy = FLOOR - 11 + b.y;
+        g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(cx, FLOOR + 2, 12 - Math.min(5, -b.y / 12), 3, 0, 0, 7); g.fill();
+        g.save(); g.translate(cx, cy); g.rotate(b.rot);
+        const bgd = g.createRadialGradient(-4, -5, 1, 0, 0, 13); bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(0.45, '#c9ced8'); bgd.addColorStop(1, '#6d7487');
+        g.fillStyle = bgd; g.beginPath(); for (let k = 0; k < 11; k++) { const a = k / 11 * 6.283, r = 12.5 + (k % 3) * 0.9; k ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(r, 0); } g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-8, -2); g.lineTo(-2, -8); g.moveTo(2, 4); g.lineTo(8, -1); g.moveTo(-5, 6); g.lineTo(1, 9); g.stroke();
+        g.strokeStyle = 'rgba(60,66,90,.45)'; g.beginPath(); g.moveTo(-3, -1); g.lineTo(4, 3); g.moveTo(5, -7); g.lineTo(9, 1); g.stroke();
+        g.restore();
+        if (Math.sin(mm.clock * 9) > 0.6) { g.fillStyle = '#fff'; g.fillRect(cx - 9, cy - 11, 2, 2); g.fillRect(cx + 6, cy - 4, 2, 2); }
+      } else {
+        for (const c of mm.things) {
+          if (c.gone > 0) { if (c.gone > 0.6) { g.fillStyle = '#e8455f'; g.font = 'bold 14px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('★', c.x, FLOOR - 16 - (1.1 - c.gone) * 40); } continue; }
+          g.save(); g.translate(c.x, FLOOR - 5 + c.y); g.scale(c.dir * 1.6, 1.6);
+          g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(0, 5 - c.y / 1.6, 7, 1.6, 0, 0, 7); g.fill();
+          g.strokeStyle = '#3f6b2f'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-2, 0); g.lineTo(-7, -5); g.lineTo(-9, 3); g.moveTo(1, 0); g.lineTo(-3, -6); g.lineTo(-4, 4); g.moveTo(5, -2); g.lineTo(9, -7); g.moveTo(5, -3); g.lineTo(11, -4); g.stroke();
+          g.fillStyle = '#5c9a43'; g.beginPath(); g.ellipse(-1, 0, 6.5, 3.2, -0.1, 0, 7); g.fill(); g.beginPath(); g.ellipse(5, -1, 2.6, 2.4, 0, 0, 7); g.fill();
+          g.fillStyle = '#26401c'; g.fillRect(6, -2.2, 1, 1); g.restore();
+        }
+      }
+      const M = mm.M, pose = M.sw > 0 ? 'jump' : M.mv ? 'walk' : 'idle';
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(M.x, FLOOR + 6, 20, 4, 0, 0, 7); g.fill();
+      mg(M.x, FLOOR + 8 - (M.sw > 0 ? Math.sin((0.3 - M.sw) / 0.3 * 3.14) * 16 : 0), 70, pose, M.mv ? M.walk : mm.clock, M.dir);
+      if (mm.msgT > 0) { g.globalAlpha = Math.min(1, mm.msgT * 2); text(mm.msg, W / 2, 62, 13, 'center', '#c0334d'); g.globalAlpha = 1; }
+      if (mm.phase === 'play' && mm.clock < 4) text(mm.kind === 'foil' ? 'A = ZAMPATA · INSEGUI LA PALLINA!' : 'A = SALTA SUL GRILLO!', W / 2, H - 26, 11, 'center', '#6d4a2f');
+      if (mm.phase === 'end') banner([mm.score >= mm.best && mm.score > 0 ? 'NUOVO RECORD!' : 'TEMPO!', 'PUNTI ' + mm.score, 'RECORD ' + mm.best, 'TOCCA']);
+    };
+    const miniPointer = e => {
+      if (e.type !== 'down') return;
+      if (mm.phase === 'end') { if (mm.clock > 0.5) state = 'title'; return; }
+      mm.tx = e.x; mm.M.dir = e.x >= mm.M.x ? 1 : -1; miniSwat();
+    };
+
     const update = dt => {
-      time += dt; if (state === 'seek') { sk.t += dt; return; } msgT = Math.max(0, msgT - dt);
+      time += dt; if (state === 'seek') { sk.t += dt; return; }
+      if (state === 'mini') { miniUpdate(dt); return; } msgT = Math.max(0, msgT - dt);
       if (state === 'play') {
         P.hidden = false;
         for (const b of blankets) if (Math.abs(P.x - b.x) < b.w / 2 && P.ground && held.down) { P.hidden = true; P.vx = 0; }
@@ -364,6 +453,7 @@ registerGame({
         }
       } else if (state === 'rest') {
         restT -= dt; if (restT <= 0) state = 'play';
+        purrT -= dt; if (purrT <= 0) { purrT = 0.052; api.beep(78 + (purrN++ % 2) * 7, 0.055, 'triangle', 0.05); }
         petFx.forEach(f => f.t += dt); petFx = petFx.filter(f => f.t < 1);
       } else if (state === 'dead') {
         stateT -= dt; P.vy += GRAV * dt; P.y += P.vy * dt;
@@ -380,6 +470,7 @@ registerGame({
 
     const act = k => {
       if (state === 'seek') { seekKey(k); return; }
+      if (state === 'mini') { if (mm.phase === 'end') { if (mm.clock > 0.5) state = 'title'; } else if (k === 'a') miniSwat(); else if (k === 'b' && false) {} else if (k === 'select') state = 'title'; return; }
       if (state === 'title' && k === 'select') { seekStart(); return; }
       if (state === 'rest' && (k === 'a' || k === 'b')) { pet(); return; }
       if (state === 'photo' || state === 'album') { if (k === 'a' || k === 'b' || k === 'start') nextPhoto(); return; }
@@ -395,7 +486,10 @@ registerGame({
       const e = { type: e0.type, x: (e0.x - UIX) / UIS, y: (e0.y - UIY) / UIS };
       if (e.type !== 'down') return;
       if (state === 'seek') { seekPointer(e); return; }
-      if (state === 'title' && e.y >= 388 && e.y <= 424) { seekStart(); return; }
+      if (state === 'mini') { miniPointer(e); return; }
+      if (state === 'title' && e.y >= 388 && e.y <= 416) { seekStart(); return; }
+      if (state === 'title' && e.y > 416 && e.y <= 448) { miniStart('foil'); return; }
+      if (state === 'title' && e.y > 448 && e.y <= 482) { miniStart('crickets'); return; }
       if (state === 'rest') { pet(); return; }
       if (state === 'photo' || state === 'album') { nextPhoto(); return; }
       if (state === 'title' && unlocked().length && e.y > 100 && e.y < 345) { albumIdx = 0; state = 'album'; return; }
@@ -588,11 +682,12 @@ registerGame({
     };
 
     const render = () => {
-      if (state === 'seek' || state === 'title') { uiOn(); try { renderInner(); } finally { uiOff(); } } else renderInner();
+      if (state === 'seek' || state === 'title' || state === 'mini') { uiOn(); try { renderInner(); } finally { uiOff(); } } else renderInner();
     };
     const renderInner = () => {
       const ch = chap();
       if (state === 'seek') { drawSeek(); return; }
+      if (state === 'mini') { drawMini(); return; }
       if (state === 'title') {
         const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f6ead6'); bg.addColorStop(1, '#e3c79a');
         g.fillStyle = bg; g.fillRect(0, 0, W, H);
@@ -600,16 +695,14 @@ registerGame({
         g.fillStyle = '#9b6a40'; g.fillRect(0, H - 120, W, 120); g.fillStyle = '#b07c4d'; g.fillRect(0, H - 120, W, 8);
         if (!Art.drawPhoto(g, 'face', W / 2 - 104, 108, 208, -0.025)) Art.drawPortrait(g, W / 2 - 110, 120, 220, 'calm');
         text('MARGOT', W / 2, 36, 46, 'center', '#8a4a22'); text('ADVENTURES', W / 2, 84, 30, 'center', '#c97a4a');
-        if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 372, 16, 'center', '#8a4a22');
-        g.fillStyle = '#8a4a22'; g.beginPath(); g.roundRect(W / 2 - 110, 390, 220, 32, 16); g.fill();
-        text('TROVA MARGOT', W / 2, 398, 16, 'center', '#fff4e0');
-        text('RACCOGLI I BOCCONCINI · ARRIVA ALLA CIOTOLA', W / 2, 432, 11, 'center', '#6d4a2f');
-        text('RECORD ' + hi, W / 2, 448, 13, 'center', '#6d4a2f');
-        if (unlocked().length) text('TOCCA LA FOTO: RICORDI ' + unlocked().length + '/3', W / 2, 352, 11, 'center', '#8a4a22');
-        text('IN RICORDO DI MARGOT', W / 2, 470, 15, 'center', '#fff4e0');
-        text('AFFETTUOSA · CURIOSA · CORAGGIOSA', W / 2, 494, 11, 'center', '#f3dcc0');
-        text('CHE SAPEVA APRIRE TUTTE LE PORTE', W / 2, 512, 11, 'center', '#f3dcc0');
-        text('MARGOT · MAGGHINA · MARGHY', W / 2, 536, 12, 'center', '#fff4e0');
+        if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 366, 16, 'center', '#8a4a22');
+        const btn = (y, label) => { g.fillStyle = '#8a4a22'; g.beginPath(); g.roundRect(W / 2 - 124, y, 248, 28, 14); g.fill(); text(label, W / 2, y + 6, 14, 'center', '#fff4e0'); };
+        btn(388, 'TROVA MARGOT'); btn(420, 'PALLINA DI STAGNOLA'); btn(452, 'CACCIA AI GRILLI');
+        text('RECORD ' + hi, W / 2, 488, 12, 'center', '#6d4a2f');
+        if (unlocked().length) text('TOCCA LA FOTO: RICORDI ' + unlocked().length + '/3', W / 2, 344, 11, 'center', '#8a4a22');
+        text('IL GIOCO DI MARGOT', W / 2, 508, 15, 'center', '#fff4e0');
+        text('MARGOT · MAGGHINA · MARGHY', W / 2, 530, 12, 'center', '#fff4e0');
+        text('CURIOSA, FURBA E IMBATTIBILE CON LE PORTE', W / 2, 550, 10, 'center', '#f3dcc0');
         return;
       }
       g.fillStyle = ch.wall[0]; g.fillRect(0, 0, W, H);
@@ -660,7 +753,18 @@ registerGame({
       }
       if (!P.hidden) mg(P.x, P.y, 38, state === 'rest' ? 'idle' : pose, pose === 'walk' ? P.walk : time, P.face);
       if (P.hidden) blankets.forEach(b => { if (Math.abs(P.x - b.x) < b.w / 2) drawBlanket(b, true); });
-      if (state === 'rest') { petFx.forEach(f => { g.globalAlpha = 1 - f.t; g.fillStyle = '#e8455f'; g.font = 'bold 14px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('\u2665', f.x, f.y - f.t * 26); }); g.globalAlpha = 1; }
+      if (state === 'rest') {
+        const hx = P.x - 4 + Math.sin(time * 2.4) * 12, hy = P.y - 36 + Math.sin(time * 4.8) * 1.5 + (strokes ? Math.sin(time * 18) * 1.2 : 0);
+        g.save(); g.translate(hx, hy - 6); g.rotate(Math.sin(time * 2.4 + 1.2) * 0.08);
+        const skin = g.createLinearGradient(-10, -8, 10, 12); skin.addColorStop(0, '#f8d9bb'); skin.addColorStop(1, '#e4ac85');
+        g.fillStyle = '#7fa3c7'; g.beginPath(); g.moveTo(8, -14); g.lineTo(34, -48); g.lineTo(48, -38); g.lineTo(20, -4); g.closePath(); g.fill();
+        g.fillStyle = '#fff4e0'; g.beginPath(); g.moveTo(5, -12); g.lineTo(13, -22); g.lineTo(25, -13); g.lineTo(17, -3); g.closePath(); g.fill();
+        g.fillStyle = skin; g.beginPath(); g.ellipse(0, -5, 10, 8, 0, 0, 7); g.fill();
+        [[-7, 9], [-2.5, 12], [2.5, 11], [7, 8]].forEach(([fx, fl]) => { g.beginPath(); g.roundRect(fx - 2.1, -3, 4.2, fl + 3, 2.1); g.fill(); });
+        g.beginPath(); g.ellipse(-11, -6, 5, 2.6, 0.7, 0, 7); g.fill();
+        g.strokeStyle = 'rgba(150,90,60,.35)'; g.lineWidth = 0.7; for (const fx of [-4.7, 0, 4.7]) { g.beginPath(); g.moveTo(fx, 2); g.lineTo(fx, 10); g.stroke(); }
+        g.restore();
+        petFx.forEach(f => { g.globalAlpha = 1 - f.t; g.fillStyle = '#e8455f'; g.font = 'bold 14px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('\u2665', f.x, f.y - f.t * 26); }); g.globalAlpha = 1; }
       if (state === 'rest') { g.fillStyle = '#e8455f'; for (let i = 0; i < 3; i++) { const t = (time * 0.8 + i / 3) % 1; g.globalAlpha = 1 - t; g.font = `bold ${9 + i * 2}px ui-monospace, monospace`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff4e0'; g.fillText('z', P.x + 8 + i * 5, P.y - 28 - t * 22); } g.globalAlpha = 1; }
       g.restore();
       g.restore();
@@ -701,7 +805,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, get coccole() { return coccole; }, pet, get hugs2() { return hugs; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
+      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, miniStart, get mm() { return mm; }, miniSwat, get coccole() { return coccole; }, pet, get hugs2() { return hugs; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
     };
   },
 });
