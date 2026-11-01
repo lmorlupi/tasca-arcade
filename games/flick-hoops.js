@@ -148,22 +148,28 @@ registerGame({
       const gr = g.createRadialGradient(x - r * .3, y - r * .4, 2, x, y, r);
       gr.addColorStop(0, '#ffb066'); gr.addColorStop(.6, '#f58a25'); gr.addColorStop(1, '#a8500c');
       g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-      g.strokeStyle = '#6b3208'; g.lineWidth = 1.5;
+      g.strokeStyle = '#4e2406'; g.lineWidth = 1.5;
       g.beginPath(); g.arc(x, y, r, 0, 7); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke();
+      g.beginPath(); g.arc(x - r * 1.05, y, r * 0.8, -0.9, 0.9); g.arc(x + r * 1.05, y, r * 0.8, Math.PI - 0.9, Math.PI + 0.9); g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(x - r * 0.35, y - r * 0.45, r * 0.28, r * 0.15, -0.6, 0, 7); g.fill();
     };
 
     const render = () => {
-      g.fillStyle = PAL[0]; g.fillRect(0, 0, W, H);
+      const wl = g.createLinearGradient(0, 0, 0, H); wl.addColorStop(0, '#141a3a'); wl.addColorStop(0.7, '#2a3566'); wl.addColorStop(1, '#3a4585'); g.fillStyle = wl; g.fillRect(0, 0, W, H);
+      for (const lx of [W * 0.2, W * 0.8]) { const sp = g.createRadialGradient(lx, 0, 4, lx, 0, H * 0.7); sp.addColorStop(0, 'rgba(255,240,200,.18)'); sp.addColorStop(1, 'rgba(255,240,200,0)'); g.fillStyle = sp; g.fillRect(0, 0, W, H); }
+      g.fillStyle = 'rgba(255,255,255,.04)'; for (let x = 0; x < W; x += 40) g.fillRect(x, H * 0.45, 20, H * 0.2);
       // parquet
-      g.fillStyle = '#6b3a17'; g.fillRect(0, H - 50, W, 50);
-      g.fillStyle = '#8a4b1f';
-      for (let x = 0; x < W; x += 36) g.fillRect(x, H - 50, 2, 50);
-      g.fillStyle = '#c98a52'; g.fillRect(0, H - 50, W, 3);
+      const fl = g.createLinearGradient(0, H - 50, 0, H); fl.addColorStop(0, '#c98a52'); fl.addColorStop(0.15, '#a8662f'); fl.addColorStop(1, '#6b3a17'); g.fillStyle = fl; g.fillRect(0, H - 50, W, 50);
+      g.fillStyle = 'rgba(0,0,0,.22)';
+      for (let x = 0; x < W; x += 36) g.fillRect(x, H - 50, 1.6, 50);
+      g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(0, H - 50, W, 2.5); g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(0, H - 47, W, 8);
 
       // tabellone
       const hx = hoop.x, hy = hoop.y;
-      g.fillStyle = '#eef1ff'; g.fillRect(hx - 56, hy - 84, 112, 76);
-      g.fillStyle = '#141a2e'; g.fillRect(hx - 52, hy - 80, 104, 68);
+      g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.roundRect(hx - 54, hy - 78, 112, 76, 6); g.fill();
+      g.fillStyle = '#e8ecff'; g.beginPath(); g.roundRect(hx - 56, hy - 84, 112, 76, 6); g.fill();
+      const bgl = g.createLinearGradient(hx - 52, hy - 80, hx + 52, hy - 12); bgl.addColorStop(0, '#32406f'); bgl.addColorStop(1, '#141a3a'); g.fillStyle = bgl; g.beginPath(); g.roundRect(hx - 52, hy - 80, 104, 68, 4); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.14)'; g.beginPath(); g.moveTo(hx - 52, hy - 80); g.lineTo(hx - 10, hy - 80); g.lineTo(hx - 40, hy - 12); g.lineTo(hx - 52, hy - 12); g.closePath(); g.fill();
       g.strokeStyle = '#e5413b'; g.lineWidth = 3; g.strokeRect(hx - 24, hy - 46, 48, 34);
       // rete
       const w = 1 + Math.sin(performance.now() / 60) * netWobble * 0.15;
@@ -177,7 +183,7 @@ registerGame({
         const yy = hy + 2 + j * 11, inset = j * 7;
         g.beginPath(); g.moveTo(hx - HOOP_HALF + inset, yy); g.lineTo(hx + HOOP_HALF - inset, yy); g.stroke();
       }
-      g.fillStyle = '#f58a25'; g.fillRect(hx - HOOP_HALF - 4, hy - 3, HOOP_HALF * 2 + 8, 6);
+      const rg = g.createLinearGradient(0, hy - 4, 0, hy + 4); rg.addColorStop(0, '#ffb066'); rg.addColorStop(0.5, '#f58a25'); rg.addColorStop(1, '#a8500c'); g.fillStyle = rg; g.beginPath(); g.roundRect(hx - HOOP_HALF - 5, hy - 3.5, HOOP_HALF * 2 + 10, 7, 3.5); g.fill();
 
       // palla (davanti alla rete quando scende, dietro quando sale)
       const r = BR * (1 + ball.pop * 0.25);

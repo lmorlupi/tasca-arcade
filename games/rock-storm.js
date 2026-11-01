@@ -142,15 +142,14 @@ registerGame({
       rows.forEach((t, i) => text(t, W / 2, y + 12 + i * 26, 18, 'center'));
     };
     const drawShip = (s, scale = 1, thrusting = false) => {
-      g.save(); g.translate(s.x, s.y); g.rotate(s.a); g.scale(scale, scale);
-      g.strokeStyle = '#25c4f0'; g.lineWidth = 2.2; g.lineJoin = 'round';
-      g.beginPath(); g.moveTo(15, 0); g.lineTo(-11, -9); g.lineTo(-6, 0); g.lineTo(-11, 9); g.closePath(); g.stroke();
-      if (thrusting) { g.strokeStyle = '#f58a25'; g.beginPath(); g.moveTo(-8, -4); g.lineTo(-17 - Math.random() * 6, 0); g.lineTo(-8, 4); g.stroke(); }
+      g.save(); g.translate(s.x, s.y); g.rotate(s.a + Math.PI / 2); g.scale(scale, scale);
+      Art.fighter(g, 0, 2, 1.0, thrusting ? performance.now() / 1000 : 0, '#dfe6ff', '#25a8d6');
       g.restore();
     };
     const render = () => {
-      g.fillStyle = '#05070f'; g.fillRect(0, 0, W, H);
-      for (let i = 0; i < 40; i++) { g.fillStyle = i % 5 ? '#26304f' : '#5a6aa0'; g.fillRect((i * 97) % W, (i * 211) % H, 2, 2); }
+      Art.nebula(g, W, H, 0);
+      const tt = performance.now() / 1000;
+      for (let i = 0; i < 46; i++) { g.fillStyle = i % 5 ? '#3a4672' : 'rgba(235,240,255,' + (0.6 + 0.4 * Math.sin(tt * 2 + i)) + ')'; g.fillRect((i * 97) % W, (i * 211) % H, 2, 2); }
       if (state === 'title') {
         text('ROCK', W / 2, 150, 56, 'center', '#5a6aa0'); text('STORM', W / 2, 206, 56, 'center');
         drawShip({ x: W / 2, y: 340, a: -Math.PI / 2 + Math.sin(performance.now() / 600) * 0.4 }, 2);
@@ -159,12 +158,17 @@ registerGame({
         text('RECORD ' + hi, W / 2, 500, 14, 'center');
         return;
       }
-      g.strokeStyle = '#aab3d8'; g.lineWidth = 2; g.lineJoin = 'round';
+      g.lineWidth = 1.6; g.lineJoin = 'round';
       for (const r of rocks) {
         g.save(); g.translate(r.x, r.y); g.rotate(r.a);
-        g.beginPath(); r.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.stroke(); g.restore();
+        const rad = Math.max(...r.pts.map(([x, y]) => Math.hypot(x, y)));
+        const rg = g.createRadialGradient(-rad * 0.35, -rad * 0.4, rad * 0.1, 0, 0, rad * 1.05); rg.addColorStop(0, '#b4b2b8'); rg.addColorStop(0.55, '#6e6c78'); rg.addColorStop(1, '#2e2d3a');
+        g.fillStyle = rg; g.strokeStyle = 'rgba(210,214,230,.55)';
+        g.beginPath(); r.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = 'rgba(20,18,30,.35)'; [[0.3, 0.1, 0.22], [-0.35, 0.3, 0.16], [0.05, -0.4, 0.13]].forEach(([cx, cy, cr]) => { g.beginPath(); g.arc(cx * rad, cy * rad, cr * rad, 0, 7); g.fill(); });
+        g.restore();
       }
-      g.fillStyle = '#f5d31c'; bullets.forEach(b => g.fillRect(b.x - 1.5, b.y - 1.5, 3, 3));
+      bullets.forEach(b => { g.fillStyle = 'rgba(255,220,90,.28)'; g.beginPath(); g.arc(b.x, b.y, 5, 0, 7); g.fill(); g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(b.x, b.y, 2, 0, 7); g.fill(); });
       if (deadT <= 0 && !(ship.inv > 0 && ((ship.inv * 10) | 0) % 2 === 0)) drawShip(ship, 1, !!(held.up || held.b || (touch && Math.hypot(touch.x - ship.x, touch.y - ship.y) > 46)));
       parts.forEach(p => { g.globalAlpha = Math.min(1, p.t * 2); g.fillStyle = p.c; g.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); });
       g.globalAlpha = 1;

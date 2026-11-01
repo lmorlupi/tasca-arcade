@@ -211,28 +211,36 @@ registerGame({
       for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
         const X = x * T, Y = HUD + y * T;
         if (grid[y][x] === 1) {
-          g.fillStyle = '#4a5aa0'; g.fillRect(X, Y, T, T);
-          g.fillStyle = '#7f8fd0'; g.fillRect(X, Y, T, 3); g.fillRect(X, Y, 3, T);
-          g.fillStyle = '#2a3566'; g.fillRect(X, Y + T - 3, T, 3); g.fillRect(X + T - 3, Y, 3, T);
+          const wg = g.createLinearGradient(X, Y, X + T, Y + T); wg.addColorStop(0, '#6676c0'); wg.addColorStop(1, '#3a4690'); g.fillStyle = wg; g.fillRect(X, Y, T, T);
+          g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(X, Y, T, 2.5); g.fillRect(X, Y, 2.5, T);
+          g.fillStyle = 'rgba(10,14,40,.5)'; g.fillRect(X, Y + T - 3, T, 3); g.fillRect(X + T - 3, Y, 3, T);
+          g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.arc(X + T / 2, Y + T / 2, 2.2, 0, 7); g.fill();
         } else {
-          g.fillStyle = (x + y) % 2 ? '#12182c' : '#161e36'; g.fillRect(X, Y, T, T);
+          g.fillStyle = (x + y) % 2 ? '#141b34' : '#18213f'; g.fillRect(X, Y, T, T); g.fillStyle = 'rgba(120,150,255,.05)'; g.fillRect(X, Y, T, 1); g.fillRect(X, Y, 1, T);
         }
       }
 
       for (const [hx, hy] of holes) {
         const cx = px(hx), cy = HUD + px(hy);
         const gr = g.createRadialGradient(cx, cy, 2, cx, cy, 15);
-        gr.addColorStop(0, '#000'); gr.addColorStop(.75, '#05070f'); gr.addColorStop(1, '#2a3566');
+        gr.addColorStop(0, '#000'); gr.addColorStop(.7, '#05070f'); gr.addColorStop(1, '#2a3566');
+        g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(cx, cy + 1.5, 17, 0, 7); g.fill();
         g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, 15, 0, 7); g.fill();
+        g.strokeStyle = 'rgba(150,170,255,.45)'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, 15.5, Math.PI * 0.9, Math.PI * 1.9); g.stroke();
       }
       for (const c of coins) {
         if (c.got) continue;
         const cx = px(c.x), cy = HUD + px(c.y) + Math.sin(now * 4 + c.x) * 2;
-        g.fillStyle = '#f5d31c'; g.beginPath(); g.arc(cx, cy, 7, 0, 7); g.fill();
-        g.fillStyle = '#fff6b0'; g.beginPath(); g.arc(cx - 2, cy - 2, 2.5, 0, 7); g.fill();
+        const sq = Math.abs(Math.cos(now * 3 + c.x)) * 6 + 1;
+        g.fillStyle = 'rgba(255,220,80,.22)'; g.beginPath(); g.arc(cx, cy, 11, 0, 7); g.fill();
+        g.fillStyle = '#b8860b'; g.beginPath(); g.ellipse(cx, cy, sq + 0.8, 7.8, 0, 0, 7); g.fill();
+        const cg = g.createLinearGradient(cx - 7, cy - 7, cx + 7, cy + 7); cg.addColorStop(0, '#fff6a0'); cg.addColorStop(1, '#e8a91c'); g.fillStyle = cg; g.beginPath(); g.ellipse(cx, cy, sq, 7, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(cx - sq * 0.3, cy - 3, sq * 0.25, 2, 0, 0, 7); g.fill();
       }
       const gx = px(goal[0]), gyy = HUD + px(goal[1]), pulse = 12 + Math.sin(now * 5) * 2;
-      g.strokeStyle = '#4cc24a'; g.lineWidth = 3; g.beginPath(); g.arc(gx, gyy, pulse, 0, 7); g.stroke();
+      const pg = g.createRadialGradient(gx, gyy, 2, gx, gyy, 22); pg.addColorStop(0, 'rgba(120,255,140,.55)'); pg.addColorStop(1, 'rgba(76,194,74,0)'); g.fillStyle = pg; g.beginPath(); g.arc(gx, gyy, 22, 0, 7); g.fill();
+      g.strokeStyle = '#7bf08d'; g.lineWidth = 3; g.beginPath(); g.arc(gx, gyy, pulse, 0, 7); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1.2; g.beginPath(); g.arc(gx, gyy, pulse * 0.6, now * 3, now * 3 + 4); g.stroke();
       g.fillStyle = '#4cc24a'; g.beginPath(); g.arc(gx, gyy, 6, 0, 7); g.fill();
 
       // sfera con ombra spostata dall'inclinazione
@@ -241,6 +249,7 @@ registerGame({
       const bg = g.createRadialGradient(ball.x - r * .35, ball.y - r * .4, 1, ball.x, ball.y, r);
       bg.addColorStop(0, '#fff'); bg.addColorStop(.45, '#e5413b'); bg.addColorStop(1, '#7a1d1a');
       g.fillStyle = bg; g.beginPath(); g.arc(ball.x, ball.y, Math.max(0.1, r), 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(ball.x - r * 0.35, ball.y - r * 0.42, r * 0.28, r * 0.16, -0.6, 0, 7); g.fill();
 
       // intestazione
       g.fillStyle = '#0b1020'; g.fillRect(0, 0, cv.width, HUD);

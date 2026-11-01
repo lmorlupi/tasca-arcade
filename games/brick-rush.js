@@ -109,8 +109,12 @@ registerGame({
       g.fillStyle = '#141a2e'; g.fillRect(x + 2, y + 2, w - 4, h - 4);
       rows.forEach((t, i) => text(t, W / 2, y + 12 + i * 26, 18, 'center'));
     };
+    const rr = (x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
+    let trail = [];
     const render = () => {
-      g.fillStyle = '#0b1020'; g.fillRect(0, 0, W, H);
+      const bgG = g.createLinearGradient(0, 0, 0, H); bgG.addColorStop(0, '#0b1230'); bgG.addColorStop(1, '#060a1c'); g.fillStyle = bgG; g.fillRect(0, 0, W, H);
+      const hz = g.createRadialGradient(W / 2, H * 0.35, 10, W / 2, H * 0.35, H * 0.7); hz.addColorStop(0, 'rgba(70,90,200,.20)'); hz.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = hz; g.fillRect(0, 0, W, H);
+      g.strokeStyle = 'rgba(120,140,220,.06)'; g.lineWidth = 1; for (let x = 0; x < W; x += 30) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y < H; y += 30) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
       if (state === 'title') {
         text('BRICK', W / 2, 150, 56, 'center', '#e5413b'); text('RUSH', W / 2, 206, 56, 'center');
         for (let i = 0; i < 8; i++) { g.fillStyle = COLORS[i]; g.fillRect(40 + i * 33, 300, 30, 16); }
@@ -121,14 +125,19 @@ registerGame({
       }
       g.fillStyle = '#1f2744'; g.fillRect(0, WALL_T - 4, W, 4);
       for (const b of bricks) {
-        g.fillStyle = b.color; g.fillRect(b.x, b.y, b.w, b.h);
-        g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(b.x, b.y, b.w, 3);
-        g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(b.x, b.y + b.h - 3, b.w, 3);
-        if (b.hp > 1) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(b.x + b.w / 2 - 6, b.y + 6, 12, 6); }
+        const bgr = g.createLinearGradient(0, b.y, 0, b.y + b.h); bgr.addColorStop(0, 'rgba(255,255,255,.55)'); bgr.addColorStop(0.18, 'rgba(255,255,255,0)'); bgr.addColorStop(1, 'rgba(0,0,0,.38)');
+        g.fillStyle = b.color; rr(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 4); g.fill(); g.fillStyle = bgr; rr(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 4); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(b.x + 4, b.y + 2.5, b.w * 0.45, 1.6);
+        if (b.hp > 1) { g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 2; rr(b.x + 3, b.y + 3, b.w - 6, b.h - 6, 3); g.stroke(); }
       }
-      g.fillStyle = '#25c4f0'; g.fillRect(pad.x - pad.w / 2, PAD_Y, pad.w, PAD_H);
-      g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(pad.x - pad.w / 2, PAD_Y, pad.w, 3);
-      g.fillStyle = '#eef1ff'; g.beginPath(); g.arc(ball.x, ball.y, R, 0, 7); g.fill();
+      g.fillStyle = 'rgba(37,196,240,.22)'; rr(pad.x - pad.w / 2 - 3, PAD_Y - 3, pad.w + 6, PAD_H + 6, PAD_H / 2 + 3); g.fill();
+      const pg = g.createLinearGradient(0, PAD_Y, 0, PAD_Y + PAD_H); pg.addColorStop(0, '#9be8ff'); pg.addColorStop(0.5, '#25c4f0'); pg.addColorStop(1, '#0e6f93');
+      g.fillStyle = pg; rr(pad.x - pad.w / 2, PAD_Y, pad.w, PAD_H, PAD_H / 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.55)'; rr(pad.x - pad.w / 2 + 6, PAD_Y + 2, pad.w - 12, 2.4, 1.2); g.fill();
+      trail.push({ x: ball.x, y: ball.y }); if (trail.length > 8) trail.shift();
+      trail.forEach((t, i) => { g.fillStyle = 'rgba(190,220,255,' + (i / trail.length * 0.25) + ')'; g.beginPath(); g.arc(t.x, t.y, R * (0.5 + i / trail.length * 0.5), 0, 7); g.fill(); });
+      const bl = g.createRadialGradient(ball.x - R * 0.35, ball.y - R * 0.4, 1, ball.x, ball.y, R * 1.1); bl.addColorStop(0, '#ffffff'); bl.addColorStop(1, '#9fb0e8');
+      g.fillStyle = 'rgba(180,200,255,.25)'; g.beginPath(); g.arc(ball.x, ball.y, R + 3, 0, 7); g.fill(); g.fillStyle = bl; g.beginPath(); g.arc(ball.x, ball.y, R, 0, 7); g.fill();
       parts.forEach(p => { g.globalAlpha = Math.min(1, p.t * 2.5); g.fillStyle = p.c; g.fillRect(p.x - 2, p.y - 2, 4, 4); });
       g.globalAlpha = 1;
       text('PUNTI ' + score, 10, 10, 15); text('LV ' + level, W / 2, 10, 15, 'center');
