@@ -1,10 +1,10 @@
 // Service worker: tiene in cache tutta la console, così funziona anche senza rete.
 // Quando cambia un file, aumenta VERSION: i telefoni scaricano di nuovo tutto.
-const VERSION = 'arcade-v63';
+const VERSION = 'arcade-v67';
 // File della console. I giochi non sono qui: si leggono da games/catalog.json, così aggiungerne uno
 // non richiede di toccare questo file (basta aumentare VERSION).
 const BASE = [
-  './', 'index.html', 'shell.css', 'shell.js', 'art.js', 'art3d.js', 'manifest.webmanifest',
+  './', 'index.html', 'shell.css', 'shell.js', 'art.js', 'art3d.js', 'cards.js', 'manifest.webmanifest',
   'icon.svg', 'art/fur.jpg','art/margot-bed.jpg','art/margot-sun.jpg','art/margot-blanket.jpg', 'art/margot-face.jpg', 'art/margot-3q.jpg', 'art/margot-sleep.jpg', 'art/margot-avatar.jpg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'games/catalog.json',
 ];
 

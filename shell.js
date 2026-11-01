@@ -794,6 +794,13 @@
     if (t.closest('#colReset')) { setShell('grape'); setBtn('graphite'); renderColors(); return true; }
     return false;
   };
+  // Solo verticale: dove il browser lo consente blocca lo schermo; altrimenti basta la copertura in CSS e il gioco va in pausa.
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(() => {}); } catch (e) {}
+  try {
+    const land = matchMedia('(orientation: landscape) and (max-height: 520px)');
+    const onLand = e => { if (e.matches && mode === 'game' && inst && inst.onHide) { try { inst.onHide(); } catch (err) {} } };
+    if (land.addEventListener) land.addEventListener('change', onLand); else if (land.addListener) land.addListener(onLand);
+  } catch (e) {}
   // Avvio
   const COLORS = ['#e5413b', '#f58a25', '#f5d31c', '#4cc24a', '#25c4f0', '#3d5fe0', '#a655b8'];
   const buildLogo = () => {

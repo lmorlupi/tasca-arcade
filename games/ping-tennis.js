@@ -65,7 +65,9 @@ registerGame({
       if (state !== 'play') return;
       // racchetta del giocatore: dito, croce
       const prev = racket.x; const mv = (held.right ? 1 : 0) - (held.left ? 1 : 0);
-      if (mv) racket.x += mv * 1.9 * dt; else if (dragX !== null) racket.x += (Math.max(-1, Math.min(1, dragX)) - racket.x) * Math.min(1, dt * 18);
+      if (mv) racket.x += mv * 4.2 * dt; else if (dragX !== null) racket.x += (Math.max(-1.05, Math.min(1.05, dragX)) - racket.x) * Math.min(1, dt * 40);
+      // aiuto: quando la palla arriva, la racchetta scivola un po' da sola verso il punto giusto
+      if (ball && ball.live && ball.last === 'A' && ball.vy > 0 && ball.y > 0.45) racket.x += Math.max(-2.6 * dt, Math.min(2.6 * dt, (ball.x + ball.vx * 0.1 - racket.x))) * (mv || dragX !== null ? 0.55 : 1);
       racket.x = Math.max(-1.05, Math.min(1.05, racket.x)); racket.vx = (racket.x - prev) / Math.max(dt, 1e-3);
       racket.sw = Math.max(0, racket.sw - dt); cpu.sw = Math.max(0, cpu.sw - dt);
       if (held.a) charge = Math.min(1, charge + dt * 1.8); else charge = Math.max(0, charge - dt * 2.5);
@@ -77,7 +79,7 @@ registerGame({
         // servizio
         ball.serveWait -= dt;
         if (server === 'P') { ball.x = racket.x; ball.y = 1.0; ball.z = 0.12 + Math.sin(time * 5) * 0.03; if (ball.serveWait <= 0 && (tx !== null || held.a || held.up)) { tx = null; racket.sw = 0.25; hit('P', Math.max(-0.7, Math.min(0.7, racket.vx * 0.2 + (Math.random() - 0.5) * 0.5)), 0.28, 1.1, 0.3); } }
-        else { ball.x = cpu.x; ball.y = 0.0; ball.z = 0.12; if (ball.serveWait <= 0) { cpu.sw = 0.25; hit('A', (Math.random() - 0.5) * 1.2, 0.3, 0.9 + level * 0.04, 0.35); } }
+        else { ball.x = cpu.x; ball.y = 0.0; ball.z = 0.12; if (ball.serveWait <= 0) { cpu.sw = 0.25; hit('A', (Math.random() - 0.5) * 1.2, 0.3, 0.75 + level * 0.035, 0.35); } }
         return;
       }
       // palla
@@ -99,15 +101,15 @@ registerGame({
       // colpo dell'avversario
       if (ball.last === 'P' && ball.vy < 0 && ball.y < 0.14 && ball.y > -0.06 && ball.z < 0.45 && Math.abs(ball.x - cpu.x) < 0.24) {
         const miss = Math.random() < Math.max(0.03, 0.34 - level * 0.05) && ball.z > 0.05 && rallyN < 3 ? true : false;
-        if (!miss) { cpu.sw = 0.25; const t = Math.random() < 0.5 ? -racket.x * 0.8 + (Math.random() - 0.5) * 0.4 : (Math.random() - 0.5) * 1.5; hit('A', Math.max(-0.92, Math.min(0.92, t)), 0.12 + Math.random() * 0.2, 1.0 + level * 0.06 + Math.random() * 0.25, 0.2 + 0.2 / level); }
+        if (!miss) { cpu.sw = 0.25; const t = Math.random() < 0.5 ? -racket.x * 0.8 + (Math.random() - 0.5) * 0.4 : (Math.random() - 0.5) * 1.5; hit('A', Math.max(-0.92, Math.min(0.92, t)), 0.12 + Math.random() * 0.2, 0.82 + level * 0.05 + Math.random() * 0.2, 0.2 + 0.2 / level); }
       }
       // colpo del giocatore
       if (ball.last === 'A' && ball.vy > 0 && ball.y > 0.84 && ball.y < 1.06 && ball.z < 0.5) {
         const off = ball.x - racket.x;
-        if (Math.abs(off) < 0.27) {
-          racket.sw = 0.25; const power = held.a ? 1 : 0.55 + charge * 0.45, edge = Math.abs(off) / 0.27;
+        if (Math.abs(off) < 0.36) {
+          racket.sw = 0.25; const power = held.a ? 1 : 0.55 + charge * 0.45, edge = Math.abs(off) / 0.36;
           const tgt = Math.max(-0.95, Math.min(0.95, off * 3.2 + racket.vx * 0.22));
-          hit('P', tgt, 0.1 + (1 - power) * 0.24, 0.95 + power * 0.65, 0.12 + edge * 0.5 + (ball.z > 0.3 ? 0.2 : 0));
+          hit('P', tgt, 0.1 + (1 - power) * 0.24, 0.8 + power * 0.55, 0.12 + edge * 0.5 + (ball.z > 0.3 ? 0.2 : 0));
           if (power > 0.9) { flash('POTENTE!'); api.haptic(35); puff(sx(ball.x, ball.y), sy(ball.y), 12); }
         }
       }
@@ -122,8 +124,8 @@ registerGame({
     };
     const onPointer = e => {
       const vx = (e.x - OX) / S;
-      if (e.type === 'down') { if (state === 'title') { newMatch(); return; } if (state === 'end') { if (pg < 3) level = 1; newMatch(); return; } if (state === 'pause') { state = 'play'; return; } dragX = (vx - VWd / 2) / (VWd * 0.46); tx = true; }
-      else if (e.type === 'move') dragX = (vx - VWd / 2) / (VWd * 0.46);
+      if (e.type === 'down') { if (state === 'title') { newMatch(); return; } if (state === 'end') { if (pg < 3) level = 1; newMatch(); return; } if (state === 'pause') { state = 'play'; return; } dragX = (vx - VWd / 2) / (VWd * 0.34); tx = true; }
+      else if (e.type === 'move') dragX = (vx - VWd / 2) / (VWd * 0.34);
       else if (e.type === 'up') { dragX = null; }
     };
 
