@@ -28,7 +28,7 @@ registerGame({
     ];
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
-    let coccole = 0, strokes = 0, petFx = [], purrT = 0, purrN = 0;
+    let coccole = 0, strokes = 0, petFx = [], lastPet = -9, purrT = 0, purrN = 0;
     let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, chaser = { x: -90, on: false, t: 0, beep: 0 }, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
@@ -114,6 +114,8 @@ registerGame({
       { n: 'face', t: ['Margot.', 'Occhi verdi, carattere deciso.'] },
       { n: 'q3', t: ['Sempre attenta,', 'curiosa di tutto.'] },
       { n: 'sleep', t: ['Affettuosa,', 'anche quando dormiva.'] },
+      { n: 'bed', t: ['Pancia all\'aria,', 'regina del letto.'] },
+      { n: 'blanket', t: ['Sotto la coperta,', 'a ronfare in pace.'] },
     ];
     const unlocked = () => api.store.get('album', []);
     const nextPhoto = () => {
@@ -138,9 +140,9 @@ registerGame({
     };
     const pet = () => {
       if (state !== 'rest') return;
-      strokes++; restT = Math.min(restT + 0.45, 4.5); const pts = 5 * coccole; score += pts; api.haptic(6); api.beep(300 + Math.min(300, strokes * 20), 0.07, 'sine', 0.04);
+      strokes++; lastPet = time; restT = Math.min(restT + 0.45, 4.5); const pts = 5 * coccole; score += pts; api.haptic(6); api.beep(300 + Math.min(300, strokes * 20), 0.07, 'sine', 0.04);
       petFx.push({ x: P.x + (Math.random() * 16 - 8), y: P.y - 30, t: 0 });
-      if (strokes % 5 === 0) { flash('FA LE FUSA!  +' + pts * 5); score += pts * 5; api.haptic(15); }
+      if (strokes % 5 === 0) { flash('CHE GRATTINI! FA LE FUSA  +' + pts * 5); score += pts * 5; api.haptic(15); }
     };
     const newGame = (from = 1) => { coccole = 0; strokes = 0; score = 0; lives = 3; level = from; caught = 0; doorHint = false; gen(level); resetPlayer(); state = 'play'; };
     const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
@@ -371,8 +373,8 @@ registerGame({
           if (!seen[kk]) { seen[kk] = 1; score += 10; flash('CURIOSA! SALE SULLA SEDIA'); api.beep(880, 0.05, 'triangle', 0.04); }
         }
         for (const m of memories) if (!m.got && Math.hypot(m.x - P.x, m.y - (P.y - 8)) < 18) {
-          m.got = true; const al = unlocked().slice(); let idx = [0, 1, 2].find(i => !al.includes(i));
-          if (idx === undefined) idx = (photoShow + 1) % 3;
+          m.got = true; const al = unlocked().slice(); let idx = PHOTOS.map((_, i) => i).find(i => !al.includes(i));
+          if (idx === undefined) idx = (photoShow + 1) % PHOTOS.length;
           if (!al.includes(idx)) { al.push(idx); api.store.set('album', al); }
           photoShow = idx; state = 'photo'; score += 100; api.haptic(25);
           [660, 784, 988].forEach((f, i) => setTimeout(() => api.beep(f, 0.14, 'sine', 0.05), i * 120));
@@ -380,7 +382,7 @@ registerGame({
         for (const h of hugs) if (!h.used && Math.abs(h.x - P.x) < 18 && P.ground && held.down) {
           h.used = true; state = 'rest'; restT = 2.6; lives = Math.min(5, lives + 1); P.vx = 0;
           coccole++; strokes = 0; const bonus = 50 * coccole; score += bonus; api.store.set('coccole', api.store.get('coccole', 0) + 1);
-          flash('COCCOLE n.' + coccole + '  +' + bonus + '  · TOCCA A: CARTEZZA!'); msgT = 2.6;
+          flash('COCCOLE n.' + coccole + '  +' + bonus + '  · TOCCA A: GRATTINI SULLA TESTA!'); msgT = 2.6;
           flash('TRA LE BRACCIA, AL CALDO'); api.haptic(20);
           [392, 494, 587].forEach((f, i) => setTimeout(() => api.beep(f, 0.3, 'sine', 0.04), i * 220));
         }
@@ -699,7 +701,7 @@ registerGame({
         const btn = (y, label) => { g.fillStyle = '#8a4a22'; g.beginPath(); g.roundRect(W / 2 - 124, y, 248, 28, 14); g.fill(); text(label, W / 2, y + 6, 14, 'center', '#fff4e0'); };
         btn(388, 'TROVA MARGOT'); btn(420, 'PALLINA DI STAGNOLA'); btn(452, 'CACCIA AI GRILLI');
         text('RECORD ' + hi, W / 2, 488, 12, 'center', '#6d4a2f');
-        if (unlocked().length) text('TOCCA LA FOTO: RICORDI ' + unlocked().length + '/3', W / 2, 344, 11, 'center', '#8a4a22');
+        if (unlocked().length) text('TOCCA LA FOTO: RICORDI ' + unlocked().length + '/' + PHOTOS.length, W / 2, 344, 11, 'center', '#8a4a22');
         text('IL GIOCO DI MARGOT', W / 2, 508, 15, 'center', '#fff4e0');
         text('MARGOT · MAGGHINA · MARGHY', W / 2, 530, 12, 'center', '#fff4e0');
         text('CURIOSA, FURBA E IMBATTIBILE CON LE PORTE', W / 2, 550, 10, 'center', '#f3dcc0');
@@ -754,7 +756,7 @@ registerGame({
       if (!P.hidden) mg(P.x, P.y, 38, state === 'rest' ? 'idle' : pose, pose === 'walk' ? P.walk : time, P.face);
       if (P.hidden) blankets.forEach(b => { if (Math.abs(P.x - b.x) < b.w / 2) drawBlanket(b, true); });
       if (state === 'rest') {
-        const hx = P.x - 4 + Math.sin(time * 2.4) * 12, hy = P.y - 36 + Math.sin(time * 4.8) * 1.5 + (strokes ? Math.sin(time * 18) * 1.2 : 0);
+        const scr = time - lastPet < 0.35, hx = P.x + P.face * 9 + Math.sin(time * 2.4) * (scr ? 2 : 6) + (scr ? Math.sin(time * 42) * 2.2 : 0), hy = P.y - 42 + Math.sin(time * 4.8) * 1.2 + (scr ? Math.sin(time * 38) * 1.4 : 0);
         g.save(); g.translate(hx, hy - 6); g.rotate(Math.sin(time * 2.4 + 1.2) * 0.08);
         const skin = g.createLinearGradient(-10, -8, 10, 12); skin.addColorStop(0, '#f8d9bb'); skin.addColorStop(1, '#e4ac85');
         g.fillStyle = '#7fa3c7'; g.beginPath(); g.moveTo(8, -14); g.lineTo(34, -48); g.lineTo(48, -38); g.lineTo(20, -4); g.closePath(); g.fill();
@@ -764,6 +766,7 @@ registerGame({
         g.beginPath(); g.ellipse(-11, -6, 5, 2.6, 0.7, 0, 7); g.fill();
         g.strokeStyle = 'rgba(150,90,60,.35)'; g.lineWidth = 0.7; for (const fx of [-4.7, 0, 4.7]) { g.beginPath(); g.moveTo(fx, 2); g.lineTo(fx, 10); g.stroke(); }
         g.restore();
+        if (time - lastPet < 0.35) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.2; for (let k = 0; k < 3; k++) { const a = time * 30 + k * 2; g.beginPath(); g.moveTo(hx - 10 + k * 7, hy + 6); g.lineTo(hx - 12 + k * 7 + Math.sin(a) * 3, hy + 12); g.stroke(); } }
         petFx.forEach(f => { g.globalAlpha = 1 - f.t; g.fillStyle = '#e8455f'; g.font = 'bold 14px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('\u2665', f.x, f.y - f.t * 26); }); g.globalAlpha = 1; }
       if (state === 'rest') { g.fillStyle = '#e8455f'; for (let i = 0; i < 3; i++) { const t = (time * 0.8 + i / 3) % 1; g.globalAlpha = 1 - t; g.font = `bold ${9 + i * 2}px ui-monospace, monospace`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff4e0'; g.fillText('z', P.x + 8 + i * 5, P.y - 28 - t * 22); } g.globalAlpha = 1; }
       g.restore();
