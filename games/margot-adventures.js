@@ -548,13 +548,15 @@ registerGame({
         g.fillStyle = 'rgba(255,230,140,.9)'; for (let k = 0; k < 3; k++) { const a = time * 2 + k * 2.1; g.fillRect(x + Math.cos(a) * 16 - 1, y + Math.sin(a) * 12 - 1, 2, 2); }
         return;
       }
-      g.save(); g.translate(x, y); g.rotate(Math.sin(time * 3 + x) * 0.15);
-      const fg = g.createLinearGradient(0, -6, 0, 6); fg.addColorStop(0, '#ffd88a'); fg.addColorStop(1, '#e49a3c');
-      g.fillStyle = fg; g.beginPath(); g.ellipse(-1, 0, 8, 5, 0, 0, 7); g.fill();
-      g.beginPath(); g.moveTo(6, 0); g.lineTo(12, -5); g.lineTo(12, 5); g.closePath(); g.fill();
-      g.fillStyle = '#7a4a1a'; g.beginPath(); g.arc(-5, -1, 1.2, 0, 7); g.fill();
-      g.strokeStyle = 'rgba(122,74,26,.55)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, -4); g.lineTo(1, 4); g.moveTo(3, -3); g.lineTo(4, 3); g.stroke();
-      g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(-3, -3, 3, 1.2, -0.3, 0, 7); g.fill();
+      g.save(); g.translate(x, y); g.rotate(Math.sin(time * 3 + x) * 0.15); g.scale(1.4, 1.4);
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.arc(0, 0, 13, 0, 7); g.fill();
+      g.strokeStyle = '#0d2a4a'; g.lineWidth = 1.6; g.lineJoin = 'round';
+      const fg = g.createLinearGradient(0, -6, 0, 6); fg.addColorStop(0, '#3fd0ff'); fg.addColorStop(1, '#1670d0');
+      g.fillStyle = fg; g.beginPath(); g.ellipse(-1, 0, 8, 5, 0, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#ff5a3c'; g.beginPath(); g.moveTo(6, 0); g.lineTo(12, -5); g.lineTo(12, 5); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(-1, 2, 5, 1.8, 0, 0, 7); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(-5, -1, 2, 0, 7); g.fill();
+      g.fillStyle = '#0d2a4a'; g.beginPath(); g.arc(-5.3, -1, 1, 0, 7); g.fill();
       g.restore();
     };
     const drawBowl = (open) => {
