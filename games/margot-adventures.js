@@ -22,7 +22,7 @@ registerGame({
     ];
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
-    let doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, camX = 0, jumpBuf = 0, coyote = 0, time = 0;
+    let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, camX = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
       seed |= 0; seed = seed + 0x6D2B79F5 | 0;
@@ -88,9 +88,28 @@ registerGame({
           }
         }
       }
+      memories = []; hugs = []; blankets = []; seen = {};
+      const big = segs.filter(([s0, e0]) => e0 - s0 + 1 >= 6 && s0 > 6 && e0 < cols - 8);
+      const pickSeg = f => (big.length ? big[Math.min(big.length - 1, Math.floor(f * big.length))] : null);
+      const sm = pickSeg(0.72), sh = pickSeg(0.42), sb = pickSeg(0.22);
+      if (sm) memories.push({ x: ((sm[0] + sm[1]) / 2 + 3) * T + T / 2, y: GR * T - 18, got: false });
+      if (sh) hugs.push({ x: ((sh[0] + sh[1]) / 2 + 1) * T + T / 2, used: false });
+      if (sb) blankets.push({ x: ((sb[0] + sb[1]) / 2 - 2) * T + T / 2, w: 50 });
       treats = treats.filter(t => !doors.some(d => Math.floor(t.x / T) === d.c && t.y > (GR - 3) * T));
       door = { x: (cols - 4) * T, y: GR * T };
       need = Math.ceil(treats.length * 0.6); got = 0;
+    };
+
+    // Le foto di Margot si sbloccano trovando le cornici nei livelli; si rivedono dalla schermata iniziale.
+    const PHOTOS = [
+      { n: 'face', t: ['Margot.', 'Occhi verdi, carattere deciso.'] },
+      { n: 'q3', t: ['Sempre attenta,', 'curiosa di tutto.'] },
+      { n: 'sleep', t: ['Affettuosa,', 'anche quando dormiva.'] },
+    ];
+    const unlocked = () => api.store.get('album', []);
+    const nextPhoto = () => {
+      if (state === 'photo') { state = 'play'; return; }
+      albumIdx++; if (albumIdx >= unlocked().length) state = 'title';
     };
 
     const BAUBLE_COLORS = ['#e5413b', '#f5d31c', '#25c4f0', '#a655b8', '#eef1ff', '#4cc24a', '#f58a25'];
@@ -162,10 +181,102 @@ registerGame({
       if (P.y > VH * T + 40) hurt();
     };
 
+    const mg = (x, y, h, pose, step, dir, kit) => { if (window.Art3D && Art3D.ok && Art3D.draw(g, x, y, h * 1.12, pose, step, dir, kit)) return; Art.drawMargot(g, x, y, h, pose, step, dir); };
+
+    // TROVA MARGOT: tre nascondigli di casa, tre round
+    const SPOTS = [
+      { n: 'IL LETTO', sub: 'sotto le coperte', y: 70, h: 150 },
+      { n: 'IL DIVANO', sub: 'tra i cuscini', y: 236, h: 150 },
+      { n: 'LA SEDIA', sub: 'sotto il tavolo', y: 402, h: 150 },
+    ];
+    let sk = null;
+    const seekStart = () => { sk = { round: 0, pts: 0, sel: 0, spot: 0, tries: 0, t: 0, phase: 'look', shut: [], best: api.store.get('seekBest', 0) }; seekRound(); state = 'seek'; };
+    const seekRound = () => { sk.spot = (Math.random() * 3) | 0; sk.tries = 0; sk.t = 0; sk.phase = 'look'; sk.shut = []; sk.tail = 0; };
+    const seekPick = i => {
+      if (sk.phase !== 'look' || sk.shut.includes(i)) return;
+      sk.sel = i;
+      if (i === sk.spot) {
+        const p = Math.max(50, Math.round(300 - sk.t * 12 - sk.tries * 80)); sk.pts += p; sk.got = p; sk.phase = 'found'; sk.t = 0; api.haptic(30); api.beep(660, 0.12, 'triangle', 0.05);
+      } else {
+        sk.tries++; sk.shut.push(i); api.haptic(8); api.beep(180, 0.1, 'square', 0.04);
+        if (sk.shut.length >= 2) { sk.spot = [0, 1, 2].find(k => !sk.shut.includes(k)); sk.got = 0; sk.phase = 'found'; sk.t = 0; }
+      }
+    };
+    const seekNext = () => {
+      if (sk.phase === 'found') { sk.round++; if (sk.round >= 3) { sk.phase = 'end'; if (sk.pts > sk.best) { sk.best = sk.pts; api.store.set('seekBest', sk.best); } } else seekRound(); }
+      else if (sk.phase === 'end') state = 'title';
+    };
+    const seekKey = k => {
+      if (k === 'up') sk.sel = (sk.sel + 2) % 3; else if (k === 'down') sk.sel = (sk.sel + 1) % 3;
+      else if (k === 'a') { if (sk.phase === 'look') seekPick(sk.sel); else if (sk.t > 0.5) seekNext(); }
+      else if (k === 'b') state = 'title';
+    };
+    const drawSeek = () => {
+      const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f1e3cc'); bg.addColorStop(1, '#d9b98a'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      text('TROVA MARGOT', W / 2, 8, 20, 'center', '#8a4a22');
+      if (sk.phase !== 'end') text('ROUND ' + (sk.round + 1) + '/3 · PUNTI ' + sk.pts, W / 2, 38, 12, 'center', '#6d4a2f');
+      SPOTS.forEach((sp, i) => {
+        const y = sp.y, x = 16, w = W - 32, h = sp.h, shut = sk.shut.includes(i), here = sk.spot === i, reveal = (sk.phase === 'found' || sk.phase === 'end') && here;
+        g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+        g.fillStyle = i === 0 ? '#e9dcc4' : i === 1 ? '#ead9c0' : '#e3cda8'; g.fillRect(x, y, w, h);
+        g.fillStyle = 'rgba(120,80,40,.18)'; g.fillRect(x, y + h - 26, w, 26);
+        // Margot dietro l'arredo
+        const my = y + h - 34;
+        if (reveal) mg(x + w / 2 + (i === 2 ? 0 : 20), my + 14, 76, 'idle', time, -1, sk.round === 0 ? 0.62 : 0);
+        else if (here && sk.t > 7 && sk.phase === 'look') { g.fillStyle = '#7a5836'; g.beginPath(); g.moveTo(x + w / 2 + 30, my - 6); g.lineTo(x + w / 2 + 40, my - 26 - Math.sin(time * 3) * 3); g.lineTo(x + w / 2 + 50, my - 6); g.closePath(); g.fill(); }
+        // arredo
+        const open = shut || reveal;
+        if (i === 0) {
+          g.fillStyle = '#8a5a34'; g.fillRect(x + 6, y + 20, w - 12, 14); g.fillStyle = '#fbf6ec'; g.fillRect(x + 12, y + 30, 96, 36);
+          g.fillStyle = '#7fa3c7'; g.beginPath(); g.moveTo(x + 8, y + h - 30); g.quadraticCurveTo(x + w / 2, y + (open ? h - 26 : 54 + Math.sin(time * 2) * (here ? 2 : 0)), x + w - 8, y + h - 30); g.lineTo(x + w - 8, y + h - 8); g.lineTo(x + 8, y + h - 8); g.closePath(); g.fill();
+          g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 2; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(x + 40 + k * 70, y + h - 12); g.quadraticCurveTo(x + 50 + k * 70, y + h - 40, x + 70 + k * 70, y + h - 14); g.stroke(); }
+        } else if (i === 1) {
+          g.fillStyle = '#b45c4a'; g.fillRect(x + 6, y + 26, w - 12, h - 62); g.fillStyle = '#c9705c'; g.fillRect(x + 6, y + h - 52, w - 12, 30);
+          const cols = ['#e8c15a', '#6fa58f', '#e2e0d6']; for (let k = 0; k < 3; k++) { const cx = x + 46 + k * 98, cy = y + (open ? h - 70 + k * 3 : 44 + (here ? Math.sin(time * 2 + k) * 2 : 0)); g.fillStyle = cols[k]; g.beginPath(); g.ellipse(cx + (open ? (k - 1) * 18 : 0), cy + 20, 44, 26, (k - 1) * 0.15, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.15)'; g.lineWidth = 1.5; g.stroke(); }
+        } else {
+          g.fillStyle = '#a06a3d'; g.fillRect(x + 4, y + 18, w - 8, 14); g.fillRect(x + 20, y + 30, 8, h - 56); g.fillRect(x + w - 28, y + 30, 8, h - 56);
+          g.fillStyle = '#8c5a30'; g.fillRect(x + 90, y + 40, 8, 74); g.fillRect(x + 90, y + 40, 120, 8);
+          if (!open) { g.fillStyle = '#d9b46a'; g.fillRect(x + 100, y + 50, 150, 64); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x + 100, y + 50, 150, 4); }
+        }
+        g.restore();
+        const on = sk.phase === 'look' && sk.sel === i;
+        g.lineWidth = on ? 4 : 2; g.strokeStyle = shut ? '#b0a090' : on ? '#e8455f' : '#8a5a34'; g.strokeRect(x, y, w, h);
+        text(sp.n, x + 8, y + 6, 13, 'left', shut ? '#9a8a78' : '#5b3a20'); text(shut ? 'VUOTO!' : sp.sub, x + w - 8, y + 8, 11, 'right', shut ? '#c0603a' : '#8a6a4a');
+      });
+      if (sk.phase === 'look') text(sk.t < 7 ? 'DOV’È FINITA? TOCCA UN NASCONDIGLIO' : 'PSST... UN ORECCHIO SPUNTA!', W / 2, H - 20, 11, 'center', '#6d4a2f');
+      if (sk.phase === 'found' || sk.phase === 'end') { g.save(); g.translate(0, sk.spot === 1 ? 200 : 0); }
+      if (sk.phase === 'found') banner([sk.got ? 'TROVATA!' : 'ERA QUI!', (sk.round === 0 ? 'DA PICCOLA ' : '') + (sk.got ? '+' + sk.got : 'SI NASCONDEVA BENE'), 'TOCCA']);
+      if (sk.phase === 'end') banner(['MARGOT TROVATA!', 'PUNTI ' + sk.pts, 'RECORD ' + sk.best, 'TOCCA']);
+      if (sk.phase === 'found' || sk.phase === 'end') g.restore();
+    };
+    const seekPointer = e => {
+      if (e.type !== 'down') return;
+      if (sk.phase === 'look') { const i = SPOTS.findIndex(sp => e.y >= sp.y && e.y <= sp.y + sp.h); if (i >= 0) seekPick(i); }
+      else if (sk.t > 0.5) seekNext();
+    };
+
     const update = dt => {
-      time += dt; msgT = Math.max(0, msgT - dt);
+      time += dt; if (state === 'seek') { sk.t += dt; return; } msgT = Math.max(0, msgT - dt);
       if (state === 'play') {
-        move(dt);
+        P.hidden = false;
+        for (const b of blankets) if (Math.abs(P.x - b.x) < b.w / 2 && P.ground && held.down) { P.hidden = true; P.vx = 0; }
+        if (P.hidden) { if (msgT <= 0) flash('SOTTO LA COPERTA...'); } else move(dt);
+        if (P.ground && chap().name === 'CUCINA' && tile(Math.floor(P.x / T), Math.floor(P.y / T)) === 2) {
+          const kk = Math.floor(P.x / T / 5);
+          if (!seen[kk]) { seen[kk] = 1; score += 10; flash('CURIOSA! SALE SULLA SEDIA'); api.beep(880, 0.05, 'triangle', 0.04); }
+        }
+        for (const m of memories) if (!m.got && Math.hypot(m.x - P.x, m.y - (P.y - 8)) < 18) {
+          m.got = true; const al = unlocked().slice(); let idx = [0, 1, 2].find(i => !al.includes(i));
+          if (idx === undefined) idx = (photoShow + 1) % 3;
+          if (!al.includes(idx)) { al.push(idx); api.store.set('album', al); }
+          photoShow = idx; state = 'photo'; score += 100; api.haptic(25);
+          [660, 784, 988].forEach((f, i) => setTimeout(() => api.beep(f, 0.14, 'sine', 0.05), i * 120));
+        }
+        for (const h of hugs) if (!h.used && Math.abs(h.x - P.x) < 18 && P.ground && held.down) {
+          h.used = true; state = 'rest'; restT = 2.2; lives = Math.min(5, lives + 1); score += 50; P.vx = 0;
+          flash('TRA LE BRACCIA, AL CALDO'); api.haptic(20);
+          [392, 494, 587].forEach((f, i) => setTimeout(() => api.beep(f, 0.3, 'sine', 0.04), i * 220));
+        }
         for (const c of treats) {
           if (!c.got && Math.hypot(c.x - P.x, c.y - (P.y - 10)) < 15) {
             c.got = true; got++; score += 10; api.haptic(8); api.beep(900 + Math.min(500, got * 25), 0.05, 'square', 0.04);
@@ -205,7 +316,7 @@ registerGame({
           k.t += dt; k.x += k.dir * 38 * dt;
           if (k.x < k.min) { k.x = k.min; k.dir = 1; }
           if (k.x > k.max) { k.x = k.max; k.dir = -1; }
-          if (Math.abs(k.x - P.x) < 19 && P.y > k.y - 14 && P.y - PH < k.y) {
+          if (!P.hidden && Math.abs(k.x - P.x) < 19 && P.y > k.y - 14 && P.y - PH < k.y) {
             if (P.vy > 60 && P.y - 8 < k.y - 6) {
               k.dead = 0.4; score += 100; P.vy = -340; api.haptic(15); api.beep(300, 0.1, 'square', 0.05);
             } else { hurt(); break; }
@@ -217,6 +328,8 @@ registerGame({
             [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.12), i * 110));
           } else if (msgT <= 0) flash('SERVONO ' + (need - got) + ' BOCCONCINI');
         }
+      } else if (state === 'rest') {
+        restT -= dt; if (restT <= 0) state = 'play';
       } else if (state === 'dead') {
         stateT -= dt; P.vy += GRAV * dt; P.y += P.vy * dt;
         if (stateT <= 0) { if (lives <= 0) endGame(); else { resetPlayer(); state = 'play'; } }
@@ -230,6 +343,10 @@ registerGame({
     };
 
     const act = k => {
+      if (state === 'seek') { seekKey(k); return; }
+      if (state === 'title' && k === 'select') { seekStart(); return; }
+      if (state === 'photo' || state === 'album') { if (k === 'a' || k === 'b' || k === 'start') nextPhoto(); return; }
+      if (state === 'title' && k === 'b' && unlocked().length) { albumIdx = 0; state = 'album'; return; }
       if (k === 'start') {
         if (state === 'title' || state === 'over') newGame();
         else if (state === 'play') state = 'pause';
@@ -237,7 +354,14 @@ registerGame({
       } else if (k === 'select' && state !== 'title') newGame();
       else if (k === 'a' && state === 'play') jumpBuf = 0.12;
     };
-    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(); };
+    const onPointer = e => {
+      if (e.type !== 'down') return;
+      if (state === 'seek') { seekPointer(e); return; }
+      if (state === 'title' && e.y >= 388 && e.y <= 424) { seekStart(); return; }
+      if (state === 'photo' || state === 'album') { nextPhoto(); return; }
+      if (state === 'title' && unlocked().length && e.y > 100 && e.y < 345) { albumIdx = 0; state = 'album'; return; }
+      if (state === 'title' || state === 'over') newGame();
+    };
 
     // Disegno
     const text = (s, x, y, size, align, c) => {
@@ -355,6 +479,30 @@ registerGame({
       }
     };
 
+    const drawMemory = m => {
+      const x = m.x, y = m.y + Math.sin(time * 3) * 2.5;
+      g.fillStyle = 'rgba(255,230,160,.25)'; g.beginPath(); g.arc(x, y, 16 + Math.sin(time * 4) * 2, 0, 7); g.fill();
+      g.fillStyle = '#8a5a2a'; g.fillRect(x - 11, y - 13, 22, 26); g.fillStyle = '#e3b66a'; g.fillRect(x - 10, y - 12, 20, 24);
+      g.fillStyle = '#2a2236'; g.fillRect(x - 8, y - 10, 16, 20);
+      const im = window.Art && Art.photo('face');
+      if (im) { g.save(); g.beginPath(); g.rect(x - 8, y - 10, 16, 20); g.clip(); const sc = 20 / 640; g.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight, x - 10 - 2, y - 10, im.naturalWidth * sc * 1.1, im.naturalHeight * sc * 1.1); g.restore(); }
+    };
+    const drawHug = h => {
+      const x = h.x, y = GR * T;
+      g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(x, y, 24, 3.4, 0, 0, 7); g.fill();
+      g.fillStyle = h.used ? '#b99a7a' : '#d98a7a'; g.beginPath(); g.moveTo(x - 24, y); g.quadraticCurveTo(x - 27, y - 22, x - 12, y - 24); g.lineTo(x + 12, y - 24); g.quadraticCurveTo(x + 27, y - 22, x + 24, y); g.closePath(); g.fill();
+      g.fillStyle = h.used ? '#cdb190' : '#f0a898'; g.beginPath(); g.ellipse(x, y - 11, 19, 8, 0, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(120,60,50,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 16, y - 12); g.quadraticCurveTo(x, y - 8, x + 16, y - 12); g.stroke();
+      if (!h.used) { const hp = 1 + Math.sin(time * 4) * 0.12; g.save(); g.translate(x, y - 34); g.scale(hp, hp); g.fillStyle = '#e8455f'; g.beginPath(); g.moveTo(0, 4); g.bezierCurveTo(-8, -3, -4, -9, 0, -4); g.bezierCurveTo(4, -9, 8, -3, 0, 4); g.fill(); g.restore(); }
+    };
+    const drawBlanket = (b, cover) => {
+      const x = b.x, y = GR * T, w = b.w, ch = chap();
+      const bg = g.createLinearGradient(0, y - 28, 0, y); bg.addColorStop(0, ch.accent); bg.addColorStop(1, '#7a5a6a');
+      g.fillStyle = bg; g.beginPath(); g.moveTo(x - w / 2, y); g.quadraticCurveTo(x - w / 2 + 2, y - 26, x - 6, y - 28); g.quadraticCurveTo(x + 6, y - 31, x + w / 2 - 6, y - 24); g.quadraticCurveTo(x + w / 2, y - 12, x + w / 2 + 2, y); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = 2; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(x + i * 9 - 4, y - 2); g.quadraticCurveTo(x + i * 9, y - 18, x + i * 7, y - 26); g.stroke(); }
+      if (cover) { g.fillStyle = '#241f19'; g.beginPath(); g.arc(x + 8, y - 12, 1.6, 0, 7); g.arc(x + 14, y - 12, 1.6, 0, 7); g.fill(); }
+    };
+
     const drawBackdrop = () => {
       const ch = chap();
       const wg = g.createLinearGradient(0, 0, 0, GR * T); wg.addColorStop(0, ch.wall[0]); wg.addColorStop(1, ch.wall[1]);
@@ -384,16 +532,20 @@ registerGame({
 
     const render = () => {
       const ch = chap();
+      if (state === 'seek') { drawSeek(); return; }
       if (state === 'title') {
         const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#f6ead6'); bg.addColorStop(1, '#e3c79a');
         g.fillStyle = bg; g.fillRect(0, 0, W, H);
         g.fillStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < W; x += 30) g.fillRect(x, 0, 12, H);
         g.fillStyle = '#9b6a40'; g.fillRect(0, H - 120, W, 120); g.fillStyle = '#b07c4d'; g.fillRect(0, H - 120, W, 8);
-        Art.drawPortrait(g, W / 2 - 110, 120, 220, 'calm');
+        if (!Art.drawPhoto(g, 'face', W / 2 - 104, 108, 208, -0.025)) Art.drawPortrait(g, W / 2 - 110, 120, 220, 'calm');
         text('MARGOT', W / 2, 36, 46, 'center', '#8a4a22'); text('ADVENTURES', W / 2, 84, 30, 'center', '#c97a4a');
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 372, 16, 'center', '#8a4a22');
-        text('RACCOGLI I BOCCONCINI · ARRIVA ALLA CIOTOLA', W / 2, 410, 11, 'center', '#6d4a2f');
-        text('RECORD ' + hi, W / 2, 438, 14, 'center', '#6d4a2f');
+        g.fillStyle = '#8a4a22'; g.beginPath(); g.roundRect(W / 2 - 110, 390, 220, 32, 16); g.fill();
+        text('TROVA MARGOT', W / 2, 398, 16, 'center', '#fff4e0');
+        text('RACCOGLI I BOCCONCINI · ARRIVA ALLA CIOTOLA', W / 2, 432, 11, 'center', '#6d4a2f');
+        text('RECORD ' + hi, W / 2, 448, 13, 'center', '#6d4a2f');
+        if (unlocked().length) text('TOCCA LA FOTO: RICORDI ' + unlocked().length + '/3', W / 2, 352, 11, 'center', '#8a4a22');
         text('IN RICORDO DI MARGOT', W / 2, 470, 15, 'center', '#fff4e0');
         text('AFFETTUOSA · CURIOSA · CORAGGIOSA', W / 2, 494, 11, 'center', '#f3dcc0');
         text('CHE SAPEVA APRIRE TUTTE LE PORTE', W / 2, 512, 11, 'center', '#f3dcc0');
@@ -426,12 +578,17 @@ registerGame({
       drawBowl(open);
       doors.forEach(drawDoorObj);
       trees.forEach(drawTree);
+      blankets.forEach(b => drawBlanket(b, false));
+      hugs.forEach(drawHug);
+      memories.forEach(m => { if (!m.got) drawMemory(m); });
       treats.forEach(c => { if (!c.got && c.x > camX - 20 && c.x < camX + VW + 20) drawTreat(c); });
       crickets.forEach(c => { if (!c.gone && c.x > camX - 20 && c.x < camX + VW + 20) drawCricket(c); });
       cats.forEach(k => { if (k.x > camX - 40 && k.x < camX + VW + 40) drawVacuum(k); });
       const pose = state === 'dead' ? 'fall' : !P.ground ? (P.vy < 0 ? 'jump' : 'fall') : Math.abs(P.vx) > 14 ? 'walk' : 'idle';
       g.fillStyle = 'rgba(0,0,0,.18)'; if (P.ground) { g.beginPath(); g.ellipse(P.x, P.y, 17, 3, 0, 0, 7); g.fill(); }
-      Art.drawMargot(g, P.x, P.y, 31, pose, pose === 'walk' ? P.walk : time, P.face);
+      if (!P.hidden) mg(P.x, P.y, 31, state === 'rest' ? 'idle' : pose, pose === 'walk' ? P.walk : time, P.face);
+      if (P.hidden) blankets.forEach(b => { if (Math.abs(P.x - b.x) < b.w / 2) drawBlanket(b, true); });
+      if (state === 'rest') { g.fillStyle = '#e8455f'; for (let i = 0; i < 3; i++) { const t = (time * 0.8 + i / 3) % 1; g.globalAlpha = 1 - t; g.font = `bold ${9 + i * 2}px ui-monospace, monospace`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff4e0'; g.fillText('z', P.x + 8 + i * 5, P.y - 28 - t * 22); } g.globalAlpha = 1; }
       g.restore();
       g.restore();
 
@@ -442,6 +599,15 @@ registerGame({
       if (caught > 0) text('GRILLI ' + caught, 8, 30, 11, 'left', '#2a2236');
       if (msgT > 0) { g.fillStyle = 'rgba(42,34,54,.7)'; g.fillRect(W / 2 - 120, 36, 240, 26); text(msg, W / 2, 41, 14, 'center', '#ffe9b8'); }
       if (state === 'win') banner(['BRAVO MARGOT!', 'QUADRO ' + (level + 1)]);
+      if (state === 'photo' || state === 'album') {
+        const idx = state === 'photo' ? photoShow : unlocked()[Math.min(albumIdx, unlocked().length - 1)], ph = PHOTOS[idx] || PHOTOS[0];
+        g.fillStyle = 'rgba(20,14,26,.9)'; g.fillRect(0, 0, W, H);
+        text(state === 'photo' ? 'UN RICORDO DI MARGOT' : 'RICORDI ' + (albumIdx + 1) + '/' + unlocked().length, W / 2, 30, 14, 'center', '#ffe9b8');
+        const r = Art.drawPhoto(g, ph.n, W / 2 - 150, 62, 300, -0.02);
+        const by = (r ? 62 + r.h : 300) + 22;
+        text(ph.t[0], W / 2, by, 18, 'center', '#fff4e0'); text(ph.t[1], W / 2, by + 24, 18, 'center', '#fff4e0');
+        text('TOCCA PER CONTINUARE', W / 2, H - 38, 12, 'center', '#c9b79a');
+      }
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
     };
@@ -454,7 +620,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, get state() { return state; }, get P() { return P; }, get cats() { return cats; }, get treats() { return treats; }, get doors() { return doors; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
+      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
     };
   },
 });

@@ -476,7 +476,7 @@
     menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
       games.map((d, i) => {
         const rec = d.community ? (cmStore(d.id).hi || 0) : ls.get(d.id + ':hi', 0);
-        const avatar = d.art === 'margot' && window.Art ? `<img class="avatar" alt="Margot" src="${avatarUrl()}">` : '';
+        const avatar = d.art === 'margot' && window.Art ? `<img class="avatar" alt="Margot" src="art/margot-avatar.jpg">` : '';
         return `<button class="cart${i === sel ? ' sel' : ''}${avatar ? ' art' : ''}" data-i="${i}" style="--c:${/^#[0-9a-fA-F]{3,8}$/.test(d.color) ? d.color : '#25c4f0'}">
           <span class="tab"></span>${avatar}<span class="title">${esc(d.title)}</span><span class="rec">${rec ? 'RECORD ' + rec : ''}</span>
           <span class="desc">${esc(d.blurb)}${d.author ? ' <em>di ' + esc(d.author) + '</em>' : ''}</span>

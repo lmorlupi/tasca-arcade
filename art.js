@@ -12,6 +12,20 @@
     back: '#5e4e40', base: '#8b7660', mid: '#74624f', warm: '#b98b5b', belly: '#b49b7e', cream: '#f1e8da', creamDk: '#d6c8b2',
     stripe: '#3f342b', nose: '#a8665e', earIn: '#dba099', iris: '#b9b552', irisDk: '#7d7a2c', ink: '#241f19',
   };
+  // Foto di Margot (ritagli del solo gatto) e texture del pelo ricavata dalle foto.
+  const PHOTO = {};
+  const NAMES = { face: 'art/margot-face.jpg', q3: 'art/margot-3q.jpg', sleep: 'art/margot-sleep.jpg', fur: 'art/fur.jpg', avatar: 'art/margot-avatar.jpg' };
+  Object.keys(NAMES).forEach(k => {
+    const im = new Image(); im.src = NAMES[k]; PHOTO[k] = im;
+    im.onload = () => { if (k === 'fur') { for (const kk in sideCache) delete sideCache[kk]; for (const kk in portraitCache) delete portraitCache[kk]; } };
+  });
+  const ready = k => PHOTO[k] && PHOTO[k].complete && PHOTO[k].naturalWidth > 0;
+  const furPattern = (c, scale) => {
+    if (!ready('fur')) return null;
+    const p = c.createPattern(PHOTO.fur, 'repeat');
+    if (p && p.setTransform) p.setTransform(new DOMMatrix().scale(scale || 0.24));
+    return p;
+  };
   const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -30,6 +44,8 @@
     c.fillStyle = w; c.fillRect(60, 50, 110, 90);
     const w2 = c.createRadialGradient(54, 90, 4, 54, 90, 40); w2.addColorStop(0, 'rgba(205,138,76,.7)'); w2.addColorStop(1, 'rgba(205,138,76,0)');
     c.fillStyle = w2; c.fillRect(10, 50, 100, 90);
+    const fp = furPattern(c, 0.26);
+    if (fp) { c.save(); c.globalCompositeOperation = 'soft-light'; c.fillStyle = fp; c.globalAlpha = 1; c.fillRect(0, 40, 200, 100); c.globalCompositeOperation = 'overlay'; c.globalAlpha = 0.28; c.fillRect(0, 40, 200, 100); c.restore(); }
     // strisce tigrate: bande scure che scendono dal dorso
     c.lineCap = 'round';
     for (let i = 0; i < 8; i++) {
@@ -68,6 +84,8 @@
     c.beginPath(); c.moveTo(hx, hy); c.lineTo(kx, ky); c.lineTo(ax, ay); c.stroke();
     c.strokeStyle = col; c.lineWidth = 13;
     c.beginPath(); c.moveTo(hx, hy); c.lineTo(kx, ky); c.lineTo(ax, ay); c.stroke();
+    const lp = furPattern(c, 0.3);
+    if (lp) { c.save(); c.globalCompositeOperation = 'soft-light'; c.strokeStyle = lp; c.lineWidth = 13; c.beginPath(); c.moveTo(hx, hy); c.lineTo(kx, ky); c.lineTo(ax, ay); c.stroke(); c.restore(); }
     // strisce sulla zampa
     c.strokeStyle = 'rgba(63,52,43,.55)'; c.lineWidth = 2.4;
     for (let i = 0; i < 3; i++) { const t = 0.3 + i * 0.22, x = lerp(kx, ax, t), y = lerp(ky, ay, t); c.beginPath(); c.moveTo(x - 6, y); c.lineTo(x + 6, y + 1); c.stroke(); }
@@ -99,6 +117,8 @@
         c.beginPath(); c.moveTo(pts[i][0], pts[i][1]); c.lineTo(pts[i + 1][0], pts[i + 1][1]); c.stroke();
       }
     }
+    const tp = furPattern(c, 0.3);
+    if (tp) { c.save(); c.globalCompositeOperation = 'soft-light'; c.strokeStyle = tp; c.lineCap = 'round'; for (let i = 0; i < pts.length - 1; i++) { c.lineWidth = widthAt(i / pts.length); c.beginPath(); c.moveTo(pts[i][0], pts[i][1]); c.lineTo(pts[i + 1][0], pts[i + 1][1]); c.stroke(); } c.restore(); }
     c.restore();
   }
 
@@ -121,6 +141,8 @@
     c.beginPath(); c.ellipse(cx, cy, 31, 26, 0, 0, Math.PI * 2); c.fill(); c.stroke();
     c.save(); c.beginPath(); c.ellipse(cx, cy, 31, 26, 0, 0, Math.PI * 2); c.clip();
     for (let i = 0; i < 160; i++) { const a = R() * 6.28, r = R() * 32; c.strokeStyle = R() < 0.5 ? 'rgba(255,240,215,.22)' : 'rgba(30,22,15,.22)'; c.lineWidth = 0.7; c.beginPath(); const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * 0.85; c.moveTo(x, y); c.lineTo(x + Math.cos(a) * 3, y + Math.sin(a) * 3); c.stroke(); }
+    const hp = furPattern(c, 0.22);
+    if (hp) { c.save(); c.globalCompositeOperation = 'soft-light'; c.fillStyle = hp; c.fillRect(cx - 40, cy - 40, 80, 80); c.restore(); }
     // fronte: la «M» e le righe
     c.strokeStyle = 'rgba(63,52,43,.85)'; c.lineCap = 'round';
     c.lineWidth = 3.6; c.beginPath(); c.moveTo(cx - 1, cy - 28); c.lineTo(cx - 1, cy - 12); c.stroke();
@@ -157,7 +179,7 @@
   function sideFrame(pose, step) {
     const key = pose + ':' + step;
     if (sideCache[key]) return sideCache[key];
-    const S = 4, cv = mk(260 * S / 1, 160 * S / 1), c = cv.getContext('2d');
+    const S = 5, cv = mk(260 * S / 1, 160 * S / 1), c = cv.getContext('2d');
     c.scale(S, S); c.translate(30, 4);
     c.imageSmoothingEnabled = true;
     const R = rng(7);
@@ -263,7 +285,7 @@
     const s = h / 127;
     g.save(); g.translate(x, y); g.scale(dir < 0 ? -s : s, s);
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
-    g.drawImage(f, -125, -146, f.width / 4, f.height / 4);
+    g.drawImage(f, -125, -146, f.width / 5, f.height / 5);
     g.restore();
   }
   function drawPortrait(g, x, y, size, mood) {
@@ -271,5 +293,18 @@
     const cv = portrait(Math.min(512, px), mood || 'calm');
     g.save(); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(cv, x, y, size, size); g.restore();
   }
-  window.Art = { drawMargot, drawPortrait, portrait, sideFrame };
+  // Foto in cornice: (x, y) angolo in alto a sinistra, w = larghezza della cornice. Restituisce false se la foto non è ancora caricata.
+  function drawPhoto(g, name, x, y, w, tilt) {
+    if (!ready(name)) return false;
+    const im = PHOTO[name], pad = w * 0.06, iw = w - pad * 2, ih = iw * im.naturalHeight / im.naturalWidth, h = ih + pad * 2 + w * 0.12;
+    g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(tilt || 0); g.translate(-w / 2, -h / 2);
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(4, 8, w, h);
+    g.fillStyle = '#fbf6ea'; g.fillRect(0, 0, w, h);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(im, pad, pad, iw, ih);
+    g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1; g.strokeRect(pad, pad, iw, ih);
+    g.restore();
+    return { w, h };
+  }
+  window.Art = { drawMargot, drawPortrait, portrait, sideFrame, drawPhoto, photo: k => (ready(k) ? PHOTO[k] : null), ready };
 })();
