@@ -432,7 +432,7 @@
           <span class="tab"></span><span class="title">${esc(d.title)}</span><span class="rec">${rec ? 'RECORD ' + rec : ''}</span>
           <span class="desc">${esc(d.blurb)}${d.author ? ' <em>di ' + esc(d.author) + '</em>' : ''}</span>
           <span class="chips">${d.community ? '<i class="ext">DI TERZI</i>' : ''}${d.inputs.map(t => `<i${HOT[t] ? ' class="hot"' : ''}>${esc(t)}</i>`).join('')}</span></button>`;
-      }).join('') + '<button class="act imp" id="imp">+ IMPORTA UN GIOCO</button>';
+      }).join('') + '<button class="act imp" id="imp">+ IMPORTA UN GIOCO</button><p class="legal">Progetto indipendente, non affiliato né approvato da produttori di console o di videogiochi. I marchi citati appartengono ai rispettivi proprietari. Giochi, grafica e suoni sono originali.</p>';
     showVersion();
   };
   menuEl.addEventListener('change', e => {

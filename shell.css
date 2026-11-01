@@ -199,3 +199,4 @@ canvas.off { display: none; }
 .menu .impCard .chk input { flex: 0 0 auto; width: 22px; height: 22px; margin: 0; }
 .menu .impRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px; margin-bottom: 6px; border-radius: 8px; background: #151c34; font-size: 12px; }
 .menu .impRow small { color: var(--muted); }
+.menu .legal { margin: 14px 2px 8px; font-size: 11px; line-height: 1.45; color: var(--muted); }

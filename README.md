@@ -84,9 +84,22 @@ o incollando il codice. Il gioco è lo stesso formato descritto sopra.
 
 - **Importa solo giochi tuoi o con una licenza che lo permette.** Aggiungi nel gioco il campo `license` (per esempio
   `'MIT'`, `'CC0'`): compare nella scheda. Senza licenza dichiarata il gioco, per legge, non si può riusare o ridistribuire.
-- **Giochi commerciali e copie non autorizzate** (per esempio i titoli Nintendo come Animal Crossing) **non si importano**:
-  non sono giochi web, richiederebbero un emulatore e copie illegali del gioco, e il progetto non li supporta.
+- **Giochi commerciali e copie non autorizzate** (titoli di console o di altri editori) **non si importano**:
+  non sono giochi web, richiederebbero un emulatore e copie non autorizzate del gioco, e il progetto non li supporta.
 - Un gioco che usa nomi, personaggi, grafica o musiche di altri non entra nel catalogo principale.
+
+## Note legali
+
+- **Progetto indipendente.** Non è affiliato, sponsorizzato né approvato da nessun produttore di console o di videogiochi.
+  Tutti i marchi e i nomi citati appartengono ai rispettivi proprietari.
+- **Contenuti originali.** Codice, grafica, personaggi, livelli e suoni dei giochi inclusi sono originali: i suoni sono generati
+  dal codice, non ci sono file audio, immagini o caratteri di terzi. Dei giochi classici si riprendono solo le idee di gioco
+  generiche (le regole non sono protette dal diritto d'autore), non il loro aspetto, i personaggi, i nomi o i livelli.
+- **Contributi.** Chi propone un gioco garantisce che è suo o che ha il permesso di condividerlo, e lo rilascia con la licenza
+  indicata nel campo `license`. Giochi che copiano da vicino l'aspetto o i personaggi di altri non vengono accettati.
+- **Segnalazioni.** Se pensi che qualcosa violi i tuoi diritti, apri una *issue* su GitHub: il contenuto viene verificato e,
+  se serve, rimosso rapidamente.
+- **Dati personali.** L'app non raccoglie né invia dati: record, impostazioni e giochi importati restano sul tuo telefono.
 
 ## Aggiornamenti e offline
 
