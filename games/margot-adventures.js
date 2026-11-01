@@ -598,7 +598,12 @@ registerGame({
       cats.forEach(k => { if (k.x > camX - 40 && k.x < camX + VW + 40) drawVacuum(k); });
       const pose = state === 'dead' ? 'fall' : !P.ground ? (P.vy < 0 ? 'jump' : 'fall') : Math.abs(P.vx) > 14 ? 'walk' : 'idle';
       g.fillStyle = 'rgba(0,0,0,.18)'; if (P.ground) { g.beginPath(); g.ellipse(P.x, P.y, 17, 3, 0, 0, 7); g.fill(); }
-      if (!P.hidden) mg(P.x, P.y, 31, state === 'rest' ? 'idle' : pose, pose === 'walk' ? P.walk : time, P.face);
+      if (!P.hidden) {
+        const gl = g.createRadialGradient(P.x, P.y - 14, 4, P.x, P.y - 14, 34); gl.addColorStop(0, 'rgba(255,246,214,.75)'); gl.addColorStop(1, 'rgba(255,246,214,0)');
+        g.fillStyle = gl; g.fillRect(P.x - 36, P.y - 50, 72, 72);
+        g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(P.x, P.y, 15, 3.2, 0, 0, 7); g.fill();
+      }
+      if (!P.hidden) mg(P.x, P.y, 38, state === 'rest' ? 'idle' : pose, pose === 'walk' ? P.walk : time, P.face);
       if (P.hidden) blankets.forEach(b => { if (Math.abs(P.x - b.x) < b.w / 2) drawBlanket(b, true); });
       if (state === 'rest') { g.fillStyle = '#e8455f'; for (let i = 0; i < 3; i++) { const t = (time * 0.8 + i / 3) % 1; g.globalAlpha = 1 - t; g.font = `bold ${9 + i * 2}px ui-monospace, monospace`; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#fff4e0'; g.fillText('z', P.x + 8 + i * 5, P.y - 28 - t * 22); } g.globalAlpha = 1; }
       g.restore();

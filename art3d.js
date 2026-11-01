@@ -133,8 +133,8 @@
       float key = clamp((dot(N, Ld) + 0.45) / 1.45, 0.0, 1.0);
       float sky = 0.5 + 0.5 * N.y;
       float rim = pow(1.0 - max(dot(N, V), 0.0), 2.6);
-      col *= 0.32 + 0.82 * key;
-      col *= 0.62 + 0.38 * sky;
+      col *= 0.42 + 0.86 * key;
+      col *= 0.72 + 0.34 * sky; col = pow(col, vec3(0.88));
       col += vec3(1.0, 0.86, 0.68) * rim * 0.30 * (0.5 + 0.5 * key);
       if (id > 5.5 && id < 6.5) { float sp = pow(max(dot(reflect(-Ld, N), V), 0.0), 40.0); col += vec3(0.8) * sp * 0.6; }
       gl_FragColor = vec4(col * alpha, alpha);
