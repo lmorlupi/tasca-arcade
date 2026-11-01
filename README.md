@@ -1,6 +1,6 @@
-# Gameboy
+# Tasca Arcade
 
-Una console a colori che gira nel browser del telefono, con un catalogo di giochi pensati per l'iPhone:
+Una sala giochi tascabile che gira nel browser del telefono, con un catalogo di giochi pensati per l'iPhone:
 inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **offline** e si aggiorna da sola.
 
 **Gioca:** <https://lmorlupi.github.io/gameboy-web/> · su iPhone: Condividi → *Aggiungi alla schermata Home*.
@@ -99,6 +99,8 @@ o incollando il codice. Il gioco è lo stesso formato descritto sopra.
   indicata nel campo `license`. Giochi che copiano da vicino l'aspetto o i personaggi di altri non vengono accettati.
 - **Segnalazioni.** Se pensi che qualcosa violi i tuoi diritti, apri una *issue* su GitHub: il contenuto viene verificato e,
   se serve, rimosso rapidamente.
+- **Licenza.** Il codice e i giochi inclusi sono sotto licenza MIT (vedi `LICENSE`). I giochi importati o proposti da altri
+  mantengono la licenza dei loro autori.
 - **Dati personali.** L'app non raccoglie né invia dati: record, impostazioni e giochi importati restano sul tuo telefono.
 
 ## Aggiornamenti e offline

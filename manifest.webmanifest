@@ -1,6 +1,6 @@
 {
-  "name": "Gameboy",
-  "short_name": "Gameboy",
+  "name": "Tasca Arcade",
+  "short_name": "Tasca Arcade",
   "description": "Console a colori con un catalogo di giochi pensati per il telefono.",
   "start_url": "index.html",
   "scope": ".",

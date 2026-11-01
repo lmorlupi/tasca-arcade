@@ -1,4 +1,4 @@
-// Console Gameboy: avvio, catalogo, controlli, sensori, vibrazione e suono.
+// Tasca Arcade: avvio, catalogo, controlli, sensori, vibrazione e suono.
 // Ogni gioco è una cartuccia registrata con registerGame({ id, title, color, blurb, inputs, size, create(api) }).
 (() => {
   const $ = id => document.getElementById(id);
@@ -394,8 +394,8 @@
   const showVersion = async () => {
     try {
       const keys = await caches.keys();
-      const k = keys.filter(n => /^gameboy-v\d+/.test(n)).sort().pop();
-      verTag = k ? k.replace('gameboy-', '').toUpperCase() : '';
+      const k = keys.filter(n => /^arcade-v\d+/.test(n)).sort().pop();
+      verTag = k ? k.replace('arcade-', '').toUpperCase() : '';
     } catch (e) {}
     if (pinned) return;
     const online = navigator.onLine;
@@ -425,7 +425,7 @@
     pinned = false;
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">GAME<b>BOY</b></button><span class="tools"><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
+    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">COLORI</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
       games.map((d, i) => {
         const rec = d.community ? (cmStore(d.id).hi || 0) : ls.get(d.id + ':hi', 0);
         return `<button class="cart${i === sel ? ' sel' : ''}" data-i="${i}" style="--c:${/^#[0-9a-fA-F]{3,8}$/.test(d.color) ? d.color : '#25c4f0'}">
@@ -439,6 +439,7 @@
     if (e.target.id === 'impOk') { const b = document.getElementById('impAdd'); if (b) b.disabled = !e.target.checked; }
   });
   menuEl.addEventListener('click', async e => {
+    if (colorsClick(e)) return;
     if (await importClick(e)) return;
     if (e.target.closest('#brand')) {
       setShell(SHELLS[(SHELLS.indexOf(document.documentElement.dataset.shell) + 1) % SHELLS.length]);
@@ -650,17 +651,69 @@
   };
   document.addEventListener('pointerup', goFull);
 
-  // Colore della scocca: un tocco sul nome cambia colore.
-  const SHELLS = ['grape', 'teal', 'berry', 'dandelion', 'kiwi'];
-  const setShell = n => {
-    document.documentElement.dataset.shell = n; ls.set('shell', n);
+  // Colori della console: scocca e tasti A/B, scelti dal catalogo (COLORI) e salvati sul telefono.
+  const SHELL_COLORS = [
+    { id: 'grape', name: 'Uva', c: '#7b5cb8', d: '#5a3f94' },
+    { id: 'teal', name: 'Acqua', c: '#2fb3a8', d: '#1f8a81' },
+    { id: 'berry', name: 'Lampone', c: '#d6456f', d: '#a82f53' },
+    { id: 'dandelion', name: 'Limone', c: '#e8c43a', d: '#bd9a1c' },
+    { id: 'kiwi', name: 'Kiwi', c: '#69c24a', d: '#4a9a30' },
+    { id: 'sky', name: 'Cielo', c: '#4aa3e0', d: '#2f7db3' },
+    { id: 'orange', name: 'Arancio', c: '#f2872e', d: '#c46410' },
+    { id: 'red', name: 'Rosso', c: '#d8383a', d: '#a22427' },
+    { id: 'graphite', name: 'Grafite', c: '#505462', d: '#383b46' },
+    { id: 'white', name: 'Bianco', c: '#e6e6ee', d: '#b9b9c8' },
+  ];
+  const BTN_COLORS = [
+    { id: 'graphite', name: 'Grafite', hi: '#707080', mid: '#4a4a57', lo: '#30303a', dk: '#24242c', dn: '#34343e', ink: '#d2d2de' },
+    { id: 'red', name: 'Rosso', hi: '#ff8a7e', mid: '#d8383a', lo: '#a22427', dk: '#7a1a1c', dn: '#b82c2e', ink: '#ffe3df' },
+    { id: 'blue', name: 'Blu', hi: '#7db3ff', mid: '#3d6fe0', lo: '#2748a8', dk: '#1d3680', dn: '#3158bf', ink: '#e1ecff' },
+    { id: 'green', name: 'Verde', hi: '#9ae88b', mid: '#4cc24a', lo: '#2f8f33', dk: '#226a25', dn: '#3aa23a', ink: '#e6ffe0' },
+    { id: 'purple', name: 'Viola', hi: '#cf9af5', mid: '#a655b8', lo: '#74388a', dk: '#562a66', dn: '#8a45a0', ink: '#f6e6ff' },
+    { id: 'yellow', name: 'Giallo', hi: '#ffe98a', mid: '#f5d31c', lo: '#c9a400', dk: '#9a7a00', dn: '#dcb800', ink: '#4a3a00' },
+    { id: 'white', name: 'Bianco', hi: '#ffffff', mid: '#dcdce6', lo: '#b0b0c0', dk: '#8a8a9c', dn: '#c4c4d2', ink: '#3a3a46' },
+  ];
+  const SHELLS = SHELL_COLORS.map(s => s.id);
+  const setShell = id => {
+    const s = SHELL_COLORS.find(x => x.id === id) || SHELL_COLORS[0];
+    const r = document.documentElement;
+    r.dataset.shell = s.id; r.style.setProperty('--shell', s.c); r.style.setProperty('--shell-dark', s.d);
+    ls.set('shell', s.id);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--shell').trim();
+    if (meta) meta.content = s.c;
+  };
+  const setBtn = id => {
+    const b = BTN_COLORS.find(x => x.id === id) || BTN_COLORS[0];
+    const r = document.documentElement;
+    r.dataset.btn = b.id;
+    r.style.setProperty('--ab-bg', `radial-gradient(120% 120% at 32% 22%, ${b.hi} 0%, ${b.mid} 36%, ${b.lo} 70%, ${b.dk} 100%)`);
+    r.style.setProperty('--ab-down', `radial-gradient(120% 120% at 50% 35%, ${b.dn} 0%, ${b.lo} 60%, ${b.dk} 100%)`);
+    r.style.setProperty('--ab-ink', b.ink);
+    ls.set('btn', b.id);
+  };
+  const renderColors = () => {
+    const curS = document.documentElement.dataset.shell, curB = document.documentElement.dataset.btn || 'graphite';
+    const sw = (cls, list, cur, bg) => '<div class="sw">' + list.map(x => `<button class="${cls}${x.id === cur ? ' sel' : ''}" data-id="${x.id}" style="--s:${bg(x)}" aria-label="${x.name}" title="${x.name}"></button>`).join('') + '</div>';
+    menuEl.innerHTML = `<header><button class="snd" id="colBack">‹ CATALOGO</button><h1>COLORI</h1></header>
+      <p class="ver">LA CONSOLE QUI SOTTO CAMBIA SUBITO. LA SCELTA RESTA SALVATA.</p>
+      <h2 class="sub">SCOCCA</h2>${sw('swShell', SHELL_COLORS, curS, x => x.c)}
+      <h2 class="sub">TASTI A E B</h2>${sw('swBtn', BTN_COLORS, curB, x => x.mid)}
+      <button class="act imp" id="colReset">RIPRISTINA I COLORI ORIGINALI</button>`;
+  };
+  const colorsClick = e => {
+    const t = e.target;
+    if (t.closest('#col')) { renderColors(); return true; }
+    if (t.closest('#colBack')) { renderMenu(); return true; }
+    const s = t.closest('.swShell'), b = t.closest('.swBtn');
+    if (s) { setShell(s.dataset.id); haptic(8); renderColors(); return true; }
+    if (b) { setBtn(b.dataset.id); haptic(8); renderColors(); return true; }
+    if (t.closest('#colReset')) { setShell('grape'); setBtn('graphite'); renderColors(); return true; }
+    return false;
   };
   // Avvio
   const COLORS = ['#e5413b', '#f58a25', '#f5d31c', '#4cc24a', '#25c4f0', '#3d5fe0', '#a655b8'];
   const buildLogo = () => {
-    $('logo').innerHTML = 'GAMEBOY'.split('').map((c, i) =>
+    $('logo').innerHTML = 'TASCA ARCADE'.split('').map((c, i) =>
       `<span style="color:${COLORS[i % COLORS.length]};animation-delay:${i * 0.05}s">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
   };
   let bootTimer = 0;
@@ -724,6 +777,7 @@
       games.forEach(x => BUILTIN_IDS.add(x.id));
       syncCommunityGames();
       setShell(ls.get('shell', 'grape'));
+      setBtn(ls.get('btn', 'graphite'));
       buildLogo();
       cv.classList.add('off');
       renderMenu();
