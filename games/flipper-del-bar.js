@@ -6,13 +6,14 @@ registerGame({
   license: 'MIT',
   color: '#e8455f',
   blurb: 'Il flipper del bar sotto casa: tira la molla, tieni la pallina in gioco con le due palette, colpisci i paraurti e accendi i tre bersagli per il bonus. Tocca a sinistra e a destra, o usa la croce.',
-  inputs: ['TOCCO', 'D-PAD', 'MULTI-TOCCO'],
+  inputs: ['TOCCO', 'D-PAD', 'ANCA E BACINO'],
   size: [360, 640],
   bg: '#1a0f26',
   flexH: true,
   flexMin: 1.2,
+  tilt: true,
   create(api) {
-    const { cv, g, held } = api;
+    const { cv, g, held, tilt } = api;
     const CW = cv.width, CH = cv.height;
     const VWd = 360, VHd = 640;
     const S = Math.min(CW / VWd, CH / VHd), OX = (CW - VWd * S) / 2, OY = (CH - VHd * S) / 2;
@@ -30,7 +31,16 @@ registerGame({
     const lights = Array.from({ length: 14 }, (_, i) => ({ a: Math.PI * (1.05 + 0.9 * i / 13) }));
     const pointers = new Map();
     const flash = t => { msg = t; msgT = 1.3; };
-    const spawn = () => { ball = { x: 332, y: 602, vx: 0, vy: 0, lane: true }; charge = 0; charging = false; };
+    // Anca e bacino: spintarelle al tavolo. Troppe e troppo ravvicinate fanno scattare il TILT.
+    let tiltG = 0, tilted = false, shake = { x: 0, y: 0, t: 0 }, prevTx = 0, nudgeCool = 0, prevUp = false;
+    const nudge = (dx, dy) => {
+      if (state !== 'play' || tilted || nudgeCool > 0 || !ball || ball.lane || saucer.ball) return;
+      nudgeCool = 0.28; tiltG += 0.3; ball.vx += dx * 110; ball.vy += dy * 130;
+      shake = { x: dx * 3.2, y: dy * 3.2, t: 0.22 }; api.haptic(35); setTimeout(() => api.haptic(18), 70); setTimeout(() => api.haptic(10), 130); api.beep(95, 0.09, 'triangle', 0.06);
+      if (tiltG >= 1) { tilted = true; bonusN = 0; flash('TILT!'); msgT = 2.4; api.haptic(90); setTimeout(() => api.haptic(70), 120); setTimeout(() => api.haptic(70), 240); setTimeout(() => api.haptic(50), 360); api.beep(110, 0.5, 'sawtooth', 0.07); }
+      else if (tiltG >= 0.6) { flash('ATTENTO AL TILT!'); }
+    };
+    const spawn = () => { ball = { x: 332, y: 602, vx: 0, vy: 0, lane: true }; charge = 0; charging = false; tilted = false; tiltG = 0; };
     const newGame = () => { score = 0; balls = 3; mult = 0; bonusN = 0; laneLit = [false, false, false]; extraLit = false; state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
 
@@ -101,7 +111,11 @@ registerGame({
       time += dt; msgT = Math.max(0, msgT - dt); flashT = Math.max(0, flashT - dt);
       bumpers.forEach(b => b.l = Math.max(0, b.l - dt)); slingL = Math.max(0, slingL - dt); slingR = Math.max(0, slingR - dt);
       if (state !== 'play') return;
-      const wantL = held.left || held.b || [...pointers.values()].includes('L'), wantR = held.right || held.a || [...pointers.values()].includes('R');
+      tiltG = Math.max(0, tiltG - 0.3 * dt); nudgeCool = Math.max(0, nudgeCool - dt); shake.t = Math.max(0, shake.t - dt);
+      if (held.up && !prevUp) nudge(0, -1); prevUp = !!held.up;
+      if (tilt && tilt.sensor) { const dtx = tilt.x - prevTx; prevTx = tilt.x; if (Math.abs(dtx) > 0.16) nudge(Math.sign(dtx), -0.25); }
+      let wantL = held.left || held.b || [...pointers.values()].includes('L'), wantR = held.right || held.a || [...pointers.values()].includes('R');
+      if (tilted) { wantL = false; wantR = false; }
       if (ball.lane && ball.y > 590) { if (wantR || charging) { charging = true; charge = Math.min(1, charge + dt * 1.1); } }
       for (const k of ['L', 'R']) {
         const f = flip[k], on = k === 'L' ? wantL : wantR, was = f.down; f.down = on;
@@ -126,8 +140,15 @@ registerGame({
       if (k === 'select' && state !== 'title') newGame();
     };
     const onRelease = k => { if (k === 'a' && state === 'play' && charging) launch(); };
+    const swipes = new Map();
     const onPointer = e => {
       const vx = (e.x - OX) / S;
+      if (e.type === 'down') swipes.set(e.id, { x: e.x, y: e.y, t: e.t });
+      else if (e.type === 'move' && swipes.has(e.id)) {
+        const s0 = swipes.get(e.id), dx = (e.x - s0.x) / S, dy = (e.y - s0.y) / S, dt = e.t - s0.t;
+        if (dt < 260 && (dy < -46 || Math.abs(dx) > 52) && state === 'play') { swipes.delete(e.id); pointers.delete(e.id); nudge(Math.abs(dx) > 52 ? Math.sign(dx) : 0, dy < -46 ? -1 : -0.25); }
+        else if (dt >= 260) swipes.set(e.id, { x: e.x, y: e.y, t: e.t });
+      } else if (e.type === 'up') swipes.delete(e.id);
       if (e.type === 'down') {
         if (state === 'title' || state === 'over') { newGame(); return; }
         if (state === 'pause') { state = 'play'; return; }
@@ -155,7 +176,8 @@ registerGame({
     };
     const render = () => {
       g.fillStyle = '#12081c'; g.fillRect(0, 0, CW, CH);
-      g.save(); g.translate(OX, OY); g.scale(S, S);
+      const shk = shake.t > 0 ? (shake.t / 0.22) : 0;
+      g.save(); g.translate(OX + shake.x * shk * S * Math.sin(shake.t * 90), OY + shake.y * shk * S * Math.sin(shake.t * 90)); g.scale(S, S);
       // tavolo
       const bg = g.createLinearGradient(0, 0, 0, VHd); bg.addColorStop(0, '#3b1a5c'); bg.addColorStop(0.55, '#26104a'); bg.addColorStop(1, '#1a0b36'); g.fillStyle = bg; g.fillRect(0, 0, VWd, VHd);
       g.save(); g.beginPath(); g.moveTo(WALL_L, VHd); g.lineTo(WALL_L, CY); g.arc(CX, CY, AR, Math.PI, 0); g.lineTo(WALL_R, VHd); g.closePath(); g.clip();
@@ -219,18 +241,23 @@ registerGame({
       text('PUNTI', 8, 30, 8, 'left', '#a894d6'); text('BONUS', 238, 30, 8, 'left', '#a894d6');
       text('FLIPPER DEL BAR', VWd / 2, 8, 9, 'center', '#ffe66a'); text('PALLINE', VWd / 2, 36, 8, 'center', '#a894d6'); for (let i = 0; i < balls; i++) { g.fillStyle = '#dfe6ff'; g.beginPath(); g.arc(VWd / 2 - (balls - 1) * 7 + i * 14, 26, 4, 0, 7); g.fill(); }
       text('x' + MULTS[mult], 336, 38, 12, 'center', '#6fffa0');
+      text('TILT', 238, 38, 8, 'left', tilted ? '#ff4a4a' : '#a894d6');
+      for (let i = 0; i < 5; i++) { const on = tilted || tiltG > (i + 0.5) / 5 * 1.0 - 0.1; g.fillStyle = on ? (i > 2 || tilted ? '#ff4a4a' : '#ffb03a') : '#3a2a62'; g.fillRect(262 + i * 12, 38, 9, 6); }
       // fiancate di legno e metallo
       const rail = (x, w) => { const rg = g.createLinearGradient(x, 0, x + w, 0); rg.addColorStop(0, '#6b4a2a'); rg.addColorStop(0.5, '#a8774a'); rg.addColorStop(1, '#5a3a1e'); g.fillStyle = rg; g.fillRect(x, 56, w, VHd - 56); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x + 1, 56, 1.5, VHd - 56); };
       rail(0, 12); rail(VWd - 12, 12);
       for (let y = 90; y < VHd; y += 120) { g.fillStyle = '#c9c0d8'; g.beginPath(); g.arc(6, y, 2.2, 0, 7); g.arc(VWd - 6, y, 2.2, 0, 7); g.fill(); }
       if (msgT > 0) text(msg, VWd / 2, 60, 18, 'center', '#ffe66a');
       if (state === 'play' && ball && ball.lane && ball.y > 590) text(charging ? 'LASCIA PER LANCIARE' : 'TIENI PREMUTO LA MOLLA (A)', VWd / 2, 596, 10, 'center', '#ffe66a');
+      if (tilted && state === 'play') text('TILT!', VWd / 2, 300, 40, 'center', '#ff4a4a');
       if (state === 'title') {
         g.fillStyle = 'rgba(12,4,26,.78)'; g.fillRect(0, 0, VWd, VHd);
         text('FLIPPER', VWd / 2, 150, 50, 'center', '#ff5a8a'); text('DEL BAR', VWd / 2, 206, 44, 'center', '#ffe66a');
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', VWd / 2, 330, 16, 'center', '#fff4e0');
         text('SINISTRA / DESTRA = LE PALETTE', VWd / 2, 380, 11, 'center', '#c9b6e8'); text('TIENI PREMUTA LA MOLLA A DESTRA PER LANCIARE', VWd / 2, 402, 10, 'center', '#c9b6e8');
-        text('RECORD ' + hi, VWd / 2, 450, 14, 'center');
+        text('ANCA E BACINO: SWIPE VELOCE, SU, O SCUOTI IL TELEFONO', VWd / 2, 424, 9, 'center', '#c9b6e8');
+        text('ATTENTO: TROPPE SPINTE FANNO SCATTARE IL TILT', VWd / 2, 440, 9, 'center', '#ffb03a');
+        text('RECORD ' + hi, VWd / 2, 470, 14, 'center');
       }
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['FINE PARTITA', 'PUNTI ' + score, 'RECORD ' + hi, 'TOCCA']);
@@ -242,7 +269,7 @@ registerGame({
       onPress: act, onRelease, onPointer,
       onHide() { if (state === 'play') state = 'pause'; pointers.clear(); },
       update, render,
-      debug: { newGame, get state() { return state; }, get ball() { return ball; }, get score() { return score; }, get balls() { return balls; }, launch, flip, step, set charge(v) { charge = v; } },
+      debug: { newGame, get state() { return state; }, get ball() { return ball; }, get score() { return score; }, get balls() { return balls; }, nudge, get tiltG() { return tiltG; }, get tilted() { return tilted; }, launch, flip, step, set charge(v) { charge = v; } },
     };
   },
 });
