@@ -527,7 +527,7 @@
       // I giochi "flexH" prendono l'altezza che serve a riempire lo schermo senza fasce ai lati.
       let cw = def.size[0], ch = def.size[1];
       if (def.flexH && screenEl.clientWidth > 0 && screenEl.clientHeight > 0) {
-        ch = Math.round(clamp(cw * screenEl.clientHeight / screenEl.clientWidth, cw * 1.25, cw * 2.1));
+        ch = Math.round(clamp(cw * screenEl.clientHeight / screenEl.clientWidth, cw * (def.flexMin || 1.25), cw * 2.1));
       }
       HR = hiResFactory(cv, cw, ch);
       if (!def.community) HR.setK(pickK(def, cw, ch));

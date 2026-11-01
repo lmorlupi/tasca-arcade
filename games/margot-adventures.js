@@ -5,11 +5,17 @@ registerGame({
   art: 'margot',
   blurb: 'In ricordo di Margot, gatta affettuosa e curiosa che sapeva aprire tutte le porte. Salta tra i mobili, apri le porte saltando sulla maniglia, caccia i grilli, fai cadere le palline dell\'albero e arriva alla ciotola. A salta, B corre.',
   inputs: ['D-PAD', '2 POLLICI', 'SALTO'],
-  size: [352, 576],
+  size: [480, 540],
+  flexH: true,
+  flexMin: 0.8,
   create(api) {
     const { cv, g, held } = api;
-    const W = cv.width, H = cv.height;
-    const SC = 4 / 3, VW = W / SC;
+    const CW = cv.width, CH = cv.height;
+    let W = CW, H = CH;
+    const SC = 1.9, VW = CW / SC, VISH = CH / SC;
+    const UIS = Math.min(CW / 352, CH / 576), UIX = (CW - 352 * UIS) / 2, UIY = (CH - 576 * UIS) / 2;
+    const uiOn = () => { g.fillStyle = '#14101a'; g.fillRect(0, 0, CW, CH); g.save(); g.translate(UIX, UIY); g.scale(UIS, UIS); g.beginPath(); g.rect(0, 0, 352, 576); g.clip(); W = 352; H = 576; };
+    const uiOff = () => { g.restore(); W = CW; H = CH; };
     const T = 24, VH = 18, GR = 15, PW = 9, PH = 18;
     const GRAV = 1300, JUMP = -520;
 
@@ -22,7 +28,7 @@ registerGame({
     ];
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
-    let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, camX = 0, jumpBuf = 0, coyote = 0, time = 0;
+    let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
     const rng = seed => () => {
       seed |= 0; seed = seed + 0x6D2B79F5 | 0;
@@ -124,7 +130,7 @@ registerGame({
 
     const resetPlayer = () => {
       P = { x: 2 * T, y: GR * T, vx: 0, vy: 0, face: 1, ground: false, walk: 0, hurt: 0, cut: false };
-      camX = 0; jumpBuf = 0; coyote = 0;
+      camX = 0; camY = 0; jumpBuf = 0; coyote = 0;
     };
     const newGame = (from = 1) => { score = 0; lives = 3; level = from; caught = 0; doorHint = false; gen(level); resetPlayer(); state = 'play'; };
     const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
@@ -340,6 +346,7 @@ registerGame({
       for (const k of cats) if (k.dead > 0) k.dead -= dt;
       const want = Math.max(0, Math.min(cols * T - VW, P.x - VW / 2 + P.face * 28));
       camX += (want - camX) * Math.min(1, dt * 6);
+      const wantY = Math.max(0, Math.min(VH * T - VISH, P.y - VISH * 0.68)); camY += (wantY - camY) * Math.min(1, dt * 6);
     };
 
     const act = k => {
@@ -354,7 +361,8 @@ registerGame({
       } else if (k === 'select' && state !== 'title') newGame();
       else if (k === 'a' && state === 'play') jumpBuf = 0.12;
     };
-    const onPointer = e => {
+    const onPointer = e0 => {
+      const e = { type: e0.type, x: (e0.x - UIX) / UIS, y: (e0.y - UIY) / UIS };
       if (e.type !== 'down') return;
       if (state === 'seek') { seekPointer(e); return; }
       if (state === 'title' && e.y >= 388 && e.y <= 424) { seekStart(); return; }
@@ -531,6 +539,9 @@ registerGame({
     };
 
     const render = () => {
+      if (state === 'seek' || state === 'title') { uiOn(); try { renderInner(); } finally { uiOff(); } } else renderInner();
+    };
+    const renderInner = () => {
       const ch = chap();
       if (state === 'seek') { drawSeek(); return; }
       if (state === 'title') {
@@ -553,9 +564,9 @@ registerGame({
       }
       g.fillStyle = ch.wall[0]; g.fillRect(0, 0, W, H);
       g.save(); g.scale(SC, SC);
-      drawBackdrop();
-      g.save(); g.translate(-Math.round(camX), 0);
-      const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(cols - 1, c0 + 14);
+      g.save(); g.translate(0, -Math.round(camY)); drawBackdrop(); g.restore();
+      g.save(); g.translate(-Math.round(camX), -Math.round(camY));
+      const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(cols - 1, c0 + Math.ceil(VW / T) + 1);
       // vuoti nel pavimento: ombra scura
       for (let c = c0; c <= c1; c++) if (!grid[GR][c]) { const gx = c * T; const vg = g.createLinearGradient(0, GR * T, 0, VH * T); vg.addColorStop(0, '#1a1426'); vg.addColorStop(1, '#0c0814'); g.fillStyle = vg; g.fillRect(gx, GR * T - 9, T, VH * T - GR * T + 9); }
       for (let r = 0; r < VH; r++) for (let c = c0; c <= c1; c++) {
@@ -600,6 +611,7 @@ registerGame({
       if (msgT > 0) { g.fillStyle = 'rgba(42,34,54,.7)'; g.fillRect(W / 2 - 120, 36, 240, 26); text(msg, W / 2, 41, 14, 'center', '#ffe9b8'); }
       if (state === 'win') banner(['BRAVO MARGOT!', 'QUADRO ' + (level + 1)]);
       if (state === 'photo' || state === 'album') {
+        uiOn();
         const idx = state === 'photo' ? photoShow : unlocked()[Math.min(albumIdx, unlocked().length - 1)], ph = PHOTOS[idx] || PHOTOS[0];
         g.fillStyle = 'rgba(20,14,26,.9)'; g.fillRect(0, 0, W, H);
         text(state === 'photo' ? 'UN RICORDO DI MARGOT' : 'RICORDI ' + (albumIdx + 1) + '/' + unlocked().length, W / 2, 30, 14, 'center', '#ffe9b8');
@@ -607,6 +619,7 @@ registerGame({
         const by = (r ? 62 + r.h : 300) + 22;
         text(ph.t[0], W / 2, by, 18, 'center', '#fff4e0'); text(ph.t[1], W / 2, by + 24, 18, 'center', '#fff4e0');
         text('TOCCA PER CONTINUARE', W / 2, H - 38, 12, 'center', '#c9b79a');
+        uiOff();
       }
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
