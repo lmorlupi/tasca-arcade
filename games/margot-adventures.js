@@ -362,8 +362,238 @@ registerGame({
       mm.tx = e.x; mm.M.dir = e.x >= mm.M.x ? 1 : -1; miniSwat();
     };
 
+    // IL PRATO DI MONTAGNA: caccia a lucertole e topolini, e sole per ricaricarsi
+    const PS = 1.6;
+    let pr = null;
+    const pVW = () => CW / PS, pVH = () => CH / PS;
+    const pBand = () => ({ hz: pVH() * 0.36, top: pVH() * 0.50, bot: pVH() * 0.93 });
+    const pDepth = y => { const b = pBand(); return 0.74 + 0.5 * Math.max(0, Math.min(1, (y - b.top) / (b.bot - b.top))); };
+    const pSay = t => { pr.msg = t; pr.msgT = 1.4; };
+    const pRand = (a, b) => a + Math.random() * (b - a);
+    const pClampY = y => { const b = pBand(); return Math.max(b.top + 6, Math.min(b.bot, y)); };
+    const pLizard = () => { const r = pr.rocks[(Math.random() * pr.rocks.length) | 0]; return { kind: 'liz', x: r.x + pRand(-8, 8), y: r.y + 3, dir: Math.random() < 0.5 ? -1 : 1, st: 'bask', t: pRand(1, 3), gone: 0, ph: Math.random() * 6, vx: 0, vy: 0 }; };
+    const pMouse = () => { const h = pr.holes[(Math.random() * pr.holes.length) | 0]; return { kind: 'mouse', x: h.x, y: h.y, dir: 1, st: 'hide', t: pRand(0.6, 2.4), gone: 0, ph: 0, tx: h.x, ty: h.y, toHole: false }; };
+    const pratoStart = () => {
+      const WW = 1900, b = pBand();
+      pr = { WW, t: 100, score: 0, combo: 0, combT: 0, en: 100, cam: 0, M: { x: 140, y: (b.top + b.bot) / 2, dir: 1, walk: 0, mv: false, leap: 0, lvx: 0, lvy: 0, still: 0, sun: false, hit: false }, tx: null, ty: null, chase: null, running: false,
+        things: [], suns: [], holes: [], rocks: [], flora: [], phase: 'play', msg: '', msgT: 0, clock: 0, endT: 0, paused: false, best: api.store.get('pratoBest', 0), heart: 0 };
+      for (let i = 0; i < 4; i++) pr.suns.push({ x: 300 + i * ((WW - 600) / 3) + pRand(-40, 40), y: pRand(b.top + 30, b.bot - 30), r: 54 });
+      for (let i = 0; i < 7; i++) pr.rocks.push({ x: 160 + i * ((WW - 320) / 6) + pRand(-30, 30), y: pRand(b.top + 14, b.bot - 14), s: pRand(0.9, 1.35) });
+      for (let i = 0; i < 6; i++) pr.holes.push({ x: 90 + (i + 0.5) * ((WW - 180) / 6) + pRand(-30, 30), y: pRand(b.top + 14, b.bot - 10) });
+      for (let i = 0; i < 190; i++) pr.flora.push({ x: pRand(0, WW), y: pRand(b.hz + 14, b.bot + 6), k: Math.random() < 0.58 ? 'tuft' : 'flower', c: ['#ffffff', '#ffd23f', '#ff7aa8', '#b58cff', '#ff9a4a'][(Math.random() * 5) | 0], s: pRand(0.7, 1.3), ph: Math.random() * 6 });
+      for (let i = 0; i < 5; i++) pr.things.push(pLizard());
+      for (let i = 0; i < 3; i++) pr.things.push(pMouse());
+      state = 'prato';
+    };
+    const inSun = (x, y) => pr.suns.some(s => { const dx = (x - s.x) / s.r, dy = (y - s.y) / (s.r * 0.5); return dx * dx + dy * dy < 1; });
+    const pratoPounce = () => {
+      const M = pr.M; if (pr.phase !== 'play' || M.leap > 0 || pr.en < 4) return;
+      pr.en -= 8; M.leap = 0.3; M.hit = false; M.sun = false; M.still = 0;
+      let ux = M.dir, uy = 0;
+      if (pr.chase && !pr.chase.gone) { const dx = pr.chase.x - M.x, dy = pr.chase.y - M.y, d = Math.hypot(dx, dy) || 1; ux = dx / d; uy = dy / d * 0.7; M.dir = dx >= 0 ? 1 : -1; }
+      M.lvx = ux * 270; M.lvy = uy * 270; api.beep(520, 0.06, 'triangle', 0.04);
+    };
+    const pCatch = c => {
+      c.gone = 1.1; pr.combo++; pr.combT = 6; pr.M.hit = true;
+      const pts = (c.kind === 'liz' ? 30 : 60) * Math.min(5, pr.combo); pr.score += pts;
+      pSay((c.kind === 'liz' ? 'LUCERTOLA! +' : 'TOPOLINO! +') + pts + (pr.combo > 1 ? '  x' + Math.min(5, pr.combo) : ''));
+      api.haptic(18); api.beep(c.kind === 'liz' ? 640 : 820, 0.08, 'triangle', 0.05); setTimeout(() => api.beep(980, 0.07, 'triangle', 0.04), 70);
+      if (pr.chase === c) pr.chase = null;
+    };
+    const pratoUpdate = dt => {
+      pr.clock += dt; pr.msgT = Math.max(0, pr.msgT - dt);
+      if (pr.paused) return;
+      if (pr.phase !== 'play') { pr.endT += dt; return; }
+      pr.t -= dt; pr.combT = Math.max(0, pr.combT - dt); if (pr.combT <= 0) pr.combo = 0;
+      const M = pr.M, b = pBand(), WW = pr.WW;
+      const dx = (held.right ? 1 : 0) - (held.left ? 1 : 0), dy = (held.down ? 1 : 0) - (held.up ? 1 : 0);
+      const tired = pr.en < 22, run = (held.b || pr.running) && pr.en > 4 && !tired;
+      const sp = (tired ? 58 : 108) * (run ? 1.7 : 1);
+      M.mv = false;
+      if (M.leap > 0) {
+        M.leap -= dt; M.x += M.lvx * dt; M.y += M.lvy * dt; M.mv = true;
+        if (!M.hit) for (const c of pr.things) if (c.gone <= 0 && Math.abs(c.x - M.x) < 26 && Math.abs(c.y - M.y) < 17) { pCatch(c); break; }
+        if (M.leap <= 0 && !M.hit) { pr.combo = 0; if (Math.random() < 0.5) pSay('MANCATO! PIANO PIANO...'); api.beep(200, 0.05, 'square', 0.03); }
+      } else if (dx || dy) {
+        pr.chase = null; pr.tx = null; pr.running = false;
+        if (dx) M.dir = dx; M.x += dx * sp * dt; M.y += dy * sp * 0.7 * dt; M.mv = true;
+      } else if (pr.chase) {
+        const c = pr.chase, ddx = c.x - M.x, ddy = c.y - M.y, d = Math.hypot(ddx, ddy);
+        if (c.gone > 0) pr.chase = null;
+        else if (d < 48) { pratoPounce(); }
+        else { M.dir = ddx >= 0 ? 1 : -1; M.x += ddx / d * sp * dt; M.y += ddy / d * sp * 0.7 * dt; M.mv = true; }
+      } else if (pr.tx != null) {
+        const ddx = pr.tx - M.x, ddy = pr.ty - M.y, d = Math.hypot(ddx, ddy);
+        if (d < 5) { pr.tx = null; pr.running = false; } else { M.dir = ddx >= 0 ? 1 : -1; M.x += ddx / d * sp * dt; M.y += ddy / d * sp * 0.7 * dt; M.mv = true; }
+      }
+      M.x = Math.max(30, Math.min(WW - 30, M.x)); M.y = pClampY(M.y);
+      if (M.mv && M.leap <= 0) M.walk += dt * (run ? 15 : 10);
+      if (!M.mv) M.still += dt; else M.still = 0;
+      M.sun = M.still > 0.6 && inSun(M.x, M.y);
+      if (M.sun) {
+        pr.en = Math.min(100, pr.en + 26 * dt); pr.heart -= dt;
+        if (pr.heart <= 0) { pr.heart = 0.7; api.beep(180 + Math.random() * 30, 0.35, 'sine', 0.03); }
+      } else { pr.en = Math.max(0, pr.en - (run && M.mv ? 9 : 0.8) * dt); }
+      if (tired && Math.random() < dt * 0.4 && pr.msgT <= 0) pSay('MARGOT E STANCA: VAI AL SOLE!');
+      pr.cam = Math.max(0, Math.min(WW - pVW(), M.x - pVW() / 2));
+
+      for (const c of pr.things) {
+        if (c.gone > 0) { c.gone -= dt; if (c.gone <= 0) Object.assign(c, c.kind === 'liz' ? pLizard() : pMouse()); continue; }
+        const d = Math.hypot(c.x - M.x, (c.y - M.y) * 1.6); c.ph += dt;
+        if (c.kind === 'liz') {
+          if (c.st === 'bask') { c.t -= dt; if (d < 88) { c.st = 'dash'; c.t = pRand(0.35, 0.6); const s = c.x >= M.x ? 1 : -1; c.vx = s * pRand(170, 230); c.vy = pRand(-50, 50); c.dir = s; } }
+          else if (c.st === 'dash') { c.x += c.vx * dt; c.y = pClampY(c.y + c.vy * dt); c.t -= dt; if (c.x < 20 || c.x > WW - 20) { c.vx = -c.vx; c.dir = -c.dir; c.x = Math.max(20, Math.min(WW - 20, c.x)); } if (c.t <= 0) { c.st = 'freeze'; c.t = pRand(0.6, 1.4); } }
+          else { c.t -= dt; if (d < 62) { c.st = 'dash'; c.t = pRand(0.3, 0.5); const s = c.x >= M.x ? 1 : -1; c.vx = s * pRand(180, 240); c.vy = pRand(-60, 60); c.dir = s; } else if (c.t <= 0) c.st = 'bask'; }
+        } else {
+          if (c.st === 'hide') { c.t -= dt; if (c.t <= 0) { c.st = 'run'; c.t = pRand(2.2, 3.6); c.toHole = false; c.tx = Math.max(40, Math.min(WW - 40, c.x + pRand(-220, 220))); c.ty = pClampY(c.y + pRand(-60, 60)); } }
+          else {
+            c.t -= dt;
+            if (d < 85 && !c.toHole) { c.toHole = true; let bh = pr.holes[0], bd = 1e9; for (const h of pr.holes) { const hd = Math.hypot(h.x - c.x, h.y - c.y) + (Math.hypot(h.x - M.x, h.y - M.y) < 70 ? 400 : 0); if (hd < bd) { bd = hd; bh = h; } } c.tx = bh.x; c.ty = bh.y; }
+            if (c.t <= 0 && !c.toHole) { c.toHole = true; const h = pr.holes[(Math.random() * pr.holes.length) | 0]; c.tx = h.x; c.ty = h.y; }
+            const ddx = c.tx - c.x, ddy = c.ty - c.y, dd = Math.hypot(ddx, ddy) || 1, v = c.toHole && d < 130 ? 245 : 150;
+            c.dir = ddx >= 0 ? 1 : -1; c.x += ddx / dd * v * dt + Math.sin(c.ph * 9) * 24 * dt; c.y = pClampY(c.y + ddy / dd * v * dt * 0.8);
+            if (dd < 8) { if (c.toHole) { c.st = 'hide'; c.t = pRand(1, 2.6); c.toHole = false; } else { c.toHole = true; const h = pr.holes[(Math.random() * pr.holes.length) | 0]; c.tx = h.x; c.ty = h.y; } }
+          }
+        }
+      }
+      if (pr.t <= 0) { pr.phase = 'end'; pr.t = 0; pr.endT = 0; if (pr.score > pr.best) { pr.best = pr.score; api.store.set('pratoBest', pr.best); } api.haptic(30); }
+    };
+    const pratoKey = k => {
+      if (pr.phase === 'end') { if (pr.endT > 0.5) state = 'title'; return; }
+      if (k === 'a') pratoPounce(); else if (k === 'start') pr.paused = !pr.paused; else if (k === 'select') state = 'title';
+    };
+    const pratoPointer = e => {
+      if (e.type !== 'down') return;
+      if (pr.phase === 'end') { if (pr.endT > 0.5) state = 'title'; return; }
+      if (pr.paused) { pr.paused = false; return; }
+      const wx = e.x / PS + pr.cam, wy = e.y / PS; let best = null, bd = 44;
+      for (const c of pr.things) { if (c.gone > 0 || c.st === 'hide') continue; const d = Math.hypot(c.x - wx, (c.y - wy) * 1.1); if (d < bd) { bd = d; best = c; } }
+      if (best) { pr.chase = best; pr.tx = null; pr.running = true; } else { pr.chase = null; pr.tx = wx; pr.ty = pClampY(wy); pr.running = false; }
+    };
+
+    const drawPrato = () => {
+      const VWp = pVW(), VHp = pVH(), b = pBand(), cam = pr.cam, tm = time;
+      g.save(); g.scale(PS, PS);
+      // cielo
+      const sky = g.createLinearGradient(0, 0, 0, b.hz + 20); sky.addColorStop(0, '#5aa8ee'); sky.addColorStop(0.7, '#bfe3fb'); sky.addColorStop(1, '#eaf7ff');
+      g.fillStyle = sky; g.fillRect(0, 0, VWp, b.hz + 24);
+      const sx0 = VWp * 0.8, sy0 = VHp * 0.1; const sg = g.createRadialGradient(sx0, sy0, 2, sx0, sy0, 70); sg.addColorStop(0, 'rgba(255,248,200,.95)'); sg.addColorStop(0.25, 'rgba(255,240,170,.45)'); sg.addColorStop(1, 'rgba(255,240,170,0)');
+      g.fillStyle = sg; g.fillRect(sx0 - 80, sy0 - 80, 160, 160); g.fillStyle = '#fffbe0'; g.beginPath(); g.arc(sx0, sy0, 13, 0, 7); g.fill();
+      for (let i = 0; i < 5; i++) { const cx = ((i * 190 + tm * (6 + i * 1.5) - cam * 0.06) % (VWp + 160)) - 60, cy = 24 + (i % 3) * 22; g.fillStyle = 'rgba(255,255,255,.88)'; g.beginPath(); g.ellipse(cx, cy, 30, 8, 0, 0, 7); g.ellipse(cx + 14, cy - 6, 20, 8, 0, 0, 7); g.ellipse(cx - 16, cy - 3, 16, 6, 0, 0, 7); g.fill(); }
+      const ridge = (f, base, amp, seed, c1, c2, snow) => {
+        const hh = wx => 0.28 + 0.52 * Math.pow(Math.abs(Math.sin(wx * 0.0085 + seed)), 0.7) + 0.2 * Math.abs(Math.sin(wx * 0.021 + seed * 2));
+        g.beginPath(); g.moveTo(0, base + 4);
+        for (let x = 0; x <= VWp + 6; x += 5) g.lineTo(x, base - amp * hh(x + cam * f));
+        g.lineTo(VWp + 6, base + 4); g.closePath();
+        const gr = g.createLinearGradient(0, base - amp, 0, base); gr.addColorStop(0, c1); gr.addColorStop(1, c2); g.fillStyle = gr; g.fill();
+        if (snow) { g.save(); g.clip(); const sn = g.createLinearGradient(0, base - amp, 0, base - amp * 0.55); sn.addColorStop(0, 'rgba(255,255,255,.95)'); sn.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = sn; g.fillRect(0, base - amp - 2, VWp, amp * 0.5); g.restore(); }
+      };
+      ridge(0.10, b.hz - 2, 86, 1.3, '#8fa6c4', '#c9dbee', true);
+      ridge(0.22, b.hz + 6, 62, 4.1, '#5f7fa0', '#a9c4d8', true);
+      ridge(0.38, b.hz + 14, 38, 7.7, '#3f7a62', '#7fb08a', false);
+      // abeti sul crinale
+      for (let wx = Math.floor(cam * 0.55 / 12) * 12; wx < cam * 0.55 + VWp + 14; wx += 12) {
+        const hsh = Math.abs(Math.sin(wx * 12.9898) * 43758.5453) % 1; if (hsh < 0.25) continue;
+        const x = wx - cam * 0.55, h = 12 + hsh * 12, y = b.hz + 20;
+        g.fillStyle = '#245a3a'; g.beginPath(); g.moveTo(x, y - h); g.lineTo(x + 5, y); g.lineTo(x - 5, y); g.closePath(); g.fill();
+        g.fillStyle = '#2f6e46'; g.beginPath(); g.moveTo(x, y - h * 0.8); g.lineTo(x + 4, y - h * 0.3); g.lineTo(x - 4, y - h * 0.3); g.closePath(); g.fill();
+      }
+      // prato
+      const mg0 = g.createLinearGradient(0, b.hz + 16, 0, VHp); mg0.addColorStop(0, '#a9d97a'); mg0.addColorStop(0.45, '#6fb857'); mg0.addColorStop(1, '#3d8f3c');
+      g.fillStyle = mg0; g.beginPath(); g.moveTo(0, b.hz + 22); for (let x = 0; x <= VWp + 8; x += 8) g.lineTo(x, b.hz + 14 + Math.sin((x + cam * 0.5) * 0.02) * 4 + Math.sin((x + cam * 0.5) * 0.05) * 1.5); g.lineTo(VWp + 8, VHp); g.lineTo(0, VHp); g.closePath(); g.fill();
+      for (let i = 0; i < 9; i++) { const yy = b.hz + 30 + i * (VHp - b.hz - 30) / 9, off = (tm * 8 + i * 37 - cam * (0.4 + i * 0.12)) % 120; g.fillStyle = 'rgba(255,255,255,.05)'; for (let x = -120 + off; x < VWp; x += 120) g.fillRect(x, yy, 70, 3 + i * 0.4); }
+      g.translate(-cam, 0);
+      // zone di sole
+      for (const s of pr.suns) {
+        if (s.x < cam - 90 || s.x > cam + VWp + 90) continue;
+        const sg2 = g.createRadialGradient(s.x, s.y, 2, s.x, s.y, s.r); sg2.addColorStop(0, 'rgba(255,244,170,.85)'); sg2.addColorStop(0.6, 'rgba(255,236,140,.42)'); sg2.addColorStop(1, 'rgba(255,236,140,0)');
+        g.save(); g.translate(0, s.y); g.scale(1, 0.5); g.translate(0, -s.y); g.fillStyle = sg2; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 7); g.fill(); g.restore();
+        g.strokeStyle = `rgba(255,250,200,${0.18 + 0.1 * Math.sin(tm * 2 + s.x)})`; g.lineWidth = 1.2; for (let k = 0; k < 5; k++) { const a = tm * 0.3 + k * 1.26; g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x + Math.cos(a) * s.r * 0.95, s.y + Math.sin(a) * s.r * 0.45); g.stroke(); }
+        g.fillStyle = 'rgba(255,255,220,.8)'; for (let k = 0; k < 4; k++) { const a = tm * 0.9 + k * 1.6 + s.x; g.fillRect(s.x + Math.cos(a) * s.r * 0.6, s.y - 4 - ((tm * 12 + k * 9) % 22), 1.6, 1.6); }
+      }
+      // elementi ordinati per profondita
+      const list = [];
+      for (const f of pr.flora) if (f.x > cam - 20 && f.x < cam + VWp + 20) list.push({ y: f.y, fn: () => drawFlora(f) });
+      for (const r of pr.rocks) if (r.x > cam - 40 && r.x < cam + VWp + 40) list.push({ y: r.y, fn: () => drawRock(r) });
+      for (const h of pr.holes) if (h.x > cam - 30 && h.x < cam + VWp + 30) list.push({ y: h.y - 1, fn: () => drawHole(h) });
+      for (const c of pr.things) if (c.x > cam - 40 && c.x < cam + VWp + 40) list.push({ y: c.y + 1, fn: () => (c.kind === 'liz' ? drawLizard(c) : drawMouse(c)) });
+      list.push({ y: pr.M.y + 2, fn: drawMargotP });
+      list.sort((p, q) => p.y - q.y); list.forEach(o => o.fn());
+      // farfalle
+      for (let i = 0; i < 6; i++) { const bx = ((i * 330 + tm * (14 + i * 3)) % (pr.WW + 100)) - 50, by = b.hz + 60 + i * 24 + Math.sin(tm * 1.8 + i) * 14; if (bx < cam - 10 || bx > cam + VWp + 10) continue; const fl = Math.abs(Math.sin(tm * 14 + i)) * 4 + 1; g.fillStyle = ['#ffd23f', '#ff7aa8', '#8fd4ff'][i % 3]; g.beginPath(); g.ellipse(bx - 2, by, fl, 3, -0.4, 0, 7); g.ellipse(bx + 2, by, fl, 3, 0.4, 0, 7); g.fill(); }
+      g.restore();
+      // HUD
+            text('TEMPO ' + Math.ceil(pr.t) + '   PUNTI ' + pr.score + (pr.combo > 1 ? '   x' + Math.min(5, pr.combo) : ''), W - 10, 10, 12, 'right', '#fffbe0');
+      const bw = Math.min(130, W * 0.3);
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(10, 8, bw + 4, 14); g.fillStyle = pr.en < 22 ? '#e8455f' : pr.en > 70 ? '#ffd23f' : '#f4a63a'; g.fillRect(12, 10, bw * pr.en / 100, 10);
+      g.fillStyle = '#fff6b0'; g.beginPath(); g.arc(18 + bw + 12, 15, 5, 0, 7); g.fill();
+      text('ENERGIA', 12, 24, 9, 'left', '#ffffff');
+      if (pr.M.sun) text('PRENDE IL SOLE... ZZZ', W / 2, H * 0.2, 14, 'center', '#fff3a0');
+      if (pr.msgT > 0) { g.globalAlpha = Math.min(1, pr.msgT * 2); text(pr.msg, W / 2, H * 0.14, 13, 'center', '#ffffff'); g.globalAlpha = 1; }
+      if (pr.phase === 'play' && pr.clock < 6) text('TOCCA UNA LUCERTOLA O UN TOPOLINO · A = SALTA · FERMA SUL SOLE = RICARICA', W / 2, H - 16, 9, 'center', '#ffffff');
+      if (pr.paused) banner(['PAUSA', 'TOCCA']);
+      if (pr.phase === 'end') banner([pr.score >= pr.best && pr.score > 0 ? 'NUOVO RECORD!' : 'TEMPO!', 'PUNTI ' + pr.score, 'RECORD ' + pr.best, 'TOCCA']);
+    };
+    const drawFlora = f => {
+      const k = pDepth(f.y) * f.s, sw = Math.sin(time * 2 + f.ph + f.x * 0.03) * 2 * k;
+      g.save(); g.translate(f.x, f.y);
+      if (f.k === 'tuft') { g.strokeStyle = '#2f7a35'; g.lineWidth = 1.4 * k; g.beginPath(); for (let i = -2; i <= 2; i++) { g.moveTo(i * 1.8 * k, 0); g.quadraticCurveTo(i * 2.6 * k + sw * 0.4, -7 * k, i * 3.4 * k + sw, -(12 - Math.abs(i) * 2) * k); } g.stroke(); g.strokeStyle = '#7cc761'; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(sw * 0.4, -8 * k, sw, -13 * k); g.stroke(); }
+      else { g.strokeStyle = '#2f7a35'; g.lineWidth = 1.2 * k; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(sw * 0.5, -6 * k, sw, -11 * k); g.stroke(); g.fillStyle = f.c; for (let i = 0; i < 5; i++) { const a = i * 1.2566; g.beginPath(); g.arc(sw + Math.cos(a) * 2.6 * k, -11 * k + Math.sin(a) * 2.6 * k, 2 * k, 0, 7); g.fill(); } g.fillStyle = '#e8a32a'; g.beginPath(); g.arc(sw, -11 * k, 1.5 * k, 0, 7); g.fill(); }
+      g.restore();
+    };
+    const drawRock = r => {
+      const k = pDepth(r.y) * r.s; g.save(); g.translate(r.x, r.y);
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(2, 2, 17 * k, 5 * k, 0, 0, 7); g.fill();
+      const rg = g.createLinearGradient(-10 * k, -14 * k, 10 * k, 4 * k); rg.addColorStop(0, '#d9d6cf'); rg.addColorStop(1, '#7d7a76');
+      g.fillStyle = rg; g.beginPath(); g.moveTo(-16 * k, 2 * k); g.quadraticCurveTo(-14 * k, -11 * k, -3 * k, -12 * k); g.quadraticCurveTo(10 * k, -14 * k, 15 * k, -3 * k); g.quadraticCurveTo(17 * k, 3 * k, 8 * k, 4 * k); g.lineTo(-12 * k, 4 * k); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(60,56,52,.45)'; g.lineWidth = 1; g.stroke(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(-3 * k, -8 * k, 6 * k, 2 * k, -0.2, 0, 7); g.fill();
+      g.restore();
+    };
+    const drawHole = h => { const k = pDepth(h.y); g.save(); g.translate(h.x, h.y); g.fillStyle = '#6b4a2c'; g.beginPath(); g.ellipse(0, 0, 11 * k, 5 * k, 0, 0, 7); g.fill(); g.fillStyle = '#1e140c'; g.beginPath(); g.ellipse(0, 0.6 * k, 8 * k, 3.4 * k, 0, 0, 7); g.fill(); g.restore(); };
+    const drawLizard = c => {
+      const k = pDepth(c.y) * 1.05;
+      if (c.gone > 0) { if (c.gone > 0.6) { g.fillStyle = '#e8455f'; g.font = 'bold 13px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('★', c.x, c.y - 14 - (1.1 - c.gone) * 40); } return; }
+      const moving = c.st === 'dash', ph = c.ph * (moving ? 22 : 3), up = c.st === 'bask' ? -7 * pDepth(c.y) * 0.7 : 0;
+      g.save(); g.translate(c.x, c.y + up); g.scale(c.dir * k, k);
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(0, 4 - up / k, 11, 2.4, 0, 0, 7); g.fill();
+      g.strokeStyle = '#4f7a2a'; g.lineWidth = 1.6; g.lineCap = 'round';
+      for (const [lx, d] of [[-3, 1], [5, -1]]) { const s = moving ? Math.sin(ph) * 3 * d : 0; g.beginPath(); g.moveTo(lx, 1); g.lineTo(lx + s - 2, 5); g.moveTo(lx, 1); g.lineTo(lx - s + 3, 5); g.stroke(); }
+      g.lineWidth = 2.6; g.strokeStyle = '#6fa03a'; g.beginPath(); g.moveTo(-8, 0); const tw = Math.sin(c.ph * (moving ? 18 : 4)) * (moving ? 5 : 3); g.bezierCurveTo(-14, tw, -18, -tw, -24, tw * 0.6); g.stroke();
+      const bg = g.createLinearGradient(0, -4, 0, 4); bg.addColorStop(0, '#9ccb52'); bg.addColorStop(1, '#5e8f2e'); g.fillStyle = bg; g.beginPath(); g.ellipse(0, 0, 9.5, 3.8, 0, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(10, -0.5, 4.6, 3, 0, 0, 7); g.fill();
+      g.fillStyle = '#3d5f1c'; g.fillRect(-4, -3.4, 2.2, 2); g.fillRect(1, -3.4, 2.2, 2);
+      g.fillStyle = '#111'; g.fillRect(11.4, -2.2, 1.3, 1.3);
+      g.strokeStyle = '#e8455f'; g.lineWidth = 0.8; if (Math.sin(c.ph * 5) > 0.85) { g.beginPath(); g.moveTo(14.5, -0.4); g.lineTo(18, -0.4); g.stroke(); }
+      g.restore();
+    };
+    const drawMouse = c => {
+      if (c.st === 'hide') return;
+      const k = pDepth(c.y) * 1.1;
+      if (c.gone > 0) { if (c.gone > 0.6) { g.fillStyle = '#e8455f'; g.font = 'bold 13px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('★', c.x, c.y - 14 - (1.1 - c.gone) * 40); } return; }
+      const bob = Math.abs(Math.sin(c.ph * 16)) * -2;
+      g.save(); g.translate(c.x, c.y + bob); g.scale(c.dir * k, k);
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(0, 3 - bob / k, 8, 2, 0, 0, 7); g.fill();
+      g.strokeStyle = '#e8a6a6'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-7, -1); g.bezierCurveTo(-13, -2 + Math.sin(c.ph * 12) * 3, -14, 4, -19, 1 + Math.sin(c.ph * 10) * 2); g.stroke();
+      const bg = g.createLinearGradient(0, -6, 0, 3); bg.addColorStop(0, '#b9b4b0'); bg.addColorStop(1, '#7e7873'); g.fillStyle = bg; g.beginPath(); g.ellipse(0, -2, 8, 5, 0, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(7, -2.5, 4, 3, 0, 0, 7); g.fill();
+      g.fillStyle = '#f2b6c0'; g.beginPath(); g.arc(3.5, -7.2, 3, 0, 7); g.fill(); g.fillStyle = '#d98f9d'; g.beginPath(); g.arc(3.5, -7.2, 1.7, 0, 7); g.fill();
+      g.fillStyle = '#111'; g.fillRect(8.4, -4, 1.4, 1.4); g.fillStyle = '#e57b8a'; g.fillRect(10.6, -2.8, 1.5, 1.5);
+      g.strokeStyle = '#4a4540'; g.lineWidth = 1; g.beginPath(); g.moveTo(-3, 2); g.lineTo(-4, 3.6); g.moveTo(3, 2); g.lineTo(4, 3.6); g.stroke();
+      g.restore();
+    };
+    const drawMargotP = () => {
+      const M = pr.M, k = pDepth(M.y), pose = M.leap > 0 ? 'jump' : M.mv ? 'walk' : 'idle', h = 40 * k;
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(M.x, M.y + 2, 17 * k, 4 * k, 0, 0, 7); g.fill();
+      if (M.sun) {
+        g.save(); g.translate(M.x, M.y + 2); g.scale(1.12, 0.6); mg(0, 0, h, 'idle', time, M.dir); g.restore();
+        for (let i = 0; i < 3; i++) { const t = (time * 0.7 + i / 3) % 1; g.globalAlpha = 1 - t; g.fillStyle = '#e8455f'; g.font = `bold ${10 + i * 2}px ui-monospace, monospace`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('♥', M.x + (i - 1) * 10, M.y - 20 * k - t * 24); }
+        g.globalAlpha = 1;
+      } else mg(M.x, M.y + 2 - (M.leap > 0 ? Math.sin((0.3 - M.leap) / 0.3 * Math.PI) * 14 : 0), h, pose, M.mv ? M.walk : time, M.dir);
+    };
+
     const update = dt => {
       time += dt; if (state === 'seek') { sk.t += dt; return; }
+      if (state === 'prato') { pratoUpdate(dt); return; }
       if (state === 'mini') { miniUpdate(dt); return; } msgT = Math.max(0, msgT - dt);
       if (state === 'play') {
         P.hidden = false;
@@ -474,6 +704,7 @@ registerGame({
 
     const act = k => {
       if (state === 'seek') { seekKey(k); return; }
+      if (state === 'prato') { pratoKey(k); return; }
       if (state === 'mini') { if (mm.phase === 'end') { if (mm.clock > 0.5) state = 'title'; } else if (k === 'a') miniSwat(); else if (k === 'b' && false) {} else if (k === 'select') state = 'title'; return; }
       if (state === 'title' && k === 'select') { seekStart(); return; }
       if (state === 'rest' && (k === 'a' || k === 'b')) { pet(); return; }
@@ -487,6 +718,7 @@ registerGame({
       else if (k === 'a' && state === 'play') jumpBuf = 0.12;
     };
     const onPointer = e0 => {
+      if (state === 'prato') { pratoPointer(e0); return; }
       const e = { type: e0.type, x: (e0.x - UIX) / UIS, y: (e0.y - UIY) / UIS };
       if (e.type !== 'down') return;
       if (state === 'seek') { seekPointer(e); return; }
@@ -494,6 +726,7 @@ registerGame({
       if (state === 'title' && e.y >= 388 && e.y <= 416) { seekStart(); return; }
       if (state === 'title' && e.y > 416 && e.y <= 448) { miniStart('foil'); return; }
       if (state === 'title' && e.y > 448 && e.y <= 482) { miniStart('crickets'); return; }
+      if (state === 'title' && e.y > 482 && e.y <= 514) { pratoStart(); return; }
       if (state === 'rest') { pet(); return; }
       if (state === 'photo' || state === 'album') { nextPhoto(); return; }
       if (state === 'title' && unlocked().length && e.y > 100 && e.y < 345) { albumIdx = 0; state = 'album'; return; }
@@ -693,6 +926,7 @@ registerGame({
     };
 
     const render = () => {
+      if (state === 'prato') { drawPrato(); return; }
       if (state === 'seek' || state === 'title' || state === 'mini') { uiOn(); try { renderInner(); } finally { uiOff(); } } else renderInner();
     };
     const renderInner = () => {
@@ -708,12 +942,12 @@ registerGame({
         text('MARGOT', W / 2, 36, 46, 'center', '#8a4a22'); text('ADVENTURES', W / 2, 84, 30, 'center', '#c97a4a');
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 366, 16, 'center', '#8a4a22');
         const btn = (y, label) => { g.fillStyle = '#8a4a22'; g.beginPath(); g.roundRect(W / 2 - 124, y, 248, 28, 14); g.fill(); text(label, W / 2, y + 6, 14, 'center', '#fff4e0'); };
-        btn(388, 'TROVA MARGOT'); btn(420, 'PALLINA DI STAGNOLA'); btn(452, 'CACCIA AI GRILLI');
-        text('RECORD ' + hi, W / 2, 488, 12, 'center', '#6d4a2f');
+        btn(388, 'TROVA MARGOT'); btn(420, 'PALLINA DI STAGNOLA'); btn(452, 'CACCIA AI GRILLI'); btn(484, 'IL PRATO DI MONTAGNA');
+        text('RECORD ' + hi, W / 2, 518, 11, 'center', '#6d4a2f');
         if (unlocked().length) text('TOCCA LA FOTO: RICORDI ' + unlocked().length + '/' + PHOTOS.length, W / 2, 344, 11, 'center', '#8a4a22');
-        text('IL GIOCO DI MARGOT', W / 2, 508, 15, 'center', '#fff4e0');
-        text('MARGOT · MAGGHINA · MARGHY', W / 2, 530, 12, 'center', '#fff4e0');
-        text('CURIOSA, FURBA E IMBATTIBILE CON LE PORTE', W / 2, 550, 10, 'center', '#f3dcc0');
+        text('IL GIOCO DI MARGOT', W / 2, 534, 13, 'center', '#fff4e0');
+        text('MARGOT · MAGGHINA · MARGHY', W / 2, 551, 11, 'center', '#fff4e0');
+        text('CURIOSA, FURBA E IMBATTIBILE CON LE PORTE', W / 2, 565, 9, 'center', '#f3dcc0');
         return;
       }
       g.fillStyle = ch.wall[0]; g.fillRect(0, 0, W, H);
@@ -823,10 +1057,10 @@ registerGame({
       onPress: act,
       onRelease(k) { if (k === 'a' && P && P.vy < 0) P.cut = true; },
       onPointer,
-      onHide() { if (state === 'play') state = 'pause'; },
+      onHide() { if (state === 'play') state = 'pause'; if (state === 'prato' && pr) pr.paused = true; },
       update,
       render,
-      debug: { newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, miniStart, get mm() { return mm; }, miniSwat, get coccole() { return coccole; }, pet, get hugs2() { return hugs; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
+      debug: { pratoStart, get pr() { return pr; }, newGame, get state() { return state; }, seekStart, get sk() { return sk; }, seekPick, get P() { return P; }, get cats() { return cats; }, miniStart, get mm() { return mm; }, miniSwat, get coccole() { return coccole; }, pet, get hugs2() { return hugs; }, get chaser() { return chaser; }, get treats() { return treats; }, get doors() { return doors; }, get memories() { return memories; }, get hugs() { return hugs; }, get blankets() { return blankets; }, get lives() { return lives; }, get hidden() { return P.hidden; }, get trees() { return trees; }, get crickets() { return crickets; }, get score() { return score; }, get grid() { return grid; }, get need() { return need; }, get cols() { return cols; } },
     };
   },
 });
