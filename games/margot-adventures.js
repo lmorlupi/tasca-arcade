@@ -719,8 +719,16 @@ registerGame({
       g.save(); g.translate(0, -Math.round(camY)); drawBackdrop(); g.restore();
       g.save(); g.translate(-Math.round(camX), -Math.round(camY));
       const c0 = Math.max(0, Math.floor(camX / T)), c1 = Math.min(cols - 1, c0 + Math.ceil(VW / T) + 1);
-      // vuoti nel pavimento: ombra scura
-      for (let c = c0; c <= c1; c++) if (!grid[GR][c]) { const gx = c * T; const vg = g.createLinearGradient(0, GR * T, 0, VH * T); vg.addColorStop(0, '#1a1426'); vg.addColorStop(1, '#0c0814'); g.fillStyle = vg; g.fillRect(gx, GR * T - 9, T, VH * T - GR * T + 9); }
+      // vuoti nel pavimento: un buco in cui si vede ancora la stanza che continua, con bordi a righe di pericolo
+      for (let c = c0; c <= c1; c++) if (!grid[GR][c]) {
+        const gx = c * T, y0 = GR * T - 9, hh = VH * T - y0;
+        const vg = g.createLinearGradient(0, y0, 0, VH * T); vg.addColorStop(0, 'rgba(24,14,40,.28)'); vg.addColorStop(0.5, 'rgba(18,10,32,.62)'); vg.addColorStop(1, 'rgba(10,6,20,.9)');
+        g.fillStyle = vg; g.fillRect(gx, y0, T, hh);
+        const left = grid[GR][c - 1], right = grid[GR][c + 1];
+        if (left) { const sg = g.createLinearGradient(gx, 0, gx + 7, 0); sg.addColorStop(0, 'rgba(0,0,0,.55)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sg; g.fillRect(gx, GR * T, 7, VH * T - GR * T); }
+        if (right) { const sg = g.createLinearGradient(gx + T, 0, gx + T - 7, 0); sg.addColorStop(0, 'rgba(0,0,0,.55)'); sg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = sg; g.fillRect(gx + T - 7, GR * T, 7, VH * T - GR * T); }
+        g.fillStyle = (c % 2) ? '#f2c94c' : '#2a2236'; g.fillRect(gx, GR * T - 3, T, 3);
+      }
       for (let r = 0; r < VH; r++) for (let c = c0; c <= c1; c++) {
         const t = grid[r][c]; if (!t) continue;
         const X = c * T, Y = r * T;
