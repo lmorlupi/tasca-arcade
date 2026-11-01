@@ -383,8 +383,17 @@ registerGame({
       for (let i = 0; i < 190; i++) pr.flora.push({ x: pRand(0, WW), y: pRand(b.hz + 14, b.bot + 6), k: Math.random() < 0.58 ? 'tuft' : 'flower', c: ['#ffffff', '#ffd23f', '#ff7aa8', '#b58cff', '#ff9a4a'][(Math.random() * 5) | 0], s: pRand(0.7, 1.3), ph: Math.random() * 6 });
       for (let i = 0; i < 5; i++) pr.things.push(pLizard());
       for (let i = 0; i < 3; i++) pr.things.push(pMouse());
+      pr.fam = FAMILY.map((f, i) => Object.assign({}, f, { x: WW * 0.5 + (i - 1.5) * 92, y: (b.top + b.bot) / 2 + (i % 2 ? 22 : -14), cd: 0, play: 0, ph: i * 1.7 }));
+      pr.blanket = { x: WW * 0.5, y: (b.top + b.bot) / 2 + 6 };
       state = 'prato';
     };
+    // La famiglia al picnic: figure disegnate a cartone animato (nessuna foto)
+    const FAMILY = [
+      { name: 'LUCA', skin: '#e9b995', top: '#6a4a34', hair: '#c4c4cb', style: 'short', goatee: true, shades: true, say: 'LUCA: LA CANNA CON LA PIUMA! +40', tool: 'wand' },
+      { name: 'MARIA PAOLA', skin: '#efc3a2', top: '#a9d4e8', hair: '#7a5230', style: 'curly', say: 'MARIA PAOLA: UN BOCCONE DI TONNO! +40', tool: 'tuna' },
+      { name: 'ARIANNA', skin: '#f0c4a4', top: '#7fa6d8', hair: '#3b261a', style: 'long', say: 'ARIANNA: LA PALLINA DI STAGNOLA! +40', tool: 'foil' },
+      { name: 'FEDERICO', skin: '#eebd9a', top: '#2f3038', hair: '#4a3020', style: 'tousled', say: 'FEDERICO: GRATTINI SULLA TESTA! +40', tool: 'scratch' },
+    ];
     const inSun = (x, y) => pr.suns.some(s => { const dx = (x - s.x) / s.r, dy = (y - s.y) / (s.r * 0.5); return dx * dx + dy * dy < 1; });
     const pratoPounce = () => {
       const M = pr.M; if (pr.phase !== 'play' || M.leap > 0 || pr.en < 4) return;
@@ -437,6 +446,13 @@ registerGame({
       if (tired && Math.random() < dt * 0.4 && pr.msgT <= 0) pSay('MARGOT E STANCA: VAI AL SOLE!');
       pr.cam = Math.max(0, Math.min(WW - pVW(), M.x - pVW() / 2));
 
+      for (const f of pr.fam) {
+        f.cd = Math.max(0, f.cd - dt); f.play = Math.max(0, f.play - dt);
+        if (f.cd <= 0 && M.leap <= 0 && M.still > 0.3 && Math.hypot(M.x - f.x, (M.y - f.y) * 1.4) < 52) {
+          f.cd = 14; f.play = 2.4; pr.score += 40; pr.en = Math.min(100, pr.en + 22); pSay(f.say); api.haptic(14);
+          [523, 659, 784].forEach((fr, i) => setTimeout(() => api.beep(fr, 0.1, 'triangle', 0.04), i * 80));
+        }
+      }
       for (const c of pr.things) {
         if (c.gone > 0) { c.gone -= dt; if (c.gone <= 0) Object.assign(c, c.kind === 'liz' ? pLizard() : pMouse()); continue; }
         const d = Math.hypot(c.x - M.x, (c.y - M.y) * 1.6); c.ph += dt;
@@ -511,12 +527,14 @@ registerGame({
         g.strokeStyle = `rgba(255,250,200,${0.18 + 0.1 * Math.sin(tm * 2 + s.x)})`; g.lineWidth = 1.2; for (let k = 0; k < 5; k++) { const a = tm * 0.3 + k * 1.26; g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x + Math.cos(a) * s.r * 0.95, s.y + Math.sin(a) * s.r * 0.45); g.stroke(); }
         g.fillStyle = 'rgba(255,255,220,.8)'; for (let k = 0; k < 4; k++) { const a = tm * 0.9 + k * 1.6 + s.x; g.fillRect(s.x + Math.cos(a) * s.r * 0.6, s.y - 4 - ((tm * 12 + k * 9) % 22), 1.6, 1.6); }
       }
+      { const bl = pr.blanket; if (bl.x > cam - 220 && bl.x < cam + VWp + 220) { g.save(); g.translate(bl.x, bl.y); g.scale(1, 0.42); g.rotate(0); const w = 190, h = 130; for (let i = 0; i < 8; i++) for (let j = 0; j < 6; j++) { g.fillStyle = (i + j) % 2 ? '#f2eee4' : '#d9473f'; g.fillRect(-w + i * w / 4, -h + j * h / 3, w / 4 + 0.5, h / 3 + 0.5); } g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 2; g.strokeRect(-w, -h, w * 2, h * 2); g.restore(); } }
       // elementi ordinati per profondita
       const list = [];
       for (const f of pr.flora) if (f.x > cam - 20 && f.x < cam + VWp + 20) list.push({ y: f.y, fn: () => drawFlora(f) });
       for (const r of pr.rocks) if (r.x > cam - 40 && r.x < cam + VWp + 40) list.push({ y: r.y, fn: () => drawRock(r) });
       for (const h of pr.holes) if (h.x > cam - 30 && h.x < cam + VWp + 30) list.push({ y: h.y - 1, fn: () => drawHole(h) });
       for (const c of pr.things) if (c.x > cam - 40 && c.x < cam + VWp + 40) list.push({ y: c.y + 1, fn: () => (c.kind === 'liz' ? drawLizard(c) : drawMouse(c)) });
+      for (const f of pr.fam) if (f.x > cam - 40 && f.x < cam + VWp + 40) list.push({ y: f.y, fn: () => drawPerson(f) });
       list.push({ y: pr.M.y + 2, fn: drawMargotP });
       list.sort((p, q) => p.y - q.y); list.forEach(o => o.fn());
       // farfalle
@@ -530,7 +548,7 @@ registerGame({
       text('ENERGIA', 12, 24, 9, 'left', '#ffffff');
       if (pr.M.sun) text('PRENDE IL SOLE... ZZZ', W / 2, H * 0.2, 14, 'center', '#fff3a0');
       if (pr.msgT > 0) { g.globalAlpha = Math.min(1, pr.msgT * 2); text(pr.msg, W / 2, H * 0.14, 13, 'center', '#ffffff'); g.globalAlpha = 1; }
-      if (pr.phase === 'play' && pr.clock < 6) text('TOCCA UNA LUCERTOLA O UN TOPOLINO · A = SALTA · FERMA SUL SOLE = RICARICA', W / 2, H - 16, 9, 'center', '#ffffff');
+      if (pr.phase === 'play' && pr.clock < 6) text('LA FAMIGLIA E AL PICNIC: VAI DA LORO · INSEGUI LUCERTOLE E TOPOLINI · SOLE = RICARICA', W / 2, H - 16, 9, 'center', '#ffffff');
       if (pr.paused) banner(['PAUSA', 'TOCCA']);
       if (pr.phase === 'end') banner([pr.score >= pr.best && pr.score > 0 ? 'NUOVO RECORD!' : 'TEMPO!', 'PUNTI ' + pr.score, 'RECORD ' + pr.best, 'TOCCA']);
     };
@@ -579,6 +597,44 @@ registerGame({
       g.fillStyle = '#f2b6c0'; g.beginPath(); g.arc(3.5, -7.2, 3, 0, 7); g.fill(); g.fillStyle = '#d98f9d'; g.beginPath(); g.arc(3.5, -7.2, 1.7, 0, 7); g.fill();
       g.fillStyle = '#111'; g.fillRect(8.4, -4, 1.4, 1.4); g.fillStyle = '#e57b8a'; g.fillRect(10.6, -2.8, 1.5, 1.5);
       g.strokeStyle = '#4a4540'; g.lineWidth = 1; g.beginPath(); g.moveTo(-3, 2); g.lineTo(-4, 3.6); g.moveTo(3, 2); g.lineTo(4, 3.6); g.stroke();
+      g.restore();
+    };
+    const drawPerson = f => {
+      const k = pDepth(f.y) * 1.05, near = Math.hypot(pr.M.x - f.x, pr.M.y - f.y) < 150, t = time + f.ph;
+      g.save(); g.translate(f.x, f.y); g.scale(k, k);
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(0, 1, 15, 4, 0, 0, 7); g.fill();
+      g.fillStyle = '#2f4a78'; g.fillRect(-6, -14, 5, 14); g.fillRect(1, -14, 5, 14);
+      g.fillStyle = '#222'; g.fillRect(-7, -2, 7, 3); g.fillRect(0, -2, 7, 3);
+      const bob = Math.sin(t * 2.2) * 0.8; g.translate(0, bob);
+      g.fillStyle = f.top; g.beginPath(); g.roundRect(-9, -33, 18, 22, 5); g.fill();
+      g.strokeStyle = f.top; g.lineWidth = 4.5; g.lineCap = 'round';
+      const wave = near && f.play <= 0 ? Math.sin(t * 7) * 0.5 : 0;
+      g.beginPath(); g.moveTo(-9, -30); g.lineTo(-13, -19); g.stroke();
+      g.beginPath(); g.moveTo(9, -30); if (near && f.play <= 0) g.lineTo(15, -42 + wave * 6); else if (f.play > 0) g.lineTo(18, -22 + Math.sin(t * 9) * 3); else g.lineTo(13, -19); g.stroke();
+      g.fillStyle = f.skin; g.beginPath(); g.arc(near && f.play <= 0 ? 15 : f.play > 0 ? 18 : 13, near && f.play <= 0 ? -42 + wave * 6 : f.play > 0 ? -22 + Math.sin(t * 9) * 3 : -19, 2.6, 0, 7); g.fill(); g.beginPath(); g.arc(-13, -19, 2.6, 0, 7); g.fill();
+      // testa
+      g.fillStyle = f.skin; g.beginPath(); g.arc(0, -43, 11, 0, 7); g.fill();
+      g.fillStyle = f.hair;
+      if (f.style === 'long') { g.beginPath(); g.roundRect(-13, -50, 5, 26, 3); g.fill(); g.beginPath(); g.roundRect(8, -50, 5, 26, 3); g.fill(); g.beginPath(); g.arc(0, -46, 11.5, Math.PI, 0); g.fill(); }
+      else if (f.style === 'curly') { for (let i = 0; i < 9; i++) { const a = Math.PI + i * Math.PI / 8; g.beginPath(); g.arc(Math.cos(a) * 11, -44 + Math.sin(a) * 11, 4.2, 0, 7); g.fill(); } g.beginPath(); g.arc(-11, -42, 3.6, 0, 7); g.arc(11, -42, 3.6, 0, 7); g.fill(); }
+      else if (f.style === 'tousled') { g.beginPath(); g.arc(0, -46, 11.5, Math.PI, 0); g.fill(); for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(-9 + i * 4.5, -53); g.lineTo(-7 + i * 4.5, -60 - (i % 2) * 2); g.lineTo(-5 + i * 4.5, -53); g.fill(); } }
+      else { g.beginPath(); g.arc(0, -46, 11.5, Math.PI, 0); g.fill(); g.fillRect(-11.5, -47, 3, 4); g.fillRect(8.5, -47, 3, 4); }
+      // viso
+      if (f.shades) { g.fillStyle = '#111'; g.beginPath(); g.roundRect(-9, -46, 8, 5, 2); g.fill(); g.beginPath(); g.roundRect(1, -46, 8, 5, 2); g.fill(); g.fillRect(-2, -45, 4, 1.2); }
+      else { g.fillStyle = '#2a1a12'; g.beginPath(); g.arc(-4, -44, 1.5, 0, 7); g.arc(4, -44, 1.5, 0, 7); g.fill(); }
+      g.strokeStyle = '#8a3a30'; g.lineWidth = 1.3; g.beginPath(); g.arc(0, -39.5, 4.2, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      if (f.goatee) { g.fillStyle = '#d4d4da'; g.beginPath(); g.ellipse(0, -35.5, 4.6, 3, 0, 0, 7); g.fill(); }
+      g.fillStyle = 'rgba(240,120,110,.35)'; g.beginPath(); g.arc(-7, -40, 2.2, 0, 7); g.arc(7, -40, 2.2, 0, 7); g.fill();
+      // attrezzo mentre gioca con Margot
+      if (f.play > 0) {
+        const sw = Math.sin(t * 9) * 5;
+        if (f.tool === 'wand') { g.strokeStyle = '#8a5a2a'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(18, -22); g.quadraticCurveTo(30, -40, 36 + sw, -30); g.stroke(); g.fillStyle = '#ff7aa8'; g.beginPath(); g.ellipse(37 + sw, -28, 3, 6, 0.6, 0, 7); g.fill(); }
+        else if (f.tool === 'tuna') { g.fillStyle = '#cfd6e0'; g.fillRect(14, -26, 9, 7); g.fillStyle = '#5aa0e0'; g.fillRect(14, -24, 9, 3); }
+        else if (f.tool === 'foil') { g.fillStyle = '#e8ecf4'; g.beginPath(); g.arc(24, -12 - Math.abs(Math.sin(t * 6)) * 14, 4.5, 0, 7); g.fill(); g.fillStyle = '#9aa3b8'; g.beginPath(); g.arc(25, -11 - Math.abs(Math.sin(t * 6)) * 14, 2, 0, 7); g.fill(); }
+        else { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = 'bold 9px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText('~~', 22, -26); }
+        g.fillStyle = '#e8455f'; g.font = 'bold 10px ui-monospace, monospace'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText('\u2665', 0, -64 - (2.4 - f.play) * 6);
+      }
+      if (near) { g.fillStyle = 'rgba(0,0,0,.45)'; g.font = 'bold 8px ui-monospace, monospace'; const w = g.measureText ? g.measureText(f.name).width : 40; g.fillRect(-w / 2 - 3, 6, w + 6, 11); g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText(f.name, 0, 14.5); }
       g.restore();
     };
     const drawMargotP = () => {
