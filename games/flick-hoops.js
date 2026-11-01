@@ -5,6 +5,8 @@ registerGame({
   blurb: 'Lancia la palla con uno scatto del dito verso il canestro. Più forte e dritto scatti, meglio va. 60 secondi, il canestro si muove.',
   inputs: ['FLICK', 'TOCCO DIRETTO'],
   size: [360, 620],
+  bg: '#141a2e',
+  flexH: true,
   create(api) {
     const { cv, g } = api;
     const W = cv.width, H = cv.height;

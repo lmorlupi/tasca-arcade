@@ -3,7 +3,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   const cv = $('cv'), g = cv.getContext('2d');
-  const menuEl = $('menu'), bootEl = $('boot');
+  const menuEl = $('menu'), bootEl = $('boot'), screenEl = $('screen');
   const games = [];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -145,6 +145,7 @@
     inst = null; cur = null; mode = 'menu';
     letSleep();
     cv.classList.add('off'); menuEl.classList.remove('off');
+    screenEl.style.background = '';
     renderMenu();
   };
 
@@ -155,8 +156,14 @@
     audioUnlock();
     try {
       if (def.tilt) await enableMotion();
-      cv.width = def.size[0]; cv.height = def.size[1];
-      cv.style.aspectRatio = def.size[0] + ' / ' + def.size[1];
+      // I giochi "flexH" prendono l'altezza che serve a riempire lo schermo senza fasce ai lati.
+      let cw = def.size[0], ch = def.size[1];
+      if (def.flexH && screenEl.clientWidth > 0 && screenEl.clientHeight > 0) {
+        ch = Math.round(clamp(cw * screenEl.clientHeight / screenEl.clientWidth, cw * 1.25, cw * 2.1));
+      }
+      cv.width = cw; cv.height = ch;
+      cv.style.aspectRatio = cw + ' / ' + ch;
+      screenEl.style.background = def.bg || '';
       cv.classList.remove('off'); menuEl.classList.add('off');
       cur = def; mode = 'game';
       for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
@@ -299,10 +306,12 @@
     if (mode !== 'game' || !inst || !inst.onPointer) return;
     e.preventDefault();
     if (type === 'down') { try { cv.setPointerCapture(e.pointerId); } catch (err) {} }
-    const r = cv.getBoundingClientRect();
+    // Il canvas riempie lo schermo con object-fit: contain: le coordinate vanno riportate all'area realmente disegnata.
+    const r = cv.getBoundingClientRect(), k = Math.min(r.width / cv.width, r.height / cv.height);
+    const ox = r.left + (r.width - cv.width * k) / 2, oy = r.top + (r.height - cv.height * k) / 2;
     inst.onPointer({
       type: type === 'cancel' ? 'up' : type, cancelled: type === 'cancel', id: e.pointerId, t: e.timeStamp,
-      x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height,
+      x: (e.clientX - ox) / k, y: (e.clientY - oy) / k,
     });
   };
   ['down', 'move', 'up', 'cancel'].forEach(t => cv.addEventListener('pointer' + t, ptr(t)));

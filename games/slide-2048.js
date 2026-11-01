@@ -5,11 +5,13 @@ registerGame({
   blurb: 'Fai scorrere le tessere con uno swipe: due uguali si fondono. Arriva a 2048. B annulla l\'ultima mossa.',
   inputs: ['SWIPE', 'VIBRAZIONE', 'D-PAD'],
   size: [360, 620],
+  bg: '#141a2e',
+  flexH: true,
   create(api) {
     const { cv, g } = api;
     const W = cv.width, H = cv.height;
     const N = 4, CELL = 72, GAP = 10, BOARD = N * CELL + (N + 1) * GAP;
-    const BX = (W - BOARD) / 2, BY = 170;
+    const BX = (W - BOARD) / 2, BY = Math.max(130, Math.round((H - BOARD) / 2) + 24);
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
     const TILE = {
       2: ['#d9e4ff', '#141a2e'], 4: ['#b9ceff', '#141a2e'], 8: ['#f58a25', '#fff'], 16: ['#f5651f', '#fff'],

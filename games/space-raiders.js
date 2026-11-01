@@ -5,6 +5,8 @@ registerGame({
   blurb: 'Ondate di invasori scendono a gruppi. Trascina il dito per guidare la nave: spara da sola mentre tocchi. Ripara dietro gli scudi.',
   inputs: ['TRASCINA', 'AUTO-FUOCO', 'VIBRAZIONE'],
   size: [360, 640],
+  bg: '#0b1020',
+  flexH: true,
   create(api) {
     const { cv, g, held } = api;
     const W = cv.width, H = cv.height;

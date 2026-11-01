@@ -5,9 +5,12 @@ registerGame({
   blurb: 'Incastra i pezzi e completa le righe. Tocca per ruotare, trascina per spostare, scatta in basso per far cadere.',
   inputs: ['SWIPE', 'TAP', 'D-PAD'],
   size: [340, 626],
+  flexH: true,
+  bg: '#141a2e',
   create(api) {
     const { cv, g } = api;
-    const COLS = 10, ROWS = 18, S = 4, C = 8 * S;
+    const COLS = 10, ROWS = 18, S = 4, HUDH = 46;
+    const CW = Math.floor((cv.width - 6) / COLS), CH = Math.floor((cv.height - HUDH - 6) / ROWS);
     const PAL = ['#141a2e', '#1f2744', '#5a6aa0', '#eef1ff'];
     const COLORS = ['#25c4f0', '#f5d31c', '#a655b8', '#4cc24a', '#e5413b', '#3d5fe0', '#f58a25'];
 
@@ -144,9 +147,9 @@ registerGame({
       } else if (e.type === 'move') {
         if (!sw || e.id !== sw.id || state !== 'play') return;
         if (Math.hypot(e.x - sw.x, e.y - sw.y) > 18) sw.moved = true;
-        while (e.x - sw.ax >= C) { act('right'); sw.ax += C; }
-        while (sw.ax - e.x >= C) { act('left'); sw.ax -= C; }
-        while (e.y - sw.ay >= C * 1.3) { act('down', true); sw.ay += C * 1.3; }
+        while (e.x - sw.ax >= CW) { act('right'); sw.ax += CW; }
+        while (sw.ax - e.x >= CW) { act('left'); sw.ax -= CW; }
+        while (e.y - sw.ay >= CH * 1.3) { act('down', true); sw.ay += CH * 1.3; }
         if (e.y < sw.ay) sw.ay = e.y;
       } else if (e.type === 'up') {
         if (!sw || e.id !== sw.id) return;
@@ -160,15 +163,15 @@ registerGame({
     };
 
     // Disegno: campo a tutta larghezza, striscia con i dati in alto.
-    const FX = 10, FY = 46, FW = COLS * C, FH = ROWS * C;
+    const FW = COLS * CW, FH = ROWS * CH, FX = Math.round((cv.width - FW) / 2), FY = HUDH;
     const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
-    const cell = (px, py, type, size = C) => {
-      const u = size / 8;
-      rect(px, py, size, size, 'rgba(0,0,0,.45)');
-      rect(px, py, size - u, size - u, COLORS[type]);
-      rect(px, py, size - u, u, 'rgba(255,255,255,.55)');
-      rect(px, py, u, size - u, 'rgba(255,255,255,.35)');
-      rect(px + 2 * u, py + 2 * u, size - 5 * u, size - 5 * u, 'rgba(255,255,255,.12)');
+    const cell = (px, py, type, w = CW, h = CH) => {
+      const u = w / 8, v = h / 8;
+      rect(px, py, w, h, 'rgba(0,0,0,.45)');
+      rect(px, py, w - u, h - v, COLORS[type]);
+      rect(px, py, w - u, v, 'rgba(255,255,255,.55)');
+      rect(px, py, u, h - v, 'rgba(255,255,255,.35)');
+      rect(px + 2 * u, py + 2 * v, w - 5 * u, h - 5 * v, 'rgba(255,255,255,.12)');
     };
     const text = (s, x, y, px, align, c) => {
       g.font = `bold ${px}px ui-monospace, Menlo, Consolas, monospace`;
@@ -207,34 +210,34 @@ registerGame({
       const first = Math.min(...next.m.map(r => r.indexOf(1)).filter(i => i >= 0));
       const w = nc - first, h = nm.length, cs = 10;
       nm.forEach((row, r) => row.forEach((v, c) => {
-        if (v) cell(276 + (54 - w * cs) / 2 + (c - first) * cs, 6 + (30 - h * cs) / 2 + r * cs, next.t, cs);
+        if (v) cell(276 + (54 - w * cs) / 2 + (c - first) * cs, 6 + (30 - h * cs) / 2 + r * cs, next.t, cs, cs);
       }));
 
       // campo
       g.save(); g.translate(FX, FY);
       rect(0, 0, FW, FH, '#0f1527');
-      for (let c = 1; c < COLS; c++) rect(c * C, 0, 1, FH, PAL[1]);
-      for (let r = 1; r < ROWS; r++) rect(0, r * C, FW, 1, PAL[1]);
+      for (let c = 1; c < COLS; c++) rect(c * CW, 0, 1, FH, PAL[1]);
+      for (let r = 1; r < ROWS; r++) rect(0, r * CH, FW, 1, PAL[1]);
       g.strokeStyle = PAL[2]; g.lineWidth = 3; g.strokeRect(-1.5, -1.5, FW + 3, FH + 3);
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
         const v = board[r][c];
         if (v === null) continue;
         if (state === 'clear' && clearRows.includes(r) && ((clearT / 80) | 0) % 2 === 0) continue;
-        cell(c * C, r * C, v);
+        cell(c * CW, r * CH, v);
       }
       if (state === 'play') {
         let gy = cur.y; while (valid(cur.m, cur.x, gy + 1)) gy++;
         if (gy !== cur.y) {
           g.strokeStyle = COLORS[cur.t]; g.globalAlpha = .6; g.lineWidth = S;
           cur.m.forEach((row, r) => row.forEach((v, c) => {
-            if (v && gy + r >= 0) g.strokeRect((cur.x + c) * C + S, (gy + r) * C + S, C - 2 * S, C - 2 * S);
+            if (v && gy + r >= 0) g.strokeRect((cur.x + c) * CW + S, (gy + r) * CH + S, CW - 2 * S, CH - 2 * S);
           }));
           g.globalAlpha = 1;
         }
       }
       if (state === 'play' || state === 'pause' || state === 'over') {
         cur.m.forEach((row, r) => row.forEach((v, c) => {
-          if (v && cur.y + r >= 0) cell((cur.x + c) * C, (cur.y + r) * C, cur.t);
+          if (v && cur.y + r >= 0) cell((cur.x + c) * CW, (cur.y + r) * CH, cur.t);
         }));
       }
       if (state === 'pause') banner(['PAUSA', 'START']);

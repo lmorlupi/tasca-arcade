@@ -5,6 +5,7 @@ registerGame({
   blurb: 'Scala le travi, salta i barili del gorilla e raggiungi la principessa. Due pollici: croce per muoversi, A per saltare.',
   inputs: ['D-PAD', 'MULTI-TOCCO', 'SALTO'],
   size: [480, 768],
+  bg: '#141a2e',
   create(api) {
     // Il gioco lavora in un mondo logico di 240x288; il canvas lo ingrandisce di 2.
     const { cv, g, held } = api;

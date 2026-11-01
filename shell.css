@@ -28,9 +28,9 @@ button { touch-action: none; cursor: pointer; font: inherit; }
   padding: 12px 12px 20px;
   box-shadow: inset -4px -4px 0 var(--shell-dark), 0 10px 30px rgba(0,0,0,.6);
 }
-.bezel { position: relative; background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 6px 5px 6px; }
+.bezel { position: relative; background: var(--bezel); border-radius: 10px 10px 36px 10px; padding: 5px 2px 5px; }
 .bezel::before { content: ''; position: absolute; left: 9px; top: 2px; width: 4px; height: 4px; border-radius: 50%; background: #e5413b; }
-.screen { position: relative; background: var(--screen-bg); border: 2px solid #1a1a22; overflow: hidden; }
+.screen { position: relative; background: var(--screen-bg); border: 1px solid #1a1a22; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; touch-action: none; }
 canvas.off { display: none; }
 
@@ -39,49 +39,49 @@ canvas.off { display: none; }
    Alla pressione il tasto scende subito; al rilascio torna su con un piccolo rimbalzo, come la gomma. */
 .pad {
   position: relative; display: flex; justify-content: space-between; align-items: center;
-  margin-top: 8px; padding: 0 calc(var(--e) * 1.6) 0 calc(var(--e) * 1); touch-action: none; --e: min(10px, 2.63vw);
+  margin-top: 8px; padding: 0 calc(var(--e) * 2) 0 calc(var(--e) * 1); touch-action: none; --e: min(10px, 2.63vw);
 }
 
-/* Croce a sinistra */
-.dpad { position: relative; width: calc(var(--e) * 14.4); height: calc(var(--e) * 14.4); touch-action: none; isolation: isolate; }
+/* Croce a sinistra: grande, perché ci sta sopra il pollice */
+.dpad { position: relative; width: calc(var(--e) * 16); height: calc(var(--e) * 16); touch-action: none; isolation: isolate; }
 .dpad::before { content: ''; position: absolute; inset: calc(var(--e) * -2) calc(var(--e) * -1.2) calc(var(--e) * -2) calc(var(--e) * -2); }
 .dpad::after {
-  content: ''; position: absolute; inset: calc(var(--e) * -.7); border-radius: 50%; z-index: -1;
+  content: ''; position: absolute; inset: calc(var(--e) * -.8); border-radius: 50%; z-index: -1;
   background: radial-gradient(circle, rgba(0,0,0,.2) 0 66%, rgba(0,0,0,.08) 100%);
   box-shadow: inset 0 3px 5px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.18);
 }
-.dpad .cross { position: absolute; inset: 0; transform: perspective(calc(var(--e) * 24)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .16s var(--spring); }
+.dpad .cross { position: absolute; inset: 0; transform: perspective(calc(var(--e) * 26)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .16s var(--spring); }
 .dpad.down .cross { transition: transform .025s linear; }
 .dpad button {
-  position: absolute; width: calc(var(--e) * 4.8); height: calc(var(--e) * 4.8); border: 0; padding: 0; pointer-events: none;
-  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #babacb; font-size: calc(var(--e) * 1.45);
+  position: absolute; width: calc(var(--e) * 5.4); height: calc(var(--e) * 5.4); border: 0; padding: 0; pointer-events: none;
+  background: linear-gradient(#585866, #3a3a45 55%, #31313b); color: #babacb; font-size: calc(var(--e) * 1.7);
   box-shadow: inset 0 2px 0 rgba(255,255,255,.16), inset 0 -3px 0 rgba(0,0,0,.45), 0 3px 3px rgba(0,0,0,.35);
   transition: filter .14s var(--spring), transform .14s var(--spring);
 }
 .dpad button.on { filter: brightness(.55); transform: translateY(2px) scale(.97); transition: none; }
-.dpad .up { left: calc(var(--e) * 4.800000000000001); top: 0; border-radius: 7px 7px 0 0; }
-.dpad .down { left: calc(var(--e) * 4.800000000000001); top: calc(var(--e) * 9.600000000000001); border-radius: 0 0 7px 7px; }
-.dpad .left { left: 0; top: calc(var(--e) * 4.800000000000001); border-radius: 7px 0 0 7px; }
-.dpad .right { left: calc(var(--e) * 9.600000000000001); top: calc(var(--e) * 4.800000000000001); border-radius: 0 7px 7px 0; }
-.dpad .mid { position: absolute; left: calc(var(--e) * 4.800000000000001); top: calc(var(--e) * 4.800000000000001); width: calc(var(--e) * 4.8); height: calc(var(--e) * 4.8); background: #3d3d48; }
+.dpad .up { left: calc(var(--e) * 5.3); top: 0; border-radius: 8px 8px 0 0; }
+.dpad .down { left: calc(var(--e) * 5.3); top: calc(var(--e) * 10.6); border-radius: 0 0 8px 8px; }
+.dpad .left { left: 0; top: calc(var(--e) * 5.3); border-radius: 8px 0 0 8px; }
+.dpad .right { left: calc(var(--e) * 10.6); top: calc(var(--e) * 5.3); border-radius: 0 8px 8px 0; }
+.dpad .mid { position: absolute; left: calc(var(--e) * 5.3); top: calc(var(--e) * 5.3); width: calc(var(--e) * 5.4); height: calc(var(--e) * 5.4); background: #3d3d48; }
 .dpad .mid::after {
-  content: ''; position: absolute; inset: calc(var(--e) * 1.2); border-radius: 50%;
+  content: ''; position: absolute; inset: calc(var(--e) * 1.4); border-radius: 50%;
   background: radial-gradient(circle at 50% 60%, #2f2f39, #474753); box-shadow: inset 0 2px 3px rgba(0,0,0,.6);
 }
 
-/* A e B a destra: A più in alto, inclinati come sul vero apparecchio */
+/* A e B a destra: grandi, A più in alto, inclinati come sul vero apparecchio */
 .ab {
-  position: relative; width: calc(var(--e) * 12.6); height: calc(var(--e) * 9); transform: rotate(-22deg); touch-action: none;
+  position: relative; width: calc(var(--e) * 14.8); height: calc(var(--e) * 10.6); transform: rotate(-22deg); touch-action: none;
   /* le due conche nella scocca, dove sta il pollice */
   background:
-    radial-gradient(circle at calc(var(--e) * 3.15) calc(var(--e) * 6.05), rgba(0,0,0,.22) 0 calc(var(--e) * 3.15), transparent calc(var(--e) * 3.25)),
-    radial-gradient(circle at calc(var(--e) * 9.45) calc(var(--e) * 3.25), rgba(0,0,0,.22) 0 calc(var(--e) * 3.15), transparent calc(var(--e) * 3.25));
+    radial-gradient(circle at calc(var(--e) * 3.8) calc(var(--e) * 7.1), rgba(0,0,0,.22) 0 calc(var(--e) * 3.4), transparent calc(var(--e) * 3.5)),
+    radial-gradient(circle at calc(var(--e) * 11.3) calc(var(--e) * 3.9), rgba(0,0,0,.22) 0 calc(var(--e) * 3.4), transparent calc(var(--e) * 3.5));
 }
-.ab::before { content: ''; position: absolute; inset: calc(var(--e) * -1.8) calc(var(--e) * -1.4); }
+.ab::before { content: ''; position: absolute; inset: calc(var(--e) * -2) calc(var(--e) * -1.5); }
 .ab button {
-  position: absolute; width: calc(var(--e) * 5.5); height: calc(var(--e) * 5.5); border-radius: 50%; border: 0; pointer-events: none;
+  position: absolute; width: calc(var(--e) * 6.6); height: calc(var(--e) * 6.6); border-radius: 50%; border: 0; pointer-events: none;
   background: radial-gradient(120% 120% at 32% 22%, #707080 0%, #4a4a57 36%, #30303a 70%, #24242c 100%);
-  color: #d2d2de; font-weight: 800; font-size: calc(var(--e) * 1.7); text-shadow: 0 1px 0 rgba(0,0,0,.5);
+  color: #d2d2de; font-weight: 800; font-size: calc(var(--e) * 2); text-shadow: 0 1px 0 rgba(0,0,0,.5);
   box-shadow: inset 0 2px 1px rgba(255,255,255,.24), inset 0 -4px 6px rgba(0,0,0,.45), 0 6px 0 #1b1b22, 0 8px 8px rgba(0,0,0,.4);
   transition: transform .16s var(--spring), box-shadow .16s var(--spring), background .16s;
 }
@@ -90,8 +90,8 @@ canvas.off { display: none; }
   background: radial-gradient(120% 120% at 50% 35%, #34343e 0%, #2a2a33 60%, #22222a 100%);
   box-shadow: inset 0 3px 8px rgba(0,0,0,.7), 0 1px 0 #1b1b22, 0 2px 3px rgba(0,0,0,.35); transition: none;
 }
-.ab .b { left: calc(var(--e) * .4); top: calc(var(--e) * 3.3); }
-.ab .a { left: calc(var(--e) * 6.7); top: calc(var(--e) * .5); }
+.ab .b { left: calc(var(--e) * 0.5); top: calc(var(--e) * 3.8); }
+.ab .a { left: calc(var(--e) * 8); top: calc(var(--e) * 0.6); }
 
 /* Menu, Select e Start: una riga sopra lo schermo, affiancati. */
 .meta { display: flex; justify-content: center; gap: 10px; margin-bottom: 2px; }
@@ -158,16 +158,16 @@ canvas.off { display: none; }
   .gbc {
     position: fixed; inset: 0; width: 100%; height: 100%; border-radius: 0; box-shadow: none;
     display: flex; flex-direction: column;
-    padding: max(4px, env(safe-area-inset-top)) max(5px, env(safe-area-inset-right))
-             max(8px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
+    padding: max(4px, env(safe-area-inset-top)) max(2px, env(safe-area-inset-right))
+             max(8px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left));
   }
   .bezel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border-radius: 8px 8px 28px 8px; }
   .screen { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
-  canvas { width: auto; height: auto; max-width: 100%; max-height: 100%; }
+  canvas { width: 100%; height: 100%; object-fit: contain; }
   .pad { flex: 0 0 auto; margin-top: 8px; margin-bottom: 4px; }
 }
 @media (min-width: 521px) {
   .pad { --e: 10px; }
   .screen { height: 480px; display: flex; align-items: center; justify-content: center; }
-  canvas { width: auto; height: auto; max-width: 100%; max-height: 100%; }
+  canvas { width: 100%; height: 100%; object-fit: contain; }
 }

@@ -5,6 +5,7 @@ registerGame({
   blurb: 'Inclina l\'iPhone per far rotolare la sfera nel labirinto. Evita i buchi, raccogli le monete, raggiungi l\'uscita. A azzera l\'inclinazione.',
   inputs: ['INCLINA', 'VIBRAZIONE', 'D-PAD'],
   size: [468, 784],
+  bg: '#141a2e',
   tilt: true,
   create(api) {
     const { cv, g, tilt } = api;
