@@ -19,6 +19,27 @@ registerGame({
     const S = Math.min(CW / VWd, CH / VHd), OX = (CW - VWd * S) / 2, OY = (CH - VHd * S) / 2;
     const R = 7, GRAV = 640, CX = 180, CY = 220, AR = 162, LANE_X = 322, WALL_L = 18, WALL_R = 342;
     let hi = api.store.get('hi', 0);
+    // Suoni sintetizzati (nessun file) e vibrazioni piu' decise
+    const tone = (f, d, type, v, at) => at ? setTimeout(() => api.beep(f, d, type, v), at) : api.beep(f, d, type, v);
+    const hap = (...ms) => { ms.forEach((m, i) => { if (i === 0) api.haptic(m); else setTimeout(() => api.haptic(m), i * 55); }); };
+    // Stile elettromeccanico anni '70-'80: campanelli (toni non armonici), solenoidi, relè e il "knocker" delle partite extra.
+    const bell = (f, v, at) => { tone(f, 0.38, 'sine', v, at); tone(f * 2.76, 0.22, 'sine', v * 0.55, at); tone(f * 5.4, 0.12, 'sine', v * 0.3, at); };
+    const knock = (at) => { tone(70, 0.11, 'square', 0.14, at); tone(48, 0.15, 'sine', 0.16, at); tone(2400, 0.01, 'square', 0.04, at); };
+    const sfx = {
+      flipper() { tone(62, 0.07, 'square', 0.11); tone(124, 0.05, 'sawtooth', 0.07, 6); tone(2600, 0.008, 'square', 0.04, 3); tone(1700, 0.008, 'square', 0.03, 22); hap(30); },
+      flipperHit() { tone(200, 0.04, 'square', 0.08); tone(100, 0.07, 'triangle', 0.1, 8); hap(42); },
+      bumper(i) { bell(440 + (i || 0) * 70, 0.09); tone(95, 0.05, 'square', 0.1); hap(50, 22); },
+      sling() { tone(210, 0.04, 'square', 0.11); tone(2300, 0.01, 'square', 0.05, 4); tone(420, 0.04, 'sawtooth', 0.05, 14); hap(38, 16); },
+      target() { bell(784, 0.07); hap(26); },
+      drop() { tone(280, 0.04, 'square', 0.09); tone(140, 0.08, 'triangle', 0.1, 25); tone(1900, 0.008, 'square', 0.04, 3); hap(28); },
+      lane(i) { bell(990 + i * 120, 0.05); hap(14); },
+      saucer() { tone(150, 0.12, 'triangle', 0.1); for (let k = 0; k < 3; k++) tone(260 - k * 50, 0.05, 'square', 0.06, 40 + k * 40); hap(45, 25); },
+      eject() { tone(90, 0.07, 'square', 0.12); tone(1800, 0.01, 'square', 0.05, 3); tone(520, 0.1, 'square', 0.06, 30); hap(55); },
+      launch() { tone(55, 0.18, 'sine', 0.14); for (let k = 0; k < 5; k++) tone(300 - k * 40, 0.035, 'triangle', 0.05, 40 + k * 22); tone(2000, 0.01, 'square', 0.05, 150); hap(70, 30); },
+      drain() { for (let k = 0; k < 4; k++) tone(260 - k * 50, 0.14, 'sawtooth', 0.07, k * 100); knock(420); hap(120, 60, 30); },
+      jingle() { bell(523, 0.08); bell(659, 0.08, 140); bell(784, 0.08, 280); bell(1046, 0.09, 420); knock(560); hap(45, 35, 35); },
+      wall(v) { if (v > 260) tone(1300 + Math.random() * 400, 0.01, 'square', Math.min(0.04, v / 18000)); },
+    };
     let lastN = [0, -1], mult = 0, bonusN = 0, laneLit = [false, false, false], saucer = { x: 180, y: 192, t: 0, ball: false }, slingL = 0, slingR = 0, extraLit = false;
     const MULTS = [1, 2, 3, 5, 10];
     const drops = Array.from({ length: 4 }, (_, i) => ({ x: 300, y: 196 + i * 18, down: false })); let dropReset = 0, starL = 0, starR = 0, extraFlash = 0;
@@ -37,8 +58,8 @@ registerGame({
     const nudge = (dx, dy) => {
       if (state !== 'play' || tilted || nudgeCool > 0 || !ball || ball.lane || saucer.ball) return;
       nudgeCool = 0.28; tiltG += 0.3; ball.vx += dx * 110; ball.vy += dy * 130;
-      shake = { x: dx * 3.2, y: dy * 3.2, t: 0.22 }; api.haptic(35); setTimeout(() => api.haptic(18), 70); setTimeout(() => api.haptic(10), 130); api.beep(95, 0.09, 'triangle', 0.06);
-      if (tiltG >= 1) { tilted = true; bonusN = 0; flash('TILT!'); msgT = 2.4; api.haptic(90); setTimeout(() => api.haptic(70), 120); setTimeout(() => api.haptic(70), 240); setTimeout(() => api.haptic(50), 360); api.beep(110, 0.5, 'sawtooth', 0.07); }
+      shake = { x: dx * 3.2, y: dy * 3.2, t: 0.22 }; hap(60, 35, 20, 10); tone(85, 0.12, 'triangle', 0.12); tone(60, 0.1, 'square', 0.09, 30);
+      if (tiltG >= 1) { tilted = true; bonusN = 0; flash('TILT!'); msgT = 2.4; hap(120, 90, 90, 70, 70, 50); for (let k = 0; k < 6; k++) tone(180 - k * 20, 0.16, 'sawtooth', 0.1, k * 110); }
       else if (tiltG >= 0.6) { flash('ATTENTO AL TILT!'); }
     };
     const spawn = () => { ball = { x: 332, y: 602, vx: 0, vy: 0, lane: true }; charge = 0; charging = false; tilted = false; tiltG = 0; };
@@ -70,9 +91,10 @@ registerGame({
     const laneX = [150, 180, 210];
     const posts = [[40, 428], [96, 500], [320, 428], [264, 500]];
     const step = h => {
-      if (saucer.ball) { saucer.t -= h; if (saucer.t <= 0) { saucer.ball = false; ball.vx = (Math.random() * 2 - 1) * 160; ball.vy = 230; saucer.cool = 0.5; api.beep(520, 0.08, 'square', 0.05); } else { ball.x = saucer.x; ball.y = saucer.y; return; } }
+      if (saucer.ball) { saucer.t -= h; if (saucer.t <= 0) { saucer.ball = false; ball.vx = (Math.random() * 2 - 1) * 160; ball.vy = 230; saucer.cool = 0.5; sfx.eject(); } else { ball.x = saucer.x; ball.y = saucer.y; return; } }
       ball.vy += GRAV * h; ball.x += ball.vx * h; ball.y += ball.vy * h;
       const sp = Math.hypot(ball.vx, ball.vy); if (sp > 1100) { ball.vx *= 1100 / sp; ball.vy *= 1100 / sp; }
+      const pvx = ball.vx, pvy = ball.vy;
       if (ball.lane) {
         if (ball.x < LANE_X + R) { ball.x = LANE_X + R; ball.vx = Math.abs(ball.vx) * 0.2; }
         if (ball.y > 250 && ball.x > WALL_R - R) { ball.x = WALL_R - R; ball.vx = -Math.abs(ball.vx) * 0.2; }
@@ -89,27 +111,28 @@ registerGame({
         if (ball.x < WALL_L + R) { ball.x = WALL_L + R; ball.vx = Math.abs(ball.vx) * 0.5; }
         if (ball.x > WALL_R - R) { ball.x = WALL_R - R; ball.vx = -Math.abs(ball.vx) * 0.5; }
       }
-      for (const b of bumpers) if (colCircleOut(b.x, b.y, b.r, 0.5, 340)) { b.l = 0.25; bonusN = Math.min(10, bonusN + (chain % 3 === 2 ? 1 : 0)); score += 100 + chain * 10; chain = Math.min(chain + 1, 20); api.haptic(8); api.beep(520 + (b.x % 5) * 60, 0.05, 'square', 0.05); }
-      for (const t of targets) if (colCircleOut(t.x, t.y, 8, 0.3, 80)) { if (!t.lit) { t.lit = true; score += 250; api.beep(900, 0.07, 'triangle', 0.05); if (targets.every(q => q.lit)) { score += 1000; if (balls < 5) { balls++; flash('PALLINA EXTRA!'); } else flash('BONUS +1000!'); targets.forEach(q => q.lit = false); extraFlash = 2; api.haptic(30); [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), i * 90)); } } }
-      for (const dt of drops) if (!dt.down && colCircleOut(dt.x, dt.y, 7, 0.3, 40)) { dt.down = true; score += 200; api.haptic(10); api.beep(760, 0.05, 'square', 0.05); if (drops.every(q => q.down)) { score += 1000; dropReset = 1.2; flash('BANCO COMPLETO +1000'); if (mult < MULTS.length - 1 && drops.length) { bonusN = Math.min(10, bonusN + 2); } } }
-      if (Math.hypot(ball.x - 58, ball.y - 484) < 9 && starL <= 0) { starL = 2; score += 200; api.beep(990, 0.05, 'triangle', 0.05); }
-      if (Math.hypot(ball.x - 302, ball.y - 484) < 9 && starR <= 0) { starR = 2; score += 200; api.beep(990, 0.05, 'triangle', 0.05); }
+      if (Math.abs(ball.vx - pvx) + Math.abs(ball.vy - pvy) > 220) sfx.wall(Math.hypot(ball.vx, ball.vy));
+      for (const b of bumpers) if (colCircleOut(b.x, b.y, b.r, 0.5, 340)) { b.l = 0.25; bonusN = Math.min(10, bonusN + (chain % 3 === 2 ? 1 : 0)); score += 100 + chain * 10; chain = Math.min(chain + 1, 20); sfx.bumper(bumpers.indexOf(b)); }
+      for (const t of targets) if (colCircleOut(t.x, t.y, 8, 0.3, 80)) { if (!t.lit) { t.lit = true; score += 250; sfx.target(); if (targets.every(q => q.lit)) { score += 1000; if (balls < 5) { balls++; flash('PALLINA EXTRA!'); } else flash('BONUS +1000!'); targets.forEach(q => q.lit = false); extraFlash = 2; api.haptic(30); sfx.jingle(); } } }
+      for (const dt of drops) if (!dt.down && colCircleOut(dt.x, dt.y, 7, 0.3, 40)) { dt.down = true; score += 200; sfx.drop(); if (drops.every(q => q.down)) { score += 1000; dropReset = 1.2; flash('BANCO COMPLETO +1000'); if (mult < MULTS.length - 1 && drops.length) { bonusN = Math.min(10, bonusN + 2); } } }
+      if (Math.hypot(ball.x - 58, ball.y - 484) < 9 && starL <= 0) { starL = 2; score += 200; sfx.lane(2); }
+      if (Math.hypot(ball.x - 302, ball.y - 484) < 9 && starR <= 0) { starR = 2; score += 200; sfx.lane(2); }
       for (const [ax, ay, bx, by] of guides) colSegment(ax, ay, bx, by, 3, 0.35);
       for (const [px, py] of posts) colCircleOut(px, py, 4, 0.5, 0);
       // rimbalzatori a molla sopra le palette
-      if (colSegment(46, 432, 96, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingL = 0.2; score += 10; api.haptic(8); api.beep(380, 0.04, 'square', 0.05); }
-      if (colSegment(314, 432, 264, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingR = 0.2; score += 10; api.haptic(8); api.beep(380, 0.04, 'square', 0.05); }
+      if (colSegment(46, 432, 96, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingL = 0.2; score += 10; sfx.sling(); }
+      if (colSegment(314, 432, 264, 500, 3, 0.2)) { ball.vx += lastN[0] * 300; ball.vy += lastN[1] * 300; slingR = 0.2; score += 10; sfx.sling(); }
       // corsie in alto: accendi A, B, C per salire di moltiplicatore
-      if (ball.y > 92 && ball.y < 116) laneX.forEach((lx, i) => { if (Math.abs(ball.x - lx) < 9 && !laneLit[i]) { laneLit[i] = true; score += 50; api.beep(700 + i * 120, 0.05, 'triangle', 0.05); if (laneLit.every(Boolean)) { laneLit = [false, false, false]; if (mult < MULTS.length - 1) { mult++; flash('MOLTIPLICATORE x' + MULTS[mult]); [660, 880].forEach((f, k) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), k * 90)); } else { score += 500; flash('ZONA BONUS +500'); } } } });
+      if (ball.y > 92 && ball.y < 116) laneX.forEach((lx, i) => { if (Math.abs(ball.x - lx) < 9 && !laneLit[i]) { laneLit[i] = true; score += 50; sfx.lane(i); if (laneLit.every(Boolean)) { laneLit = [false, false, false]; if (mult < MULTS.length - 1) { mult++; flash('MOLTIPLICATORE x' + MULTS[mult]); sfx.jingle(); } else { score += 500; flash('ZONA BONUS +500'); } } } });
       // piattello: trattiene la pallina un attimo, poi la sputa via
       if (saucer.cool > 0) saucer.cool -= h;
-      if (!saucer.ball && !(saucer.cool > 0) && Math.hypot(ball.x - saucer.x, ball.y - saucer.y) < 10) { saucer.ball = true; saucer.t = 0.8; ball.vx = 0; ball.vy = 0; score += 500; bonusN = Math.min(10, bonusN + 1); api.haptic(20); api.beep(300, 0.2, 'sine', 0.05); if (mult >= 2) { score += 2500; flash('SPECIAL +2500!'); [660, 880, 1046].forEach((f, k) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), k * 80)); } }
+      if (!saucer.ball && !(saucer.cool > 0) && Math.hypot(ball.x - saucer.x, ball.y - saucer.y) < 10) { saucer.ball = true; saucer.t = 0.8; ball.vx = 0; ball.vy = 0; score += 500; bonusN = Math.min(10, bonusN + 1); sfx.saucer(); if (mult >= 2) { score += 2500; flash('SPECIAL +2500!'); sfx.jingle(); } }
       if (saucer.ball) { ball.x = saucer.x; ball.y = saucer.y; ball.vx = 0; ball.vy = 0; }
       for (const k of ['L', 'R']) {
         const p = PIV[k], tp = flipperTip(k), w = flip[k].w;
         // velocita' della punta (perpendicolare al segmento): w * lunghezza
         const a = flip[k].a, wx = -Math.sin(a) * w * FLEN, wy = Math.cos(a) * w * FLEN;
-        if (colSegment(p[0], p[1], tp[0], tp[1], FR, 0.45, wx, wy) && Math.abs(w) > 1) { api.haptic(6); }
+        if (colSegment(p[0], p[1], tp[0], tp[1], FR, 0.45, wx, wy) && Math.abs(w) > 1) { sfx.flipperHit(); }
       }
     };
 
@@ -125,7 +148,7 @@ registerGame({
       if (ball.lane && ball.y > 590) { if (wantR || charging) { charging = true; charge = Math.min(1, charge + dt * 1.1); } }
       for (const k of ['L', 'R']) {
         const f = flip[k], on = k === 'L' ? wantL : wantR, was = f.down; f.down = on;
-        if (on && !was && !ball.lane) { api.haptic(10); api.beep(160, 0.04, 'square', 0.04); }
+        if (on && !was && !ball.lane) { sfx.flipper(); }
         const target = k === 'L' ? (on ? ACT : REST) : (on ? Math.PI - ACT : Math.PI - REST);
         const diff = target - f.a, mv = Math.sign(diff) * Math.min(Math.abs(diff), FSPEED * dt);
         f.w = dt > 0 ? mv / dt : 0; f.a += mv;
@@ -133,13 +156,13 @@ registerGame({
       const n = 8; for (let i = 0; i < n; i++) step(dt / n);
       if (ball.y > 668) {
         const bonus = bonusN * 1000 * MULTS[mult]; score += bonus; const had = bonusN;
-        balls--; chain = 0; bonusN = 0; api.haptic(40); api.beep(140, 0.35, 'sawtooth', 0.06);
+        balls--; chain = 0; bonusN = 0; sfx.drain();
         if (balls <= 0) endGame(); else { spawn(); flash(had ? 'BONUS ' + bonus : 'PALLINA ' + (4 - balls)); }
       }
     };
     const launch = () => {
       if (!ball || !ball.lane || ball.y < 590) return;
-      ball.vy = -(780 + 330 * charge); ball.vx = 0; api.haptic(25); api.beep(220, 0.1, 'square', 0.05); charging = false; charge = 0;
+      ball.vy = -(780 + 330 * charge); ball.vx = 0; sfx.launch(); charging = false; charge = 0;
     };
     const act = k => {
       if (k === 'start' || (k === 'a' && state !== 'play')) { if (state === 'title' || state === 'over') newGame(); else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play'; return; }
