@@ -1,83 +1,111 @@
-// Mazzo da 40 carte "all'italiana" in stile piacentino (denari, coppe, spade, bastoni), disegnato dal codice: grafica originale.
+// Mazzo da 40 carte "all'italiana" in stile popolare (denari, coppe, spade, bastoni): carta bianca, contorni neri, colori pieni.
+// Disegnato interamente dal codice: grafica originale, ispirata allo stile dei mazzi regionali ma non copiata da nessun mazzo.
 // Una carta e' { s: seme 0..3, n: 1..10 }  (8 = fante, 9 = cavallo, 10 = re).
 (function () {
   const SUITS = ['DENARI', 'COPPE', 'SPADE', 'BASTONI'];
-  const COL = ['#b8760a', '#b02a44', '#2a63a8', '#2f7a3a'];            // colore del seme: numeri, bordo, abiti
+  const COL = ['#b8860b', '#a82a3a', '#2a5fa8', '#2f7a3a'];            // colore del seme per numeri e cartigli
   const NAMES = { 1: 'A', 8: 'F', 9: 'C', 10: 'R' };
+  const R_ = '#d9322a', G_ = '#2f7a3a', Y_ = '#f2c21a', B_ = '#2a5fa8', K_ = '#1a1208', SK = '#f0b890', W_ = '#fffefa';
   const deck = () => { const d = []; for (let s = 0; s < 4; s++) for (let n = 1; n <= 10; n++) d.push({ s, n }); return d; };
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const label = c => (NAMES[c.n] || c.n) + ' ' + SUITS[c.s][0].toLowerCase() + SUITS[c.s].slice(1);
   const lg = (g, x0, y0, x1, y1, stops) => { const k = g.createLinearGradient(x0, y0, x1, y1); stops.forEach(([o, c]) => k.addColorStop(o, c)); return k; };
-  const rg = (g, x, y, r0, r1, stops) => { const k = g.createRadialGradient(x, y, r0, x, y, r1); stops.forEach(([o, c]) => k.addColorStop(o, c)); return k; };
+  const ink = (g, w) => { g.strokeStyle = K_; g.lineWidth = w; g.lineJoin = 'round'; g.lineCap = 'round'; };
 
-  // ---- semi, centrati in (cx, cy) con raggio r
-  function suitSymbol(g, s, cx, cy, r) {
-    g.save(); g.translate(cx, cy); g.lineJoin = 'round'; g.lineCap = 'round';
-    if (s === 0) {                                   // denaro: moneta con raggi di sole, bordo perlinato e volto
-      g.fillStyle = 'rgba(120,70,0,.25)'; for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283; g.beginPath(); g.moveTo(Math.cos(a - 0.1) * r * 0.78, Math.sin(a - 0.1) * r * 0.78); g.lineTo(Math.cos(a) * r * 1.08, Math.sin(a) * r * 1.08); g.lineTo(Math.cos(a + 0.1) * r * 0.78, Math.sin(a + 0.1) * r * 0.78); g.fill(); }
-      g.fillStyle = rg(g, -r * 0.2, -r * 0.25, r * 0.1, r * 1.0, [[0, '#fff0a0'], [0.5, '#e8b83a'], [1, '#a8700a']]); g.beginPath(); g.arc(0, 0, r * 0.82, 0, 7); g.fill(); g.strokeStyle = '#7a4a05'; g.lineWidth = r * 0.07; g.stroke();
-      g.fillStyle = '#8a5a0a'; for (let k = 0; k < 14; k++) { const a = k / 14 * 6.283; g.beginPath(); g.arc(Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7, r * 0.045, 0, 7); g.fill(); }
-      g.fillStyle = rg(g, -r * 0.1, -r * 0.1, r * 0.05, r * 0.5, [[0, '#ffe58a'], [1, '#c8921a']]); g.beginPath(); g.arc(0, 0, r * 0.5, 0, 7); g.fill(); g.stroke();
-      g.fillStyle = '#7a4a05'; g.beginPath(); g.arc(-r * 0.14, -r * 0.08, r * 0.04, 0, 7); g.arc(r * 0.14, -r * 0.08, r * 0.04, 0, 7); g.fill(); g.lineWidth = r * 0.04; g.beginPath(); g.moveTo(0, -r * 0.05); g.lineTo(-r * 0.04, r * 0.1); g.lineTo(r * 0.04, r * 0.1); g.stroke(); g.beginPath(); g.arc(0, r * 0.12, r * 0.15, 0.3, 2.8); g.stroke();
-    } else if (s === 1) {                            // coppa: calice con fascia e piede
-      g.fillStyle = lg(g, -r * 0.8, 0, r * 0.8, 0, [[0, '#7a1428'], [0.4, '#d8405a'], [1, '#8a1a30']]);
-      g.beginPath(); g.moveTo(-r * 0.85, -r * 0.85); g.lineTo(r * 0.85, -r * 0.85); g.quadraticCurveTo(r * 0.9, r * 0.15, 0, r * 0.3); g.quadraticCurveTo(-r * 0.9, r * 0.15, -r * 0.85, -r * 0.85); g.fill(); g.strokeStyle = '#5a0f20'; g.lineWidth = r * 0.07; g.stroke();
-      g.fillStyle = '#f2c94c'; g.beginPath(); g.ellipse(0, -r * 0.85, r * 0.85, r * 0.13, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#e8b83a'; g.fillRect(-r * 0.78, -r * 0.4, r * 1.56, r * 0.1);
-      g.fillStyle = '#e8b83a'; g.beginPath(); g.ellipse(0, r * 0.38, r * 0.18, r * 0.12, 0, 0, 7); g.fill(); g.stroke(); g.fillRect(-r * 0.08, r * 0.4, r * 0.16, r * 0.34); g.strokeRect(-r * 0.08, r * 0.4, r * 0.16, r * 0.34);
-      g.beginPath(); g.moveTo(-r * 0.55, r * 0.9); g.quadraticCurveTo(0, r * 0.62, r * 0.55, r * 0.9); g.lineTo(r * 0.5, r * 0.98); g.lineTo(-r * 0.5, r * 0.98); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(-r * 0.5, -r * 0.35, r * 0.08, r * 0.3, -0.1, 0, 7); g.fill();
-    } else if (s === 2) {                            // spada curva con coccia e pomolo
-      g.rotate(-0.4);
-      g.fillStyle = lg(g, -r * 0.3, 0, r * 0.4, 0, [[0, '#f4f8fc'], [0.5, '#b8c8dc'], [1, '#6a82a0']]);
-      g.beginPath(); g.moveTo(-r * 0.14, r * 0.3); g.quadraticCurveTo(-r * 0.6, -r * 0.35, r * 0.06, -r * 1.05); g.quadraticCurveTo(r * 0.36, -r * 0.4, r * 0.16, r * 0.3); g.closePath(); g.fill(); g.strokeStyle = '#3a4a62'; g.lineWidth = r * 0.06; g.stroke();
-      g.strokeStyle = 'rgba(60,80,110,.55)'; g.lineWidth = r * 0.03; g.beginPath(); g.moveTo(-r * 0.02, r * 0.2); g.quadraticCurveTo(-r * 0.3, -r * 0.35, r * 0.06, -r * 0.85); g.stroke();
-      g.fillStyle = '#e8b83a'; g.strokeStyle = '#7a4a05'; g.lineWidth = r * 0.05; g.beginPath(); g.roundRect(-r * 0.55, r * 0.26, r * 1.1, r * 0.17, r * 0.08); g.fill(); g.stroke(); g.beginPath(); g.arc(-r * 0.55, r * 0.345, r * 0.1, 0, 7); g.arc(r * 0.55, r * 0.345, r * 0.1, 0, 7); g.fill(); g.stroke();
-      g.fillStyle = '#6a3a14'; g.beginPath(); g.roundRect(-r * 0.09, r * 0.42, r * 0.18, r * 0.42, r * 0.04); g.fill(); g.strokeStyle = '#c89a4a'; g.lineWidth = r * 0.03; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(-r * 0.09, r * (0.5 + k * 0.12)); g.lineTo(r * 0.09, r * (0.5 + k * 0.12)); g.stroke(); }
-      g.fillStyle = '#e8b83a'; g.beginPath(); g.arc(0, r * 0.95, r * 0.14, 0, 7); g.fill(); g.strokeStyle = '#7a4a05'; g.stroke();
-    } else {                                         // bastone nodoso con foglie
-      g.rotate(0.5);
-      g.fillStyle = lg(g, -r * 0.3, 0, r * 0.3, 0, [[0, '#6a3f14'], [0.45, '#c8904a'], [1, '#5a3410']]);
-      g.beginPath(); g.moveTo(-r * 0.17, r * 1.0); g.quadraticCurveTo(-r * 0.22, r * 0.2, -r * 0.34, -r * 0.5); g.quadraticCurveTo(-r * 0.35, -r * 1.12, 0, -r * 1.1); g.quadraticCurveTo(r * 0.35, -r * 1.12, r * 0.34, -r * 0.5); g.quadraticCurveTo(r * 0.22, r * 0.2, r * 0.17, r * 1.0); g.closePath(); g.fill(); g.strokeStyle = '#3a200a'; g.lineWidth = r * 0.06; g.stroke();
-      g.strokeStyle = 'rgba(40,20,5,.45)'; g.lineWidth = r * 0.04; for (const [y, w] of [[-0.35, 0.3], [0.1, 0.24], [0.5, 0.2]]) { g.beginPath(); g.moveTo(-r * w, r * y); g.quadraticCurveTo(0, r * (y + 0.1), r * w, r * y); g.stroke(); }
-      g.fillStyle = '#3f8a3a'; g.strokeStyle = '#1f4a1c'; g.lineWidth = r * 0.04; g.beginPath(); g.ellipse(r * 0.34, r * 0.05, r * 0.26, r * 0.1, -0.55, 0, 7); g.fill(); g.stroke(); g.beginPath(); g.ellipse(-r * 0.34, r * 0.5, r * 0.26, r * 0.1, 0.55, 0, 7); g.fill(); g.stroke();
-      g.fillStyle = 'rgba(255,255,255,.3)'; g.beginPath(); g.ellipse(-r * 0.16, -r * 0.55, r * 0.06, r * 0.32, 0.1, 0, 7); g.fill();
+  // ---- semi (centrati in cx, cy; r = raggio)
+  function suitSymbol(g, s, cx, cy, r, big) {
+    g.save(); g.translate(cx, cy); ink(g, Math.max(0.8, r * 0.07));
+    if (s === 0) {                                   // denaro: disco con anello di perline e volto rosso
+      g.fillStyle = Y_; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#b57d00'; for (let k = 0; k < 22; k++) { const a = k / 22 * 6.283; g.beginPath(); g.arc(Math.cos(a) * r * 0.86, Math.sin(a) * r * 0.86, r * 0.055, 0, 7); g.fill(); }
+      g.fillStyle = Y_; g.beginPath(); g.arc(0, 0, r * 0.74, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#b57d00'; for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283 + 0.2; g.beginPath(); g.arc(Math.cos(a) * r * 0.64, Math.sin(a) * r * 0.64, r * 0.05, 0, 7); g.fill(); }
+      g.fillStyle = R_; g.beginPath(); g.arc(0, 0, r * 0.55, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = K_; g.beginPath(); g.ellipse(-r * 0.19, -r * 0.1, r * 0.07, r * 0.05, 0, 0, 7); g.ellipse(r * 0.19, -r * 0.1, r * 0.07, r * 0.05, 0, 0, 7); g.fill();
+      g.lineWidth = r * 0.05; g.beginPath(); g.moveTo(0, -r * 0.08); g.quadraticCurveTo(-r * 0.09, r * 0.08, 0, r * 0.12); g.stroke(); g.beginPath(); g.arc(0, r * 0.08, r * 0.27, 0.35, 2.8); g.stroke();
+      g.fillStyle = '#a81c14'; g.beginPath(); g.arc(-r * 0.3, r * 0.1, r * 0.07, 0, 7); g.arc(r * 0.3, r * 0.1, r * 0.07, 0, 7); g.fill();
+    } else if (s === 1) {                            // coppa: calice verde e oro con l'interno rosso
+      g.fillStyle = G_; g.beginPath(); g.moveTo(-r * 0.78, -r * 0.62); g.quadraticCurveTo(-r * 0.86, r * 0.25, -r * 0.2, r * 0.36); g.lineTo(r * 0.2, r * 0.36); g.quadraticCurveTo(r * 0.86, r * 0.25, r * 0.78, -r * 0.62); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = R_; g.beginPath(); g.ellipse(0, -r * 0.62, r * 0.78, r * 0.2, 0, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-r * 0.82, -r * 0.16); g.quadraticCurveTo(0, r * 0.06, r * 0.82, -r * 0.16); g.lineTo(r * 0.8, r * 0.04); g.quadraticCurveTo(0, r * 0.26, -r * 0.8, r * 0.04); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = Y_; g.beginPath(); g.ellipse(0, r * 0.4, r * 0.22, r * 0.11, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = G_; g.beginPath(); g.moveTo(-r * 0.1, r * 0.46); g.lineTo(-r * 0.07, r * 0.76); g.lineTo(r * 0.07, r * 0.76); g.lineTo(r * 0.1, r * 0.46); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-r * 0.58, r * 0.96); g.quadraticCurveTo(-r * 0.4, r * 0.7, 0, r * 0.7); g.quadraticCurveTo(r * 0.4, r * 0.7, r * 0.58, r * 0.96); g.closePath(); g.fill(); g.stroke(); g.fillStyle = G_; g.fillRect(-r * 0.4, r * 0.86, r * 0.8, r * 0.07);
+    } else if (s === 2) {                            // spada dritta: lama blu, elsa dorata
+      g.fillStyle = B_; g.beginPath(); g.moveTo(0, -r * 1.05); g.lineTo(r * 0.14, -r * 0.8); g.lineTo(r * 0.14, r * 0.22); g.lineTo(-r * 0.14, r * 0.22); g.lineTo(-r * 0.14, -r * 0.8); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#6aa0e0'; g.fillRect(-r * 0.04, -r * 0.85, r * 0.08, r * 1.0);
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-r * 0.62, r * 0.34); g.quadraticCurveTo(-r * 0.7, r * 0.12, -r * 0.4, r * 0.2); g.lineTo(r * 0.4, r * 0.2); g.quadraticCurveTo(r * 0.7, r * 0.12, r * 0.62, r * 0.34); g.quadraticCurveTo(r * 0.3, r * 0.38, 0, r * 0.46); g.quadraticCurveTo(-r * 0.3, r * 0.38, -r * 0.62, r * 0.34); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = R_; g.beginPath(); g.arc(0, r * 0.3, r * 0.07, 0, 7); g.fill();
+      g.fillStyle = '#8a1c14'; g.beginPath(); g.roundRect(-r * 0.09, r * 0.44, r * 0.18, r * 0.42, r * 0.04); g.fill(); g.stroke(); g.fillStyle = Y_; g.fillRect(-r * 0.1, r * 0.55, r * 0.2, r * 0.05); g.fillRect(-r * 0.1, r * 0.7, r * 0.2, r * 0.05);
+      g.fillStyle = Y_; g.beginPath(); g.arc(0, r * 0.96, r * 0.13, 0, 7); g.fill(); g.stroke();
+    } else {                                         // bastone: tronco verde con le sezioni rosse
+      g.rotate(0.28);
+      g.fillStyle = G_; g.beginPath(); g.moveTo(-r * 0.2, r * 1.0); g.lineTo(-r * 0.3, -r * 0.7); g.lineTo(r * 0.3, -r * 0.7); g.lineTo(r * 0.2, r * 1.0); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#7ac24a'; g.beginPath(); g.moveTo(-r * 0.14, r * 0.9); g.lineTo(-r * 0.2, -r * 0.6); g.lineTo(-r * 0.08, -r * 0.6); g.lineTo(-r * 0.03, r * 0.9); g.closePath(); g.fill();
+      g.strokeStyle = '#17401b'; g.lineWidth = r * 0.035; for (const y of [-0.2, 0.2, 0.6]) { g.beginPath(); g.moveTo(-r * 0.22, r * y); g.lineTo(r * 0.2, r * (y + 0.05)); g.stroke(); } ink(g, Math.max(0.8, r * 0.07));
+      g.fillStyle = '#f0802a'; g.beginPath(); g.ellipse(0, -r * 0.7, r * 0.3, r * 0.14, 0, 0, 7); g.fill(); g.stroke(); g.strokeStyle = '#a8480a'; g.lineWidth = r * 0.03; g.beginPath(); g.ellipse(0, -r * 0.7, r * 0.18, r * 0.08, 0, 0, 7); g.stroke(); ink(g, Math.max(0.8, r * 0.07));
+      g.fillStyle = G_; g.beginPath(); g.moveTo(r * 0.24, -r * 0.1); g.lineTo(r * 0.56, -r * 0.3); g.lineTo(r * 0.5, -r * 0.05); g.lineTo(r * 0.24, r * 0.1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#f0802a'; g.beginPath(); g.ellipse(r * 0.55, -r * 0.18, r * 0.07, r * 0.14, 0, 0, 7); g.fill(); g.stroke();
     }
     g.restore();
   }
 
-  // ---- figure (meta' alta, da specchiare)
-  function figure(g, n, col, w, h) {
-    const dark = '#3a2410';
-    g.save(); g.lineJoin = 'round';
-    const face = (cx, cy, r, mustache) => {
-      g.fillStyle = rg(g, cx - r * 0.3, cy - r * 0.3, 1, r * 1.1, [[0, '#ffe2c0'], [1, '#d8a878']]); g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); g.strokeStyle = dark; g.lineWidth = w * 0.012; g.stroke();
-      g.fillStyle = dark; g.beginPath(); g.arc(cx - r * 0.38, cy - r * 0.1, r * 0.09, 0, 7); g.arc(cx + r * 0.38, cy - r * 0.1, r * 0.09, 0, 7); g.fill();
-      g.beginPath(); g.moveTo(cx, cy - r * 0.05); g.lineTo(cx - r * 0.06, cy + r * 0.2); g.lineTo(cx + r * 0.06, cy + r * 0.2); g.stroke();
-      if (mustache) { g.beginPath(); g.moveTo(cx - r * 0.5, cy + r * 0.3); g.quadraticCurveTo(cx, cy + r * 0.12, cx + r * 0.5, cy + r * 0.3); g.quadraticCurveTo(cx, cy + r * 0.28, cx - r * 0.5, cy + r * 0.3); g.fillStyle = dark; g.fill(); }
-      else { g.beginPath(); g.arc(cx, cy + r * 0.38, r * 0.14, 0.2, 2.9); g.stroke(); }
-    };
-    const robe = (y0) => {
-      g.fillStyle = col; g.beginPath(); g.moveTo(-w * 0.34, 0); g.quadraticCurveTo(-w * 0.32, y0 + h * 0.05, -w * 0.12, y0); g.lineTo(w * 0.12, y0); g.quadraticCurveTo(w * 0.32, y0 + h * 0.05, w * 0.34, 0); g.closePath(); g.fill(); g.strokeStyle = dark; g.lineWidth = w * 0.012; g.stroke();
-      g.fillStyle = '#f2c94c'; for (let k = -2; k <= 2; k++) { g.beginPath(); g.arc(k * w * 0.1, y0 + h * 0.07 * (1 - Math.abs(k) * 0.18), w * 0.016, 0, 7); g.fill(); }
-    };
-    if (n === 10) {                                  // re: corona con gemme, barba, manto e scettro
-      robe(-h * 0.1); g.fillStyle = '#d9d9e8'; g.beginPath(); g.moveTo(-w * 0.34, 0); g.quadraticCurveTo(0, -h * 0.07, w * 0.34, 0); g.lineTo(w * 0.34, h * 0.01); g.lineTo(-w * 0.34, h * 0.01); g.closePath(); g.fill();
-      face(0, -h * 0.17, w * 0.15, true); g.fillStyle = '#e8e0d0'; g.beginPath(); g.moveTo(-w * 0.13, -h * 0.13); g.quadraticCurveTo(0, -h * 0.02, w * 0.13, -h * 0.13); g.quadraticCurveTo(0, -h * 0.08, -w * 0.13, -h * 0.13); g.fill();
-      g.fillStyle = '#f2c94c'; g.strokeStyle = '#7a4a05'; g.lineWidth = w * 0.014; g.beginPath(); g.moveTo(-w * 0.17, -h * 0.26); g.lineTo(-w * 0.19, -h * 0.4); g.lineTo(-w * 0.09, -h * 0.32); g.lineTo(0, -h * 0.44); g.lineTo(w * 0.09, -h * 0.32); g.lineTo(w * 0.19, -h * 0.4); g.lineTo(w * 0.17, -h * 0.26); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = col; for (const x of [-0.19, 0, 0.19]) { g.beginPath(); g.arc(w * x, -h * (x ? 0.4 : 0.44), w * 0.022, 0, 7); g.fill(); }
-      g.strokeStyle = '#7a4a05'; g.lineWidth = w * 0.03; g.beginPath(); g.moveTo(w * 0.34, 0); g.lineTo(w * 0.3, -h * 0.34); g.stroke(); g.fillStyle = '#f2c94c'; g.beginPath(); g.arc(w * 0.3, -h * 0.36, w * 0.045, 0, 7); g.fill(); g.stroke();
-    } else if (n === 9) {                            // cavallo: cavaliere con elmo piumato e cavallo che si impenna
-      g.fillStyle = '#8a5a30'; g.beginPath(); g.moveTo(-w * 0.36, 0); g.quadraticCurveTo(-w * 0.34, -h * 0.12, -w * 0.12, -h * 0.17); g.quadraticCurveTo(-w * 0.04, -h * 0.34, w * 0.1, -h * 0.34); g.lineTo(w * 0.26, -h * 0.24); g.quadraticCurveTo(w * 0.3, -h * 0.2, w * 0.2, -h * 0.17); g.quadraticCurveTo(w * 0.36, -h * 0.1, w * 0.36, 0); g.closePath(); g.fill(); g.strokeStyle = dark; g.lineWidth = w * 0.014; g.stroke();
-      g.fillStyle = dark; g.beginPath(); g.moveTo(w * 0.1, -h * 0.33); g.quadraticCurveTo(-w * 0.02, -h * 0.3, -w * 0.06, -h * 0.17); g.lineTo(-w * 0.02, -h * 0.17); g.quadraticCurveTo(0, -h * 0.28, w * 0.1, -h * 0.3); g.fill(); g.beginPath(); g.arc(w * 0.19, -h * 0.26, w * 0.016, 0, 7); g.fill();
-      g.fillStyle = col; g.beginPath(); g.moveTo(-w * 0.32, 0); g.quadraticCurveTo(-w * 0.3, -h * 0.07, -w * 0.12, -h * 0.08); g.lineTo(w * 0.12, -h * 0.08); g.quadraticCurveTo(w * 0.3, -h * 0.07, w * 0.32, 0); g.closePath(); g.fill(); g.stroke();
-      face(-w * 0.1, -h * 0.22, w * 0.1, true); g.fillStyle = '#c8c8d8'; g.beginPath(); g.moveTo(-w * 0.2, -h * 0.24); g.quadraticCurveTo(-w * 0.1, -h * 0.4, 0, -h * 0.24); g.closePath(); g.fill(); g.stroke(); g.fillStyle = col; g.beginPath(); g.moveTo(-w * 0.1, -h * 0.36); g.quadraticCurveTo(-w * 0.28, -h * 0.5, -w * 0.3, -h * 0.34); g.quadraticCurveTo(-w * 0.2, -h * 0.4, -w * 0.1, -h * 0.34); g.fill();
-    } else {                                         // fante: giovane con cappello piumato e farsetto a righe
-      robe(-h * 0.07); g.fillStyle = '#ffffff'; g.globalAlpha = 0.25; for (let k = -3; k <= 3; k++) g.fillRect(k * w * 0.08 - w * 0.015, -h * 0.07, w * 0.03, h * 0.07); g.globalAlpha = 1;
-      face(0, -h * 0.17, w * 0.14, false); g.fillStyle = '#6a3f14'; g.beginPath(); g.moveTo(-w * 0.15, -h * 0.17); g.quadraticCurveTo(-w * 0.17, -h * 0.05, -w * 0.1, -h * 0.03); g.lineTo(-w * 0.12, -h * 0.17); g.fill();
-      g.fillStyle = col; g.beginPath(); g.moveTo(-w * 0.21, -h * 0.2); g.quadraticCurveTo(0, -h * 0.4, w * 0.2, -h * 0.2); g.lineTo(w * 0.3, -h * 0.17); g.quadraticCurveTo(0, -h * 0.25, -w * 0.3, -h * 0.17); g.closePath(); g.fill(); g.stroke();
-      g.strokeStyle = '#e8e0d0'; g.lineWidth = w * 0.03; g.beginPath(); g.moveTo(w * 0.08, -h * 0.32); g.quadraticCurveTo(w * 0.32, -h * 0.5, w * 0.36, -h * 0.28); g.stroke(); g.strokeStyle = dark; g.lineWidth = w * 0.01; g.stroke();
+  // ---- assi: composizioni grandi
+  function ace(g, s, w, h) {
+    g.save(); ink(g, w * 0.012);
+    if (s === 0) {                                   // aquila coronata che regge il denaro
+      g.fillStyle = '#a8481c'; g.beginPath(); g.moveTo(0, -h * 0.2); g.quadraticCurveTo(-w * 0.45, -h * 0.28, -w * 0.4, h * 0.1); g.quadraticCurveTo(-w * 0.3, h * 0.0, -w * 0.18, h * 0.05); g.lineTo(-w * 0.2, h * 0.28); g.lineTo(w * 0.2, h * 0.28); g.lineTo(w * 0.18, h * 0.05); g.quadraticCurveTo(w * 0.3, h * 0.0, w * 0.4, h * 0.1); g.quadraticCurveTo(w * 0.45, -h * 0.28, 0, -h * 0.2); g.fill(); g.stroke();
+      g.strokeStyle = '#6a2a0a'; g.lineWidth = w * 0.01; for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(-w * 0.36 + k * w * 0.02, h * 0.06 - k * h * 0.05); g.quadraticCurveTo(-w * 0.28, h * 0.02 - k * h * 0.045, -w * 0.2, h * 0.04 - k * h * 0.02); g.stroke(); g.beginPath(); g.moveTo(w * 0.36 - k * w * 0.02, h * 0.06 - k * h * 0.05); g.quadraticCurveTo(w * 0.28, h * 0.02 - k * h * 0.045, w * 0.2, h * 0.04 - k * h * 0.02); g.stroke(); } ink(g, w * 0.012);
+      g.fillStyle = '#a8481c'; g.beginPath(); g.ellipse(0, -h * 0.17, w * 0.1, w * 0.11, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = Y_; g.beginPath(); g.moveTo(w * 0.04, -h * 0.18); g.lineTo(w * 0.16, -h * 0.15); g.lineTo(w * 0.05, -h * 0.13); g.closePath(); g.fill(); g.stroke(); g.fillStyle = K_; g.beginPath(); g.arc(-w * 0.0, -h * 0.185, w * 0.012, 0, 7); g.fill();
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-w * 0.09, -h * 0.26); g.lineTo(-w * 0.09, -h * 0.31); g.lineTo(-w * 0.045, -h * 0.28); g.lineTo(0, -h * 0.32); g.lineTo(w * 0.045, -h * 0.28); g.lineTo(w * 0.09, -h * 0.31); g.lineTo(w * 0.09, -h * 0.26); g.closePath(); g.fill(); g.stroke();
+      suitSymbol(g, 0, 0, h * 0.04, w * 0.27); g.fillStyle = Y_; for (const dx of [-1, 1]) { g.beginPath(); g.moveTo(dx * w * 0.12, h * 0.27); g.lineTo(dx * w * 0.2, h * 0.31); g.lineTo(dx * w * 0.05, h * 0.31); g.closePath(); g.fill(); g.stroke(); }
+    } else if (s === 1) {                            // coppa decorata con coperchio e base a gradini
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-w * 0.34, h * 0.3); g.lineTo(-w * 0.22, h * 0.2); g.lineTo(w * 0.22, h * 0.2); g.lineTo(w * 0.34, h * 0.3); g.closePath(); g.fill(); g.stroke(); g.fillStyle = G_; g.fillRect(-w * 0.28, h * 0.255, w * 0.56, h * 0.025);
+      g.fillStyle = R_; for (const dx of [-0.28, -0.14, 0, 0.14, 0.28]) { g.beginPath(); g.arc(w * dx, h * 0.31, w * 0.025, 0, 7); g.fill(); g.stroke(); }
+      g.fillStyle = G_; g.beginPath(); g.moveTo(-w * 0.07, h * 0.2); g.lineTo(-w * 0.05, h * 0.08); g.lineTo(w * 0.05, h * 0.08); g.lineTo(w * 0.07, h * 0.2); g.closePath(); g.fill(); g.stroke(); g.fillStyle = R_; g.beginPath(); g.arc(0, h * 0.14, w * 0.04, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = G_; g.beginPath(); g.moveTo(-w * 0.3, -h * 0.1); g.quadraticCurveTo(-w * 0.34, h * 0.08, -w * 0.08, h * 0.1); g.lineTo(w * 0.08, h * 0.1); g.quadraticCurveTo(w * 0.34, h * 0.08, w * 0.3, -h * 0.1); g.closePath(); g.fill(); g.stroke(); g.fillStyle = Y_; g.beginPath(); g.moveTo(-w * 0.31, -h * 0.02); g.quadraticCurveTo(0, h * 0.06, w * 0.31, -h * 0.02); g.lineTo(w * 0.3, h * 0.03); g.quadraticCurveTo(0, h * 0.11, -w * 0.3, h * 0.03); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = R_; g.beginPath(); g.moveTo(-w * 0.28, -h * 0.1); g.quadraticCurveTo(0, -h * 0.17, w * 0.28, -h * 0.1); g.quadraticCurveTo(0, -h * 0.05, -w * 0.28, -h * 0.1); g.fill(); g.stroke();
+      g.fillStyle = G_; g.beginPath(); g.moveTo(-w * 0.24, -h * 0.12); g.quadraticCurveTo(-w * 0.22, -h * 0.24, 0, -h * 0.26); g.quadraticCurveTo(w * 0.22, -h * 0.24, w * 0.24, -h * 0.12); g.quadraticCurveTo(0, -h * 0.17, -w * 0.24, -h * 0.12); g.fill(); g.stroke(); g.fillStyle = Y_; g.fillRect(-w * 0.03, -h * 0.34, w * 0.06, h * 0.08); g.strokeRect(-w * 0.03, -h * 0.34, w * 0.06, h * 0.08); g.fillStyle = R_; g.beginPath(); g.arc(0, -h * 0.36, w * 0.035, 0, 7); g.fill(); g.stroke();
+    } else if (s === 2) {                            // spada con ghirlanda di alloro e rose
+      g.strokeStyle = '#1f5a28'; g.lineWidth = w * 0.06; g.beginPath(); g.moveTo(-w * 0.28, h * 0.3); g.quadraticCurveTo(-w * 0.45, -h * 0.1, -w * 0.12, -h * 0.3); g.quadraticCurveTo(w * 0.15, -h * 0.38, w * 0.3, -h * 0.2); g.stroke(); ink(g, w * 0.012);
+      g.fillStyle = G_; for (let k = 0; k < 14; k++) { const t = k / 13, x = -w * 0.28 + (-w * 0.17 * Math.sin(t * 3.14) + t * w * 0.5) * 0.9, y = h * 0.3 - t * h * 0.5 - Math.sin(t * 3.14) * h * 0.18; g.beginPath(); g.ellipse(x, y, w * 0.045, w * 0.02, t * 5, 0, 7); g.fill(); g.stroke(); }
+      g.fillStyle = R_; for (const [x, y] of [[-w * 0.36, h * 0.04], [-w * 0.25, -h * 0.2], [w * 0.2, -h * 0.34]]) { g.beginPath(); g.arc(x, y, w * 0.045, 0, 7); g.fill(); g.stroke(); }
+      g.save(); g.rotate(-0.3); suitSymbol(g, 2, 0, 0, w * 0.4); g.restore();
+    } else {                                         // tronco con rosa e foglie
+      g.fillStyle = '#c8861e'; g.fillRect(-w * 0.34, h * 0.31, w * 0.68, h * 0.025);
+      g.save(); g.translate(0, h * 0.02); g.scale(1.9, 1.9); suitSymbol(g, 3, 0, 0, w * 0.18); g.restore();
+      g.fillStyle = R_; g.beginPath(); g.arc(-w * 0.2, h * 0.27, w * 0.06, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#a81c14'; g.beginPath(); g.arc(-w * 0.2, h * 0.27, w * 0.03, 0, 7); g.fill();
+      g.fillStyle = G_; for (const [x, y, a] of [[-w * 0.3, h * 0.25, -0.6], [-w * 0.1, h * 0.28, 0.5], [w * 0.25, h * 0.18, -0.2]]) { g.beginPath(); g.ellipse(x, y, w * 0.07, w * 0.03, a, 0, 7); g.fill(); g.stroke(); }
     }
     g.restore();
+  }
+
+  // ---- figure a mezzo busto (la meta' alta; l'altra e' la stessa capovolta)
+  function figure(g, n, s, w, h) {
+    ink(g, w * 0.012); g.lineJoin = 'round';
+    const item = (x, y, k) => suitSymbol(g, s, x, y, w * 0.09 * (k || 1));
+    const face = (cx, cy, r, mustache) => { g.fillStyle = SK; g.beginPath(); g.ellipse(cx, cy, r * 0.82, r, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = K_; g.beginPath(); g.ellipse(cx - r * 0.32, cy - r * 0.12, r * 0.09, r * 0.06, 0, 0, 7); g.ellipse(cx + r * 0.32, cy - r * 0.12, r * 0.09, r * 0.06, 0, 0, 7); g.fill(); g.lineWidth = w * 0.008; g.beginPath(); g.moveTo(cx, cy - r * 0.06); g.lineTo(cx - r * 0.08, cy + r * 0.2); g.lineTo(cx + r * 0.04, cy + r * 0.2); g.stroke(); g.beginPath(); g.arc(cx, cy + r * 0.35, r * 0.18, 0.3, 2.8); g.stroke(); g.lineWidth = w * 0.012; if (mustache) { g.fillStyle = K_; g.beginPath(); g.moveTo(cx - r * 0.55, cy + r * 0.3); g.quadraticCurveTo(cx - r * 0.1, cy + r * 0.05, cx, cy + r * 0.28); g.quadraticCurveTo(cx + r * 0.1, cy + r * 0.05, cx + r * 0.55, cy + r * 0.3); g.quadraticCurveTo(cx, cy + r * 0.42, cx - r * 0.55, cy + r * 0.3); g.fill(); } };
+    const feather = (x, y, a, c, L) => { g.fillStyle = c; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a - 0.5) * L, y + Math.sin(a - 0.5) * L, x + Math.cos(a) * L * 1.1, y + Math.sin(a) * L * 1.1); g.quadraticCurveTo(x + Math.cos(a + 0.5) * L, y + Math.sin(a + 0.5) * L, x, y); g.fill(); g.stroke(); };
+    const tunic = (top, c1, c2) => { g.fillStyle = c1; g.beginPath(); g.moveTo(-w * 0.34, 0); g.quadraticCurveTo(-w * 0.34, top + h * 0.04, -w * 0.13, top); g.lineTo(w * 0.13, top); g.quadraticCurveTo(w * 0.34, top + h * 0.04, w * 0.34, 0); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = c2; g.beginPath(); g.moveTo(-w * 0.24, top + h * 0.03); g.lineTo(-w * 0.1, top + h * 0.004); g.lineTo(w * 0.24, 0 - h * 0.0); g.lineTo(w * 0.1, 0); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = Y_; for (let k = -2; k <= 2; k++) { g.beginPath(); g.arc(k * w * 0.11, top + h * 0.045, w * 0.014, 0, 7); g.fill(); } };
+    if (n === 8) {                                   // fante: berretto con piume, giubba rossa con fascia verde
+      tunic(-h * 0.1, R_, G_); face(0, -h * 0.17, w * 0.13, false);
+      g.fillStyle = '#7a3a14'; g.beginPath(); g.moveTo(-w * 0.12, -h * 0.2); g.quadraticCurveTo(-w * 0.15, -h * 0.1, -w * 0.1, -h * 0.07); g.lineTo(-w * 0.11, -h * 0.2); g.fill();
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-w * 0.16, -h * 0.215); g.quadraticCurveTo(0, -h * 0.34, w * 0.16, -h * 0.215); g.quadraticCurveTo(0, -h * 0.25, -w * 0.16, -h * 0.215); g.fill(); g.stroke(); g.fillStyle = R_; g.beginPath(); g.ellipse(0, -h * 0.26, w * 0.13, h * 0.04, 0, 0, 7); g.fill(); g.stroke();
+      feather(w * 0.1, -h * 0.28, -0.4, B_, w * 0.18); feather(w * 0.06, -h * 0.29, -1.0, Y_, w * 0.14); feather(w * 0.0, -h * 0.3, -1.4, R_, w * 0.12);
+      item(-w * 0.28, -h * 0.05, 1.0);
+    } else if (n === 9) {                            // cavallo: cavaliere blu su cavallo bianco con briglie
+      g.fillStyle = '#f4f4f8'; g.beginPath(); g.moveTo(-w * 0.34, 0); g.quadraticCurveTo(-w * 0.36, -h * 0.12, -w * 0.18, -h * 0.17); g.quadraticCurveTo(-w * 0.1, -h * 0.34, w * 0.06, -h * 0.34); g.quadraticCurveTo(w * 0.22, -h * 0.32, w * 0.33, -h * 0.2); g.lineTo(w * 0.36, -h * 0.14); g.quadraticCurveTo(w * 0.3, -h * 0.1, w * 0.2, -h * 0.12); g.quadraticCurveTo(w * 0.16, -h * 0.08, w * 0.12, 0); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#d8d8e4'; g.beginPath(); g.moveTo(-w * 0.12, -h * 0.28); g.quadraticCurveTo(-w * 0.22, -h * 0.2, -w * 0.18, -h * 0.1); g.lineTo(-w * 0.1, -h * 0.17); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = K_; g.beginPath(); g.arc(w * 0.2, -h * 0.25, w * 0.014, 0, 7); g.fill(); g.strokeStyle = R_; g.lineWidth = w * 0.02; g.beginPath(); g.moveTo(w * 0.1, -h * 0.34); g.lineTo(w * 0.22, -h * 0.18); g.lineTo(w * 0.34, -h * 0.17); g.stroke(); ink(g, w * 0.012);
+      g.fillStyle = B_; g.beginPath(); g.moveTo(-w * 0.3, 0); g.quadraticCurveTo(-w * 0.3, -h * 0.1, -w * 0.12, -h * 0.12); g.lineTo(w * 0.04, -h * 0.12); g.quadraticCurveTo(w * 0.06, -h * 0.06, w * 0.08, 0); g.closePath(); g.fill(); g.stroke();
+      face(-w * 0.12, -h * 0.2, w * 0.1, true); g.fillStyle = R_; g.beginPath(); g.moveTo(-w * 0.24, -h * 0.225); g.quadraticCurveTo(-w * 0.12, -h * 0.34, 0, -h * 0.225); g.closePath(); g.fill(); g.stroke();
+      feather(-w * 0.06, -h * 0.3, -0.5, Y_, w * 0.15); feather(-w * 0.12, -h * 0.32, -1.1, B_, w * 0.13); item(w * 0.06, -h * 0.4, 0.8);
+    } else {                                         // re: corona, ermellino e scettro
+      tunic(-h * 0.1, R_, Y_); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(-w * 0.3, -h * 0.02); g.quadraticCurveTo(-w * 0.2, -h * 0.13, 0, -h * 0.11); g.quadraticCurveTo(w * 0.2, -h * 0.13, w * 0.3, -h * 0.02); g.lineTo(w * 0.22, h * 0.0); g.quadraticCurveTo(0, -h * 0.07, -w * 0.22, h * 0.0); g.closePath(); g.fill(); g.stroke(); g.fillStyle = K_; for (const x of [-0.2, -0.1, 0.1, 0.2]) g.fillRect(w * x, -h * 0.07, w * 0.012, h * 0.015);
+      face(0, -h * 0.19, w * 0.14, true); g.fillStyle = '#e8e0d0'; g.beginPath(); g.moveTo(-w * 0.12, -h * 0.16); g.quadraticCurveTo(0, -h * 0.06, w * 0.12, -h * 0.16); g.quadraticCurveTo(0, -h * 0.1, -w * 0.12, -h * 0.16); g.fill(); g.stroke();
+      g.fillStyle = Y_; g.beginPath(); g.moveTo(-w * 0.15, -h * 0.28); g.lineTo(-w * 0.17, -h * 0.39); g.lineTo(-w * 0.08, -h * 0.33); g.lineTo(0, -h * 0.42); g.lineTo(w * 0.08, -h * 0.33); g.lineTo(w * 0.17, -h * 0.39); g.lineTo(w * 0.15, -h * 0.28); g.closePath(); g.fill(); g.stroke(); g.fillStyle = R_; for (const [x, y] of [[-0.17, -0.39], [0, -0.42], [0.17, -0.39]]) { g.beginPath(); g.arc(w * x, h * y, w * 0.02, 0, 7); g.fill(); g.stroke(); }
+      g.strokeStyle = '#8a5a0a'; g.lineWidth = w * 0.03; g.beginPath(); g.moveTo(w * 0.3, 0); g.lineTo(w * 0.28, -h * 0.3); g.stroke(); ink(g, w * 0.012); item(w * 0.28, -h * 0.33, 0.9);
+    }
   }
 
   // Disegna una carta con l'angolo in alto a sinistra in (x, y), larghezza w (altezza = 1.5 w).
@@ -87,43 +115,36 @@
     if (opts.angle) { g.translate(w / 2, h / 2); g.rotate(opts.angle); g.translate(-w / 2, -h / 2); }
     g.fillStyle = 'rgba(0,0,0,' + (opts.lift ? 0.4 : 0.28) + ')'; g.beginPath(); g.roundRect(w * 0.05, h * 0.035 + (opts.lift ? w * 0.07 : 0), w, h, r); g.fill();
     if (!c || opts.back) {
-      g.fillStyle = lg(g, 0, 0, w, h, [[0, '#9a1f40'], [1, '#4a0f28']]); g.beginPath(); g.roundRect(0, 0, w, h, r); g.fill();
-      g.save(); g.beginPath(); g.roundRect(w * 0.07, w * 0.07, w * 0.86, h - w * 0.14, r * 0.7); g.clip();
-      g.strokeStyle = 'rgba(242,211,138,.5)'; g.lineWidth = 1; const st = w * 0.16;
+      g.fillStyle = lg(g, 0, 0, w, h, [[0, '#2a5fa8'], [1, '#17386a']]); g.beginPath(); g.roundRect(0, 0, w, h, r); g.fill();
+      g.fillStyle = W_; g.beginPath(); g.roundRect(w * 0.05, w * 0.05, w * 0.9, h - w * 0.1, r * 0.8); g.fill();
+      g.fillStyle = lg(g, 0, 0, w, h, [[0, '#d9322a'], [1, '#8a1c14']]); g.beginPath(); g.roundRect(w * 0.1, w * 0.1, w * 0.8, h - w * 0.2, r * 0.6); g.fill();
+      g.save(); g.beginPath(); g.roundRect(w * 0.1, w * 0.1, w * 0.8, h - w * 0.2, r * 0.6); g.clip();
+      g.strokeStyle = 'rgba(255,230,160,.55)'; g.lineWidth = 1; const st = w * 0.18;
       for (let i = -h; i < w + h; i += st) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + h, h); g.stroke(); g.beginPath(); g.moveTo(i + h, 0); g.lineTo(i, h); g.stroke(); }
-      g.fillStyle = 'rgba(242,211,138,.35)'; for (let i = 0; i < 6; i++) for (let j = 0; j < 9; j++) { g.beginPath(); g.arc(w * (0.2 + i * 0.12), h * (0.1 + j * 0.1), w * 0.02, 0, 7); g.fill(); }
       g.restore();
-      g.strokeStyle = '#f2d38a'; g.lineWidth = w * 0.035; g.beginPath(); g.roundRect(w * 0.07, w * 0.07, w * 0.86, h - w * 0.14, r * 0.7); g.stroke(); g.lineWidth = w * 0.012; g.beginPath(); g.roundRect(w * 0.12, w * 0.12, w * 0.76, h - w * 0.24, r * 0.5); g.stroke();
-      const cx = w / 2, cy = h / 2; g.fillStyle = '#6a1230'; g.beginPath(); g.arc(cx, cy, w * 0.23, 0, 7); g.fill(); g.strokeStyle = '#f2d38a'; g.lineWidth = w * 0.025; g.stroke();
-      g.fillStyle = '#f2d38a'; for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; g.beginPath(); g.ellipse(cx + Math.cos(a) * w * 0.13, cy + Math.sin(a) * w * 0.13, w * 0.06, w * 0.025, a, 0, 7); g.fill(); } g.beginPath(); g.arc(cx, cy, w * 0.045, 0, 7); g.fill();
+      const cx = w / 2, cy = h / 2; g.fillStyle = W_; g.beginPath(); g.arc(cx, cy, w * 0.24, 0, 7); g.fill(); g.strokeStyle = K_; g.lineWidth = w * 0.015; g.stroke();
+      suitSymbol(g, 0, cx, cy, w * 0.19);
     } else {
       const col = COL[c.s];
-      g.fillStyle = lg(g, 0, 0, w, h, [[0, opts.dim ? '#e4dcc4' : '#fffaec'], [1, opts.dim ? '#cfc6aa' : '#f1e6c8']]); g.beginPath(); g.roundRect(0, 0, w, h, r); g.fill();
-      g.fillStyle = 'rgba(140,110,60,.06)'; for (let k = 0; k < 22; k++) g.fillRect(((k * 53) % 97) / 97 * w, ((k * 37) % 89) / 89 * h, 1.5, 1.5);
-      g.strokeStyle = opts.sel ? '#ff5a8a' : '#9a8450'; g.lineWidth = opts.sel ? w * 0.06 : w * 0.02; g.beginPath(); g.roundRect(w * 0.015, w * 0.015, w - w * 0.03, h - w * 0.03, r); g.stroke();
-      g.strokeStyle = col; g.lineWidth = w * 0.022; g.beginPath(); g.roundRect(w * 0.07, w * 0.07, w * 0.86, h - w * 0.14, r * 0.7); g.stroke(); g.lineWidth = w * 0.01; g.globalAlpha = 0.6; g.beginPath(); g.roundRect(w * 0.1, w * 0.1, w * 0.8, h - w * 0.2, r * 0.5); g.stroke(); g.globalAlpha = 1;
+      g.fillStyle = opts.dim ? '#e6e0cc' : W_; g.beginPath(); g.roundRect(0, 0, w, h, r); g.fill();
+      g.strokeStyle = opts.sel ? '#ff5a8a' : '#6a6050'; g.lineWidth = opts.sel ? w * 0.06 : w * 0.018; g.beginPath(); g.roundRect(w * 0.012, w * 0.012, w - w * 0.024, h - w * 0.024, r); g.stroke();
+      g.strokeStyle = K_; g.lineWidth = w * 0.012; g.beginPath(); g.roundRect(w * 0.07, w * 0.07, w * 0.86, h - w * 0.14, r * 0.35); g.stroke();
       const ns = NAMES[c.n] || String(c.n);
-      g.fillStyle = col; g.font = 'bold ' + (w * 0.22) + 'px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ns, w * 0.2, h * 0.09);
-      g.save(); g.translate(w, h); g.rotate(Math.PI); g.fillText(ns, w * 0.2, h * 0.09); g.restore();
-      suitSymbol(g, c.s, w * 0.2, h * 0.175, w * 0.055); g.save(); g.translate(w, h); g.rotate(Math.PI); suitSymbol(g, c.s, w * 0.2, h * 0.175, w * 0.055); g.restore();
+      g.fillStyle = col; g.font = 'bold ' + (w * 0.17) + 'px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ns, w * 0.17, h * 0.07);
+      g.save(); g.translate(w, h); g.rotate(Math.PI); g.fillText(ns, w * 0.17, h * 0.07); g.restore();
       const cx = w / 2, cy = h / 2;
-      if (c.n <= 7) {
-        const pos = { 1: [[0, 0]], 2: [[0, -0.55], [0, 0.55]], 3: [[0, -0.7], [0, 0], [0, 0.7]], 4: [[-0.5, -0.55], [0.5, -0.55], [-0.5, 0.55], [0.5, 0.55]], 5: [[-0.5, -0.6], [0.5, -0.6], [0, 0], [-0.5, 0.6], [0.5, 0.6]], 6: [[-0.5, -0.7], [0.5, -0.7], [-0.5, 0], [0.5, 0], [-0.5, 0.7], [0.5, 0.7]], 7: [[-0.5, -0.78], [0.5, -0.78], [0, -0.38], [-0.5, 0], [0.5, 0], [-0.5, 0.78], [0.5, 0.78]] }[c.n];
-        const rr = c.n === 1 ? w * 0.34 : c.n <= 3 ? w * 0.2 : w * 0.15;
-        pos.forEach(([px, py]) => { if (c.n > 1 && py > 0) { g.save(); g.translate(cx + px * w * 0.28, cy + py * w * 0.46); g.rotate(c.s === 2 || c.s === 3 ? Math.PI : 0); suitSymbol(g, c.s, 0, 0, rr); g.restore(); } else suitSymbol(g, c.s, cx + px * w * 0.28, cy + py * w * 0.46 - (c.n === 1 ? h * 0.03 : 0), rr); });
+      if (c.n === 1) { g.save(); g.translate(cx, cy); ace(g, c.s, w, h); g.restore(); g.fillStyle = col; g.beginPath(); g.moveTo(w * 0.2, h * 0.82); g.lineTo(w * 0.8, h * 0.82); g.lineTo(w * 0.86, h * 0.855); g.lineTo(w * 0.8, h * 0.89); g.lineTo(w * 0.2, h * 0.89); g.lineTo(w * 0.14, h * 0.855); g.closePath(); g.fill(); g.strokeStyle = K_; g.lineWidth = w * 0.01; g.stroke(); g.fillStyle = W_; g.font = 'bold ' + (w * 0.09) + 'px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(SUITS[c.s], w / 2, h * 0.857); }
+      else if (c.n <= 7) {
+        const pos = { 2: [[0, -0.55], [0, 0.55]], 3: [[-0.4, -0.7], [0.4, 0], [-0.4, 0.7]], 4: [[-0.45, -0.55], [0.45, -0.55], [-0.45, 0.55], [0.45, 0.55]], 5: [[-0.45, -0.7], [0.45, -0.7], [0, 0], [-0.45, 0.7], [0.45, 0.7]], 6: [[-0.45, -0.7], [0.45, -0.7], [-0.45, 0], [0.45, 0], [-0.45, 0.7], [0.45, 0.7]], 7: [[-0.45, -0.78], [0.45, -0.78], [0, -0.39], [-0.45, 0], [0.45, 0], [-0.45, 0.78], [0.45, 0.78]] }[c.n];
+        const rr = c.n <= 3 ? w * 0.22 : c.n <= 5 ? w * 0.18 : w * 0.15;
+        pos.forEach(([px, py]) => { g.save(); g.translate(cx + px * w * 0.28, cy + py * w * 0.46); if (py > 0 && c.s !== 0) g.rotate(Math.PI); suitSymbol(g, c.s, 0, 0, rr); g.restore(); });
+        if (c.n === 4 || c.n === 7) { g.save(); g.translate(cx, cy + (c.n === 4 ? 0 : 0)); g.restore(); }
       } else {
-        // figure alla piacentina: doppia (la meta' alta e la sua copia capovolta), con fondo a righe
-        g.save(); g.beginPath(); g.roundRect(w * 0.15, h * 0.17, w * 0.7, h * 0.66, r * 0.5); g.clip();
-        g.fillStyle = lg(g, 0, h * 0.17, 0, h * 0.83, [[0, '#f4e8c4'], [0.5, '#e8d6a4'], [1, '#f4e8c4']]); g.fillRect(w * 0.15, h * 0.17, w * 0.7, h * 0.66);
-        g.fillStyle = col; g.globalAlpha = 0.09; for (let k = 0; k < 10; k++) g.fillRect(w * 0.15 + k * w * 0.07, h * 0.17, w * 0.035, h * 0.66); g.globalAlpha = 1;
-        for (const flip of [false, true]) { g.save(); g.translate(cx, cy); if (flip) g.rotate(Math.PI); figure(g, c.n, col, w, h); g.restore(); }
+        // figura a colori, doppia (meta' alta e copia capovolta), con la linea di giunzione al centro
+        g.save(); g.beginPath(); g.rect(w * 0.09, h * 0.1, w * 0.82, h * 0.8); g.clip();
+        for (const flip of [false, true]) { g.save(); g.translate(cx, cy); if (flip) g.rotate(Math.PI); figure(g, c.n, c.s, w * 1.5, h * 1.28); g.restore(); }
         g.restore();
-        g.strokeStyle = '#5a4020'; g.lineWidth = w * 0.014; g.beginPath(); g.roundRect(w * 0.15, h * 0.17, w * 0.7, h * 0.66, r * 0.5); g.stroke(); g.lineWidth = w * 0.02; g.beginPath(); g.moveTo(w * 0.15, cy); g.lineTo(w * 0.85, cy); g.stroke();
-        g.fillStyle = '#f4e8c4'; g.beginPath(); g.arc(cx, cy, w * 0.13, 0, 7); g.fill(); g.stroke(); suitSymbol(g, c.s, cx, cy, w * 0.1);
-      }
-      if (c.n === 1) {                               // asso: cartiglio col nome del seme
-        g.fillStyle = col; g.beginPath(); g.moveTo(w * 0.2, h * 0.8); g.lineTo(w * 0.8, h * 0.8); g.lineTo(w * 0.86, h * 0.845); g.lineTo(w * 0.8, h * 0.89); g.lineTo(w * 0.2, h * 0.89); g.lineTo(w * 0.14, h * 0.845); g.closePath(); g.fill(); g.strokeStyle = '#f2d38a'; g.lineWidth = w * 0.012; g.stroke();
-        g.fillStyle = '#fffaec'; g.font = 'bold ' + (w * 0.1) + 'px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(SUITS[c.s], w / 2, h * 0.847);
+        g.strokeStyle = K_; g.lineWidth = w * 0.012; g.beginPath(); g.moveTo(w * 0.07, cy); g.lineTo(w * 0.93, cy); g.stroke();
       }
       if (opts.dim) { g.fillStyle = 'rgba(30,20,0,.08)'; g.beginPath(); g.roundRect(0, 0, w, h, r); g.fill(); }
     }
@@ -131,7 +152,7 @@
   }
   // Panno verde (o di altro colore) con trama e vignettatura
   function felt(g, W, H, c0, c1) {
-    g.fillStyle = rg(g, W / 2, H * 0.45, 20, Math.max(W, H) * 0.75, [[0, c0 || '#2a7a4a'], [1, c1 || '#0c3a22']]); g.fillRect(0, 0, W, H);
+    const k = g.createRadialGradient(W / 2, H * 0.45, 20, W / 2, H * 0.45, Math.max(W, H) * 0.75); k.addColorStop(0, c0 || '#2a7a4a'); k.addColorStop(1, c1 || '#0c3a22'); g.fillStyle = k; g.fillRect(0, 0, W, H);
     g.fillStyle = 'rgba(255,255,255,.035)'; for (let i = 0; i < 260; i++) g.fillRect(((i * 97) % 331) / 331 * W, ((i * 61) % 487) / 487 * H, 1.4, 1.4);
     g.fillStyle = 'rgba(0,0,0,.03)'; for (let i = 0; i < 200; i++) g.fillRect(((i * 53) % 313) / 313 * W, ((i * 89) % 479) / 479 * H, 1.4, 1.4);
     g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 2; g.beginPath(); g.roundRect(10, 10, W - 20, H - 20, 24); g.stroke();
