@@ -66,8 +66,6 @@ registerGame({
       // racchetta del giocatore: dito, croce
       const prev = racket.x; const mv = (held.right ? 1 : 0) - (held.left ? 1 : 0);
       if (mv) racket.x += mv * 4.2 * dt; else if (dragX !== null) racket.x += (Math.max(-1.05, Math.min(1.05, dragX)) - racket.x) * Math.min(1, dt * 40);
-      // aiuto: quando la palla arriva, la racchetta scivola un po' da sola verso il punto giusto
-      if (ball && ball.live && ball.last === 'A' && ball.vy > 0 && ball.y > 0.45) racket.x += Math.max(-2.6 * dt, Math.min(2.6 * dt, (ball.x + ball.vx * 0.1 - racket.x))) * (mv || dragX !== null ? 0.55 : 1);
       racket.x = Math.max(-1.05, Math.min(1.05, racket.x)); racket.vx = (racket.x - prev) / Math.max(dt, 1e-3);
       racket.sw = Math.max(0, racket.sw - dt); cpu.sw = Math.max(0, cpu.sw - dt);
       if (held.a) charge = Math.min(1, charge + dt * 1.8); else charge = Math.max(0, charge - dt * 2.5);
