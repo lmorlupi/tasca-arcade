@@ -46,6 +46,8 @@ canvas.off { display: none; }
 /* Croce a sinistra: grande, perché ci sta sopra il pollice */
 .dpad { position: relative; width: calc(var(--e) * 16); height: calc(var(--e) * 16); touch-action: none; isolation: isolate; }
 .dpad::before { content: ''; position: absolute; inset: calc(var(--e) * -2) calc(var(--e) * -1.2) calc(var(--e) * -2) calc(var(--e) * -2); }
+/* Croce compatta (giochi con compactPad, es. i picchiaduro): il pollice passa da destra a sinistra con un movimento corto */
+.dpad.compact { transform: scale(.74); transform-origin: 35% 50%; }
 .dpad::after {
   content: ''; position: absolute; inset: calc(var(--e) * -.8); border-radius: 50%; z-index: -1;
   background: radial-gradient(circle, rgba(0,0,0,.2) 0 66%, rgba(0,0,0,.08) 100%);

@@ -238,7 +238,7 @@
         catch (err) { post({ t: 'error', msg: 'codice non valido' }); return; }
         if (!def) { post({ t: 'invalid' }); return; }
         var meta = {};
-        ['id', 'title', 'author', 'color', 'blurb', 'inputs', 'size', 'bg', 'flexH', 'pixel', 'tilt', 'license'].forEach(function (k) { if (def[k] !== undefined) meta[k] = def[k]; });
+        ['id', 'title', 'author', 'color', 'blurb', 'inputs', 'size', 'bg', 'flexH', 'pixel', 'tilt', 'license', 'compactPad'].forEach(function (k) { if (def[k] !== undefined) meta[k] = def[k]; });
         post({ t: 'registered', meta: meta });
         if (m.mode === 'play') begin();
       } else if (m.t === 'state') {
@@ -273,7 +273,7 @@
     return {
       id: 'c-' + id, title, author: String(m.author || '').slice(0, 40), color: hexOk(m.color) ? m.color : '#8a8a99',
       blurb: String(m.blurb || '').slice(0, 240), inputs: (Array.isArray(m.inputs) ? m.inputs : []).slice(0, 5).map(s => String(s).slice(0, 18)),
-      size: sz, bg: hexOk(m.bg) ? m.bg : '', flexH: !!m.flexH, pixel: !!m.pixel, tilt: !!m.tilt, license: String(m.license || '').slice(0, 40),
+      size: sz, bg: hexOk(m.bg) ? m.bg : '', flexH: !!m.flexH, pixel: !!m.pixel, tilt: !!m.tilt, compactPad: !!m.compactPad, license: String(m.license || '').slice(0, 40),
     };
   };
 
@@ -540,6 +540,7 @@
     letSleep();
     cv.classList.add('off'); menuEl.classList.remove('off');
     screenEl.style.background = '';
+    dpadEl.classList.remove('compact');
     renderMenu();
     if (Date.now() - lastCheck > 600000) checkUpdate(false);
   };
@@ -562,6 +563,7 @@
       cv.style.aspectRatio = cw + ' / ' + ch;
       cv.classList.toggle('px', !!def.pixel);
       screenEl.style.background = def.bg || '';
+      dpadEl.classList.toggle('compact', !!def.compactPad);
       cv.classList.remove('off'); menuEl.classList.add('off');
       cur = def; mode = 'game';
       for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
