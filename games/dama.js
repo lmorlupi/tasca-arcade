@@ -16,10 +16,10 @@ registerGame({
     const { cv, g } = api;
     const CW = cv.width, CH = cv.height, VW = 360, VH = 600;
     const S = Math.min(CW / VW, CH / VH), OX = (CW - VW * S) / 2, OY = (CH - VH * S) / 2;
-    const SQ = 42, BX = (VW - 8 * SQ) / 2, BY = 120;
+    const SQ = 44, BX = (VW - 8 * SQ) / 2, BY = 112;
     // pezzi: 1 pedina bianca, 2 dama bianca, -1 pedina nera, -2 dama nera. Il bianco (giocatore) sale verso la riga 0.
     let wins = api.store.get('wins', 0), level = api.store.get('lvl', 2);
-    let state = 'title', time = 0, board, turn, sel = null, legal = [], msg = '', msgT = 0, last = null, anim = null, wait = 0, endMsg = '';
+    let state = 'title', time = 0, board, turn, sel = null, legal = [], msg = '', msgT = 0, last = null, anim = null, wait = 0, endMsg = '', drag = null;
     const flash = t => { msg = t; msgT = 1.5; };
     const init = () => { const b = Array.from({ length: 8 }, () => new Array(8).fill(0)); for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if ((r + c) % 2 === 1) { if (r < 3) b[r][c] = -1; else if (r > 4) b[r][c] = 1; } return b; };
     const side = p => (p > 0 ? 1 : p < 0 ? -1 : 0);
@@ -100,8 +100,20 @@ registerGame({
     };
     const toRC = (x, y) => [Math.floor((y - BY) / SQ), Math.floor((x - BX) / SQ)];
     const onPointer = e => {
-      if (e.type !== 'down') return;
       const x = (e.x - OX) / S, y = (e.y - OY) / S;
+      // trascinamento: la pedina selezionata segue il dito e si posa sulla casella dove lo rilasci
+      if (e.type === 'move') { if (drag) { drag.x = x; drag.y = y; if (Math.hypot(x - drag.x0, y - drag.y0) > 6) drag.on = true; } return; }
+      if (e.type === 'up') {
+        const d = drag; drag = null;
+        if (d && d.on && state === 'play' && turn === 1 && !moving() && sel) {
+          const [r, c] = toRC(x, y);
+          const m = movesFor(board, 1).find(m => m.path[0][0] === sel[0] && m.path[0][1] === sel[1] && m.path[m.path.length - 1][0] === r && m.path[m.path.length - 1][1] === c);
+          if (e.cancelled) return; if (m) doMove(m, 1); else api.beep(160, 0.06, 'square', 0.07);
+        }
+        return;
+      }
+      if (e.type !== 'down') return;
+      drag = null;
       if (state === 'title') { if (y > 330 && y < 440) { const k = Math.floor((x - 40) / 94); if (k >= 0 && k < 3 && y > 380) { level = k + 1; api.store.set('lvl', level); } if (y <= 380 || k < 0 || k > 2) { newGame(); return; } return; } newGame(); return; }
       if (state === 'end') { newGame(); return; }
       if (state === 'pause') { state = 'play'; return; }
@@ -109,7 +121,7 @@ registerGame({
       const [r, c] = toRC(x, y); if (r < 0 || r > 7 || c < 0 || c > 7) return;
       const ms = movesFor(board, 1);
       if (sel) { const m = ms.find(m => m.path[0][0] === sel[0] && m.path[0][1] === sel[1] && m.path[m.path.length - 1][0] === r && m.path[m.path.length - 1][1] === c); if (m) { doMove(m, 1); return; } }
-      if (side(board[r][c]) === 1) { const mine = ms.filter(m => m.path[0][0] === r && m.path[0][1] === c); if (mine.length) { sel = [r, c]; legal = mine; api.beep(900, 0.02, 'triangle', 0.05); } else { sel = null; legal = []; flash(ms[0] && ms[0].taken.length ? 'DEVI PRENDERE (MAGGIORANZA)' : 'QUELLA PEDINA NON PUO\' MUOVERE'); api.beep(160, 0.06, 'square', 0.07); } }
+      if (side(board[r][c]) === 1) { const mine = ms.filter(m => m.path[0][0] === r && m.path[0][1] === c); if (mine.length) { sel = [r, c]; legal = mine; drag = { x, y, x0: x, y0: y, on: false }; api.beep(900, 0.02, 'triangle', 0.05); } else { sel = null; legal = []; flash(ms[0] && ms[0].taken.length ? 'DEVI PRENDERE (MAGGIORANZA)' : 'QUELLA PEDINA NON PUO\' MUOVERE'); api.beep(160, 0.06, 'square', 0.07); } }
       else { sel = null; legal = []; }
     };
     const act = k => {
@@ -155,7 +167,12 @@ registerGame({
       } else if (last) { g.fillStyle = 'rgba(255,230,120,.35)'; for (const [r, c] of [last.from, last.to]) g.fillRect(BX + c * SQ, BY + r * SQ, SQ, SQ); }
       legal.forEach(m => { const [r, c] = m.path[m.path.length - 1]; g.fillStyle = 'rgba(111,255,160,.55)'; g.beginPath(); g.arc(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, SQ * 0.18, 0, 7); g.fill(); });
       const go = moving(), end = anim && anim.path[anim.path.length - 1], u = go ? (time - anim.t0) / anim.seg : 0;
-      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = board[r][c]; if (p && !(go && r === end[0] && c === end[1])) piece(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, p, sel && sel[0] === r && sel[1] === c); }
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = board[r][c]; if (p && !(go && r === end[0] && c === end[1]) && !(drag && drag.on && sel && sel[0] === r && sel[1] === c)) piece(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, p, sel && sel[0] === r && sel[1] === c); }
+      if (drag && drag.on && sel) {
+        const [hr, hc] = toRC(drag.x, drag.y);
+        if (legal.some(m => { const e = m.path[m.path.length - 1]; return e[0] === hr && e[1] === hc; })) { g.fillStyle = 'rgba(111,255,160,.35)'; g.fillRect(BX + hc * SQ, BY + hr * SQ, SQ, SQ); }
+        g.save(); g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 12; g.shadowOffsetY = 6; piece(drag.x, drag.y - 8, board[sel[0]][sel[1]], true); g.restore();
+      }
       if (go) {
         // le pedine prese restano finché la pedina non ci salta sopra, poi svaniscono
         anim.taken.forEach(([r, c, p], i) => { const f = Math.max(0, Math.min(1, 1 - (u - i - 0.5) / 0.6)); if (f > 0) { g.save(); g.globalAlpha = f; piece(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, p); g.restore(); } });
