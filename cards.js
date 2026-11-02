@@ -109,11 +109,18 @@
   }
 
   // Disegna una carta con l'angolo in alto a sinistra in (x, y), larghezza w (altezza = 1.5 w).
+  // opts: back, sel, lift, dim, angle, air (0-1: quanto è sollevata, l'ombra si allarga), sx (larghezza per girarla)
   function draw(g, c, x, y, w, opts) {
     opts = opts || {}; const h = w * 1.5, r = w * 0.09;
     g.save(); g.translate(x, y);
     if (opts.angle) { g.translate(w / 2, h / 2); g.rotate(opts.angle); g.translate(-w / 2, -h / 2); }
-    g.fillStyle = 'rgba(0,0,0,' + (opts.lift ? 0.4 : 0.28) + ')'; g.beginPath(); g.roundRect(w * 0.05, h * 0.035 + (opts.lift ? w * 0.07 : 0), w, h, r); g.fill();
+    if (opts.sx != null && opts.sx < 1) { g.translate(w / 2, 0); g.scale(Math.max(0.04, opts.sx), 1); g.translate(-w / 2, 0); }
+    // Ombra morbida: tre strati, più larga e più lontana quando la carta è sollevata.
+    const air = opts.air != null ? opts.air : opts.lift ? 0.6 : 0, ox = w * (0.03 + 0.07 * air), oy = w * (0.05 + 0.16 * air);
+    [[0, 0.2], [0.035, 0.1], [0.07, 0.05]].forEach(([s, a]) => {
+      const e = w * s * (1 + air); g.fillStyle = 'rgba(0,0,0,' + a * (1 - 0.35 * air) + ')';
+      g.beginPath(); g.roundRect(ox - e, oy - e, w + 2 * e, h + 2 * e, r + e); g.fill();
+    });
     if (!c || opts.back) {
       g.fillStyle = lg(g, 0, 0, w, h, [[0, '#2a5fa8'], [1, '#17386a']]); g.beginPath(); g.roundRect(0, 0, w, h, r); g.fill();
       g.fillStyle = W_; g.beginPath(); g.roundRect(w * 0.05, w * 0.05, w * 0.9, h - w * 0.1, r * 0.8); g.fill();
@@ -158,5 +165,53 @@
     g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 2; g.beginPath(); g.roundRect(10, 10, W - 20, H - 20, 24); g.stroke();
   }
   const ease = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
-  window.Cards = { SUITS, COL, deck, shuffle, draw, label, suitSymbol, felt, ease };
+
+  // Movimento delle carte. Il gioco disegna ogni carta dove deve stare (mv.card); se il posto cambia, la carta ci
+  // scivola sopra, si solleva a metà strada e si gira se passa da coperta a scoperta. Le carte in volo si disegnano
+  // sopra le altre con mv.flush(g). mv.from() dice da dove arriva una carta nuova (il mazzo, con un ritardo per
+  // distribuirle una alla volta); mv.away() la manda via (una presa) e la toglie quando arriva.
+  function motion() {
+    const M = new Map(), spawn = new Map(), gone = [], top = [];
+    const lerp = (a, b, k) => a + (b - a) * k;
+    const cur = e => { const k = e.dur ? ease(e.t / e.dur) : 1; return { x: lerp(e.s.x, e.d.x, k), y: lerp(e.s.y, e.d.y, k), w: lerp(e.s.w, e.d.w, k), a: lerp(e.s.a, e.d.a, k), f: lerp(e.s.f, e.d.f, k), k }; };
+    const go = (e, d) => {
+      const p = e.d ? cur(e) : d, dist = Math.hypot(d.x - p.x, d.y - p.y);
+      e.s = p; e.d = d; e.t = 0; e.dur = Math.min(0.45, 0.14 + dist / 900 + (Math.abs(d.f - p.f) > 0.5 ? 0.15 : 0)); e.dist = dist;
+    };
+    const paint = (g, c, p, o) => {
+      const air = p.k < 1 ? 4 * p.k * (1 - p.k) * Math.min(1, e0(p) / 50) : 0, w = p.w * (1 + 0.08 * air);
+      draw(g, c, p.x - (w - p.w) / 2, p.y - (w - p.w) * 0.75, w, Object.assign({}, o, { back: p.f < 0.5, sx: Math.abs(2 * p.f - 1), angle: p.a, air: Math.max(air, o.lift ? 0.6 : 0) }));
+    };
+    const e0 = p => p.dist || 0;
+    return {
+      update(dt) {
+        M.forEach(e => { if (e.delay > 0) e.delay -= dt; else e.t = Math.min(e.dur, e.t + dt); });
+        for (let i = gone.length - 1; i >= 0; i--) { const e = gone[i]; if (e.delay > 0) e.delay -= dt; else if ((e.t += dt) >= e.dur) gone.splice(i, 1); }
+      },
+      card(g, c, x, y, w, o) {
+        o = o || {};
+        const d = { x, y, w, a: o.angle || 0, f: o.back || !c ? 0 : 1 };
+        let e = M.get(c);
+        if (!e) { e = { t: 0, dur: 0, delay: 0 }; const s = spawn.get(c); spawn.delete(c); M.set(c, e); if (s) { e.s = e.d = s; e.delay = s.delay || 0; go(e, d); } else { e.s = e.d = d; } }
+        else if (Math.abs(e.d.x - x) > 0.5 || Math.abs(e.d.y - y) > 0.5 || Math.abs(e.d.w - w) > 0.5 || e.d.f !== d.f || Math.abs(e.d.a - d.a) > 0.01) go(e, d);
+        if (e.delay > 0) return;
+        const p = cur(e); p.dist = e.dist;
+        if (p.k < 1) top.push([c, p, o]); else paint(g, c, p, o);
+      },
+      from(c, x, y, w, o) { o = o || {}; spawn.set(c, { x, y, w, a: o.angle || 0, f: o.back ? 0 : 1, delay: o.delay || 0 }); },
+      away(c, x, y, w, o) {
+        o = o || {}; const e = M.get(c); M.delete(c);
+        if (!e) return;
+        const s = cur(e), d = { x, y, w, a: o.angle || 0, f: o.back ? 0 : 1 };
+        gone.push({ c, s, d, t: 0, dur: 0.45, delay: o.delay || 0, dist: Math.hypot(x - s.x, y - s.y), o });
+      },
+      flush(g) {
+        top.forEach(([c, p, o]) => paint(g, c, p, o)); top.length = 0;
+        gone.forEach(e => { const p = e.delay > 0 ? Object.assign({}, e.s, { k: 0 }) : cur(e); p.dist = e.dist; paint(g, e.c, p, e.o); });
+      },
+      get busy() { return gone.length > 0 || [...M.values()].some(e => e.delay > 0 || e.t < e.dur); },
+      reset() { M.clear(); spawn.clear(); gone.length = 0; top.length = 0; },
+    };
+  }
+  window.Cards = { SUITS, COL, deck, shuffle, draw, label, suitSymbol, felt, ease, motion };
 })();

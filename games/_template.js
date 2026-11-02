@@ -8,6 +8,11 @@
 //   api.tilt             inclinazione dell'iPhone: tilt.x e tilt.y da -1 a 1 (sul computer ripiega sulla croce)
 //   api.haptic(ms)       vibrazione leggera (iPhone da iOS 17.4, Android)
 //   api.beep(freq, durata, tipo, volume)   un suono breve
+//   api.fx.burst(x, y, { n, color, speed, life, size, gravity, angle, spread, glow })   particelle
+//   api.fx.shake(ampiezza, durata)   scuote lo schermo (pixel del gioco, secondi)
+//   api.fx.flash(colore, durata, opacità)   lampo sullo schermo, es. quando si viene colpiti
+//   api.fx.text(x, y, '+100', { color, size, life, rise })   testo dei punti che sale e svanisce
+//   (gli effetti si muovono e si disegnano da soli, sopra il gioco: basta chiamarli)
 //   api.store.get(chiave, predefinito) / api.store.set(chiave, valore)   salvataggio nel telefono, solo per questo gioco
 //   api.goMenu()         torna al catalogo
 //

@@ -32,7 +32,7 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, wave = 1;
-    let ship, bullet, ebullets, aliens, ox, oy, dir, tickT, frame, shootT, shields, ufo, ufoT, parts, deadT, sound = 0;
+    let ship, bullet, ebullets, aliens, ox, oy, dir, tickT, frame, shootT, shields, ufo, ufoT, deadT, sound = 0;
     let touch = null, flashMsg = '', flashT = 0;
     const stars = Array.from({ length: 50 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: Math.random() * 1.5 + .5 }));
 
@@ -55,10 +55,11 @@ registerGame({
       ebullets = []; bullet = null; ufo = null; ufoT = 14 + Math.random() * 8;
       if ((wave - 1) % 3 === 0) buildShields();
     };
-    const newGame = () => {
-      score = 0; lives = 3; wave = 1; parts = [];
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => {
+      score = 0; lives = 3; wave = from; api.fx.clear();
       ship = { x: W / 2, cd: 0, inv: 0 }; deadT = 0;
-      spawnWave(); state = 'play';
+      buildShields(); spawnWave(); state = 'play'; // scudi nuovi anche se si parte da un'ondata intermedia
     };
     const endGame = () => {
       state = 'over';
@@ -66,7 +67,7 @@ registerGame({
     };
     const aliveCount = () => aliens.reduce((n, a) => n + (a.alive ? 1 : 0), 0);
     const apos = a => [ox + a.c * SX, oy + a.r * SY];
-    const boom = (x, y, color, n = 10) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 40 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0.5 + Math.random() * 0.3, c: color }); } };
+    const boom = (x, y, color, n = 10) => api.fx.burst(x, y, { n, color, speed: 160, life: 0.8, size: 3, drag: 0 });
     const flash = s => { flashMsg = s; flashT = 1.2; };
 
     const shieldHit = (bx, by) => {
@@ -91,14 +92,13 @@ registerGame({
     const hitShip = () => {
       if (ship.inv > 0 || deadT > 0) return;
       lives--; deadT = 1.2; boom(ship.x, SHIP_Y, '#eef1ff', 18); api.haptic(50); api.beep(120, 0.4, 'sawtooth', 0.06);
+      api.fx.shake(7, 0.4); api.fx.flash('#e5413b', 0.25, 0.4);
       ebullets = [];
     };
 
     const update = dt => {
       flashT = Math.max(0, flashT - dt);
       stars.forEach(s => { s.y += s.s * 10 * dt; if (s.y > H) s.y = 0; });
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; });
-      parts = parts.filter(p => p.t > 0);
       if (state !== 'play') return;
 
       ship.cd = Math.max(0, ship.cd - dt); ship.inv = Math.max(0, ship.inv - dt);
@@ -122,7 +122,7 @@ registerGame({
           if (shieldHit(bullet.x, bullet.y)) { bullet = null; break; }
           if (ufo && Math.abs(bullet.x - ufo.x) < 18 && Math.abs(bullet.y - 56) < 10) {
             const pts = [50, 100, 150, 300][(Math.random() * 4) | 0];
-            score += pts; boom(ufo.x, 56, '#e5413b', 14); flash('+' + pts); api.haptic(25); api.beep(1200, 0.2); ufo = null; bullet = null; break;
+            score += pts; boom(ufo.x, 56, '#e5413b', 14); flash('+' + pts); api.fx.text(ufo.x, 56, '+' + pts, { color: '#f5d31c', size: 16 }); api.fx.shake(3, 0.2); api.haptic(25); api.beep(1200, 0.2); ufo = null; bullet = null; break;
           }
           for (const a of aliens) {
             if (!a.alive) continue;
@@ -138,7 +138,7 @@ registerGame({
 
       // invasori
       const n = aliveCount();
-      if (n === 0) { wave++; flash('ONDATA ' + wave); api.haptic(30); spawnWave(); return; }
+      if (n === 0) { wave++; if (wave > saved()) api.store.set('stage', wave); flash('ONDATA ' + wave); api.haptic(30); spawnWave(); return; }
       tickT += dt;
       const interval = Math.max(0.02, 0.62 * n / (COLS * ROWS)) * Math.pow(0.92, wave - 1);
       if (tickT >= interval) {
@@ -185,17 +185,17 @@ registerGame({
 
     const onPointer = e => {
       if (e.type === 'down') {
-        if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'title' || state === 'over') { newGame(saved()); return; }
         touch = { id: e.id, x: e.x };
       } else if (e.type === 'move' && touch && e.id === touch.id) touch.x = e.x;
       else if (e.type === 'up' && touch && e.id === touch.id) touch = null;
     };
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
-      } else if (k === 'select' && state !== 'title') newGame();
+      } else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
     };
 
     // Disegno
@@ -224,6 +224,7 @@ registerGame({
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 370, 16, 'center', '#f5d31c');
         text('TRASCINA PER MUOVERE · SPARA DA SOLA', W / 2, 410, 11, 'center', '#aab3d8');
         text('RECORD ' + hi, W / 2, 440, 13, 'center');
+        if (saved() > 1) { text('TOCCA: CONTINUA DALL\'ONDATA ' + saved(), W / 2, 472, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 492, 11, 'center', '#aab3d8'); }
         return;
       }
 
@@ -235,7 +236,6 @@ registerGame({
       if (bullet) { const bgd = g.createLinearGradient(0, bullet.y, 0, bullet.y + 14); bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(1, 'rgba(120,200,255,0)'); g.fillStyle = bgd; g.fillRect(bullet.x - 1.8, bullet.y - 2, 3.6, 16); g.fillStyle = 'rgba(120,200,255,.25)'; g.fillRect(bullet.x - 4, bullet.y, 8, 12); }
       ebullets.forEach(b => { const eg = g.createLinearGradient(0, b.y - 12, 0, b.y); eg.addColorStop(0, 'rgba(255,200,40,0)'); eg.addColorStop(1, '#ffe27a'); g.fillStyle = eg; g.fillRect(b.x - 1.8, b.y - 12, 3.6, 12); g.fillStyle = 'rgba(255,170,40,.28)'; g.beginPath(); g.arc(b.x, b.y - 2, 5, 0, 7); g.fill(); });
       if (deadT <= 0 && !(ship.inv > 0 && ((ship.inv * 10) | 0) % 2 === 0)) drawShip(ship.x, SHIP_Y);
-      parts.forEach(p => { g.fillStyle = p.c; g.fillRect(p.x, p.y, 3, 3); });
       g.fillStyle = '#4cc24a'; g.fillRect(0, H - 22, W, 2);
 
       text('PUNTI ' + String(score).padStart(5, '0'), 10, 8, 14);
@@ -246,7 +246,7 @@ registerGame({
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
     };
 
-    parts = []; aliens = []; shields = []; ebullets = []; ship = { x: W / 2, cd: 0, inv: 0 };
+    aliens = []; shields = []; ebullets = []; ship = { x: W / 2, cd: 0, inv: 0 };
     return {
       onPress: act,
       onPointer,

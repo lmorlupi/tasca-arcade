@@ -27,7 +27,7 @@ registerGame({
       { name: 'NATALE', wall: ['#3a5a46', '#274236'], skirt: '#efe3c4', floor: ['#94603e', '#7a4d32'], deep: '#4d2f20', accent: '#e5413b' },
     ];
     let hi = api.store.get('hi', 0);
-    let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0;
+    let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0, titleT = 0;
     let coccole = 0, strokes = 0, petFx = [], lastPet = -9, purrT = 0, purrN = 0;
     let memories = [], hugs = [], blankets = [], seen = {}, photoShow = 0, albumIdx = 0, restT = 0, doorHint = false, crickets = [], trees = [], doors = [], caught = 0, grid, cols, treats, cats, door, need, got, P, chaser = { x: -90, on: false, t: 0, beep: 0 }, camX = 0, camY = 0, jumpBuf = 0, coyote = 0, time = 0;
 
@@ -146,7 +146,8 @@ registerGame({
       if (strokes % 5 === 0) { flash('CHE GRATTINI! FA LE FUSA  +' + pts * 5); score += pts * 5; api.haptic(15); }
     };
     const newGame = (from = 1) => { coccole = 0; strokes = 0; score = 0; lives = 3; level = from; caught = 0; doorHint = false; gen(level); resetPlayer(); state = 'play'; };
-    const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
+    const saved = () => api.store.get('stage', 1);
+    const nextLevel = () => { level++; if (level > saved()) api.store.set('stage', level); gen(level); resetPlayer(); state = 'play'; };
     const endGame = () => {
       state = 'over';
       if (score > hi) { hi = score; api.store.set('hi', hi); }
@@ -651,6 +652,7 @@ registerGame({
       time += dt; if (state === 'seek') { sk.t += dt; return; }
       if (state === 'prato') { pratoUpdate(dt); return; }
       if (state === 'mini') { miniUpdate(dt); return; } msgT = Math.max(0, msgT - dt);
+      titleT = state === 'title' ? titleT + dt : 0;
       if (state === 'play') {
         P.hidden = false;
         for (const b of blankets) if (Math.abs(P.x - b.x) < b.w / 2 && P.ground && held.down) { P.hidden = true; P.vx = 0; }
@@ -763,11 +765,12 @@ registerGame({
       if (state === 'prato') { pratoKey(k); return; }
       if (state === 'mini') { if (mm.phase === 'end') { if (mm.clock > 0.5) state = 'title'; } else if (k === 'a') miniSwat(); else if (k === 'b' && false) {} else if (k === 'select') state = 'title'; return; }
       if (state === 'title' && k === 'select') { seekStart(); return; }
+      if (state === 'title' && k === 'a') { if (titleT > 1) { api.store.set('stage', 1); newGame(1); } return; }
       if (state === 'rest' && (k === 'a' || k === 'b')) { pet(); return; }
       if (state === 'photo' || state === 'album') { if (k === 'a' || k === 'b' || k === 'start') nextPhoto(); return; }
       if (state === 'title' && k === 'b' && unlocked().length) { albumIdx = 0; state = 'album'; return; }
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
       } else if (k === 'select' && state !== 'title') newGame();
@@ -786,7 +789,7 @@ registerGame({
       if (state === 'rest') { pet(); return; }
       if (state === 'photo' || state === 'album') { nextPhoto(); return; }
       if (state === 'title' && unlocked().length && e.y > 100 && e.y < 345) { albumIdx = 0; state = 'album'; return; }
-      if (state === 'title' || state === 'over') newGame();
+      if (state === 'title' || state === 'over') newGame(saved());
     };
 
     // Disegno
@@ -996,7 +999,8 @@ registerGame({
         g.fillStyle = '#9b6a40'; g.fillRect(0, H - 120, W, 120); g.fillStyle = '#b07c4d'; g.fillRect(0, H - 120, W, 8);
         if (!Art.drawPhoto(g, 'face', W / 2 - 104, 108, 208, -0.025)) Art.drawPortrait(g, W / 2 - 110, 120, 220, 'calm');
         text('MARGOT', W / 2, 36, 46, 'center', '#8a4a22'); text('ADVENTURES', W / 2, 84, 30, 'center', '#c97a4a');
-        if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 366, 16, 'center', '#8a4a22');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL QUADRO ' + saved(), W / 2, 361, 12, 'center', '#8a4a22'); text('A: RICOMINCIA', W / 2, 375, 11, 'center', '#6d4a2f'); }
+        else if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 366, 16, 'center', '#8a4a22');
         const btn = (y, label) => { g.fillStyle = '#8a4a22'; g.beginPath(); g.roundRect(W / 2 - 124, y, 248, 28, 14); g.fill(); text(label, W / 2, y + 6, 14, 'center', '#fff4e0'); };
         btn(388, 'TROVA MARGOT'); btn(420, 'PALLINA DI STAGNOLA'); btn(452, 'CACCIA AI GRILLI'); btn(484, 'IL PRATO DI MONTAGNA');
         text('RECORD ' + hi, W / 2, 518, 11, 'center', '#6d4a2f');

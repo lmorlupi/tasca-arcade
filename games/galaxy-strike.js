@@ -32,7 +32,7 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, reserve = 2, stage = 1, time = 0, nextExtra = 20000;
-    let ship, shots, enemies, ebullets, parts, texts, rescue, capt;
+    let ship, shots, enemies, ebullets, texts, rescue, capt;
     let phase = 'intro', phaseT = 0, et = 0, attackT = 1, challenge = false, chHits = 0, chTotal = 0;
     let deadT = 0, finalDeath = false, touch = null, cd = 0, flashMsg = '', flashT = 0, beamSnd = 0, resultLines = [];
     let fired = 0, hitsTotal = 0, sway = 0, breath = 0;
@@ -58,7 +58,7 @@ registerGame({
 
     const flash = s => { flashMsg = s; flashT = 1.6; };
     const addText = (x, y, s) => texts.push({ x, y, s: String(s), t: 0.9 });
-    const boom = (x, y, color, n = 10) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 40 + Math.random() * 140; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0.4 + Math.random() * 0.4, c: color }); } };
+    const boom = (x, y, color, n = 10) => api.fx.burst(x, y, { n, color, speed: 180, life: 0.8, size: 3, drag: 0 });
     const addScore = n => {
       score += n;
       while (score >= nextExtra) {
@@ -109,9 +109,10 @@ registerGame({
       arp([523, 659, 784, 1047], 0.1, 'square', 0.03);
     };
     const respawn = () => { deadT = 0; ship.x = W / 2; ship.inv = 1.6; ship.dual = false; };
-    const newGame = () => {
-      score = 0; reserve = 2; stage = 1; nextExtra = 20000; fired = 0; hitsTotal = 0;
-      parts = []; texts = []; deadT = 0; finalDeath = false; cd = 0; capt = null; rescue = null;
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => {
+      score = 0; reserve = 2; stage = from; nextExtra = 20000; fired = 0; hitsTotal = 0;
+      api.fx.clear(); texts = []; deadT = 0; finalDeath = false; cd = 0; capt = null; rescue = null;
       ship = { x: W / 2, inv: 0, dual: false };
       spawnStage(); state = 'play';
     };
@@ -124,10 +125,11 @@ registerGame({
       if (ship.inv > 0 || deadT > 0 || capt) return;
       if (ship.dual) {
         ship.dual = false; ship.inv = 1.4;
-        boom(hx > ship.x ? ship.x + 13 : ship.x - 13, SHIP_Y, '#eef1ff', 16); api.haptic(40); sfx.ship();
+        boom(hx > ship.x ? ship.x + 13 : ship.x - 13, SHIP_Y, '#eef1ff', 16); api.haptic(40); sfx.ship(); api.fx.shake(4, 0.25);
         ebullets = []; return;
       }
       boom(ship.x, SHIP_Y, '#eef1ff', 22); api.haptic(50); sfx.ship(); ebullets = [];
+      api.fx.shake(7, 0.45); api.fx.flash('#e5413b', 0.25, 0.4);
       if (reserve > 0) { reserve--; finalDeath = false; } else finalDeath = true;
       deadT = 1.6;
     };
@@ -226,6 +228,7 @@ registerGame({
       if (e.holding && e.state !== 'form') pts = 1000;
       addScore(pts); addText(e.x, e.y - 12, pts);
       boom(e.x, e.y, COLOR[e.type][0], 14); api.haptic(14); sfx.boom();
+      if (pts >= 800) api.fx.shake(3, 0.2);
       if (challenge) chHits++;
       if (e.holding) {
         if (e.state === 'form' || e.state === 'enter') { boom(e.x, e.y - 24, '#ff6b5e', 16); addText(e.x, e.y - 30, 'NAVE PERSA'); }
@@ -281,7 +284,7 @@ registerGame({
         if (!enemies.length && !capt) { phase = 'clear'; phaseT = 1.6; }
       } else if (phase === 'clear' || phase === 'result') {
         phaseT -= dt;
-        if (phaseT <= 0) { stage++; spawnStage(); }
+        if (phaseT <= 0) { stage++; if (stage > saved()) api.store.set('stage', stage); spawnStage(); }
       }
     };
 
@@ -401,8 +404,6 @@ registerGame({
     const update = dt => {
       time += dt; flashT = Math.max(0, flashT - dt);
       stars.forEach(s => { s.y += s.s * 40 * dt; if (s.y > H) { s.y = 0; s.x = Math.random() * W; } });
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; });
-      parts = parts.filter(p => p.t > 0);
       texts.forEach(t => { t.y -= 22 * dt; t.t -= dt; });
       texts = texts.filter(t => t.t > 0);
       if (state !== 'play') return;
@@ -417,17 +418,17 @@ registerGame({
 
     const onPointer = e => {
       if (e.type === 'down') {
-        if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'title' || state === 'over') { newGame(saved()); return; }
         touch = { id: e.id, x: e.x };
       } else if (e.type === 'move' && touch && e.id === touch.id) touch.x = e.x;
       else if (e.type === 'up' && touch && e.id === touch.id) touch = null;
     };
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
-      } else if (k === 'select' && state !== 'title') newGame();
+      } else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
     };
 
     // --- disegno ---
@@ -485,6 +486,7 @@ registerGame({
         drawShip(W / 2, 420, 1.4);
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 365, 16, 'center', '#f5d31c');
         text('RECORD ' + hi, W / 2, 470, 13, 'center');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL QUADRO ' + saved(), W / 2, 494, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 514, 11, 'center', '#aab3d8'); }
         return;
       }
 
@@ -499,7 +501,6 @@ registerGame({
       } else if (deadT <= 0 && !(ship.inv > 0 && ((ship.inv * 10) | 0) % 2 === 0)) {
         if (ship.dual) { drawShip(ship.x - 13, SHIP_Y); drawShip(ship.x + 13, SHIP_Y); } else drawShip(ship.x, SHIP_Y);
       }
-      parts.forEach(p => { g.fillStyle = p.c; g.fillRect(p.x, p.y, 3, 3); });
       texts.forEach(t => text(t.s, t.x, t.y, 12, 'center', '#f5d31c'));
 
       text('1UP', 10, 6, 11, 'left', '#e5413b'); text(String(score).padStart(5, '0'), 10, 18, 14);
@@ -525,7 +526,7 @@ registerGame({
       }
     };
 
-    parts = []; texts = []; enemies = []; shots = []; ebullets = []; ship = { x: W / 2, inv: 0, dual: false };
+    texts = []; enemies = []; shots = []; ebullets = []; ship = { x: W / 2, inv: 0, dual: false };
     return {
       onPress: act,
       onPointer,

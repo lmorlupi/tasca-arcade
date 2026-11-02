@@ -15,7 +15,7 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, eaten = 0, tick = 0, time = 0, deadT = 0;
-    let snake, dir, queue, apple, gold, parts = [], sw = null;
+    let snake, dir, queue, apple, gold, sw = null;
 
     const interval = () => Math.max(0.07, 0.17 - eaten * 0.0035);
     const freeCell = () => {
@@ -29,7 +29,7 @@ registerGame({
       const cx = (COLS / 2) | 0, cy = (ROWS / 2) | 0;
       snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
       dir = { x: 1, y: 0 }; queue = []; apple = null; apple = freeCell(); gold = null;
-      score = 0; eaten = 0; tick = 0; parts = []; state = 'play';
+      score = 0; eaten = 0; tick = 0; api.fx.clear(); state = 'play';
     };
     const turn = (x, y) => {
       if (state !== 'play' || queue.length >= 2) return;
@@ -37,10 +37,11 @@ registerGame({
       if ((last.x === x && last.y === y) || (last.x === -x && last.y === -y)) return;
       queue.push({ x, y }); api.haptic(3);
     };
-    const burst = (x, y, c, n) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 100; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5, c }); } };
+    const burst = (x, y, c, n) => api.fx.burst(x, y, { n, color: c, speed: 140, life: 0.5, size: 4, drag: 0 });
     const die = () => {
       state = 'dead'; deadT = 1.0; api.haptic(50); api.beep(130, 0.35, 'sawtooth', 0.06);
       burst(OX + snake[0].x * CELL + CELL / 2, OY + snake[0].y * CELL + CELL / 2, '#4cc24a', 14);
+      api.fx.shake(6, 0.35); api.fx.flash('#e5413b', 0.2, 0.35);
       if (score > hi) { hi = score; api.store.set('hi', hi); }
     };
 
@@ -55,14 +56,15 @@ registerGame({
         apple = freeCell();
         if (eaten % 5 === 0) { gold = Object.assign(freeCell(), { t: 7 }); }
       } else if (gold && h.x === gold.x && h.y === gold.y) {
-        score += 50; gold = null; api.haptic(20); api.beep(1100, 0.1); [1318].forEach(f => setTimeout(() => api.beep(f, 0.1), 90));
+        score += 50; gold = null; api.haptic(20);
+        burst(OX + h.x * CELL + CELL / 2, OY + h.y * CELL + CELL / 2, ['#f5d31c', '#fff3a8'], 14);
+        api.fx.text(OX + h.x * CELL + CELL / 2, OY + h.y * CELL, '+50', { color: '#f5d31c', size: 16 });
+        api.beep(1100, 0.1); [1318].forEach(f => setTimeout(() => api.beep(f, 0.1), 90));
       } else snake.pop();
     };
 
     const update = dt => {
       time += dt;
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; });
-      parts = parts.filter(p => p.t > 0);
       if (state === 'dead') { deadT -= dt; if (deadT <= 0) state = 'over'; return; }
       if (state !== 'play') return;
       if (gold) { gold.t -= dt; if (gold.t <= 0) gold = null; }
@@ -150,7 +152,6 @@ registerGame({
           for (const k of [-1, 1]) { const ex = cx + fx * 3 + sx * 5.5 * k, ey = cy + fy * 3 + sy * 5.5 * k; g.fillStyle = '#fff'; g.beginPath(); g.arc(ex, ey, 3.2, 0, 7); g.fill(); g.fillStyle = '#0b1020'; g.beginPath(); g.arc(ex + fx * 1, ey + fy * 1, 1.7, 0, 7); g.fill(); }
         }
       }
-      parts.forEach(p => { g.globalAlpha = Math.min(1, p.t * 2.5); g.fillStyle = p.c; g.fillRect(p.x - 2, p.y - 2, 4, 4); });
       g.globalAlpha = 1;
       text('PUNTI ' + score, 12, 14, 18); text('RECORD ' + hi, W - 12, 18, 12, 'right', '#aab3d8');
       if (state === 'pause') banner(['PAUSA', 'START']);

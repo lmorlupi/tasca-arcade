@@ -50,7 +50,7 @@ registerGame({
       spans = m.spans;
       ladders = m.ladders.map(([c, a, b]) => ({ x: X(c), top: a, bot: b }));
       layers = [];
-      m.burgers.forEach((fs, b) => fs.forEach((f, k) => layers.push({ b, kind: KINDS[k], x: BURGERS[b], f, y: Y(f), segs: [0, 0, 0, 0], fall: false, vy: 0, to: null, riders: 0, onPlate: false })));
+      m.burgers.forEach((fs, b) => fs.forEach((f, k) => layers.push({ b, kind: KINDS[k], x: BURGERS[b], f, y: Y(f), segs: [0, 0, 0, 0], segT: [-9, -9, -9, -9], land: -9, fall: false, vy: 0, to: null, riders: 0, onPlate: false })));
       plates = BURGERS.map(() => 0);
       spawns = [{ f: 0, x: spans[0][0][0], dir: 1 }, { f: 0, x: spans[0][spans[0].length - 1][1], dir: -1 },
                 { f: FLOORS - 1, x: spans[FLOORS - 1][0][0], dir: 1 }, { f: FLOORS - 1, x: spans[FLOORS - 1][spans[FLOORS - 1].length - 1][1], dir: -1 }];
@@ -76,7 +76,8 @@ registerGame({
     let introT = 0;
     const intro = () => { state = 'intro'; introT = 1.6; };
     const startLevel = () => { build(level); pepper = Math.max(pepper, 5); makeFoes(); resetPlayer(); intro(); };
-    const newGame = () => { score = 0; lives = 3; level = 1; pepper = 5; startLevel(); };
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => { score = 0; lives = 3; level = from; pepper = 5; startLevel(); };
     const endGame = () => { state = 'over'; parts = []; if (score > hi) { hi = score; api.store.set('hi', hi); } };
     const flash = s => { msg = s; msgT = 1.3; };
     const die = () => {
@@ -218,7 +219,7 @@ registerGame({
         for (const L of layers) {
           if (L.fall || L.onPlate || L.f !== P.f || Math.abs(P.x - L.x) > HALF) continue;
           const s = Math.min(3, Math.max(0, Math.floor((P.x - (L.x - HALF)) / SEG)));
-          if (!L.segs[s]) { L.segs[s] = 1; api.beep(500 + s * 60, 0.03, 'square', 0.03); }
+          if (!L.segs[s]) { L.segs[s] = 1; L.segT[s] = time; api.beep(500 + s * 60, 0.03, 'square', 0.03); }
           if (L.segs.every(Boolean)) { dropLayer(L); award(50, L.x, L.y - 20); }
         }
       }
@@ -234,7 +235,7 @@ registerGame({
         }
         const target = L.to >= 0 ? Y(L.to) : PLATE - plates[L.b] * LH;
         if (L.y >= target) {
-          L.y = target; L.fall = false; L.vy = 0;
+          L.y = target; L.fall = false; L.vy = 0; L.land = time;
           if (L.to >= 0) {
             L.f = L.to;
             const under = layers.find(o => o !== L && !o.fall && !o.onPlate && o.b === L.b && o.f === L.f);
@@ -244,6 +245,12 @@ registerGame({
             L.onPlate = true; L.f = -1; plates[L.b]++; dropped++;
             api.haptic(15); api.beep(660, 0.1, 'square', 0.05); burst(L.x, L.y - 4, '#f5d31c', 8);
             if (dropped === 6 && !bonus) bonus = { x: W / 2, f: 3, t: 9 };
+            if (plates[L.b] === 4) {
+              // panino finito: tutta la pila rimbalza, coriandoli e scritta
+              layers.forEach(o => { if (o.b === L.b) o.land = time + (3 - KINDS.indexOf(o.kind)) * 0.05; });
+              api.fx.burst(L.x, L.y - 20, { n: 26, color: ['#f5d31c', '#4cc24a', '#e5413b', '#ffffff'], speed: 170, gravity: 320, life: 0.9, angle: -Math.PI / 2, spread: 2.4 });
+              api.fx.text(L.x, L.y - 44, 'PANINO!', { size: 12, color: '#f5d31c', life: 1 });
+            }
           }
           // chi cavalcava lo strato
           for (const e of foes) if (e.ride === L) kill(e, L.riders > 1 ? 2000 : 1000);
@@ -295,21 +302,22 @@ registerGame({
         if (stateT <= 0) { if (lives <= 0) endGame(); else { resetPlayer(); state = 'play'; } }
       } else if (state === 'win') {
         stateT -= dt;
-        if (stateT <= 0) { level++; startLevel(); }
+        if (stateT <= 0) { level++; if (level > saved()) api.store.set('stage', level); startLevel(); }
       }
     };
 
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'intro') state = 'play';
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
       } else if (k === 'select') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title') { api.store.set('stage', 1); newGame(1); }
+        else if (state === 'over') newGame(1);
       } else if ((k === 'a' || k === 'b') && state === 'play') throwPepper();
     };
-    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(); };
+    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(saved()); };
 
     // Disegno
     const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
@@ -328,11 +336,24 @@ registerGame({
     const foeColor = t => t === 'tomato' ? '#e5413b' : t === 'mushroom' ? '#d8c8b0' : '#ff6a2a';
 
     // Strato del panino: (x, y) = centro in basso. segs abbassa i pezzi già calpestati.
-    const drawLayer = (kind, x, y, segs) => {
+    // Sfumature degli strati, create una volta in coordinate locali (lo strato si disegna con l'origine in (x, y)).
+    const lgr = (y0, y1, a, b) => { const k = g.createLinearGradient(0, y0, 0, y1); k.addColorStop(0, a); k.addColorStop(1, b); return k; };
+    const GR = { bun: lgr(-LH - 4, 0, '#f2b45e', '#c4742c'), meat: lgr(-LH, 0, '#94502e', '#5a2a14'), salad: lgr(-LH + 2, 0, '#62d454', '#2f9a34'), bottom: lgr(-LH, 0, '#e8a04a', '#b86a28') };
+    // Rimbalzo: lo strato si schiaccia e torna su oscillando dopo l'atterraggio; il pezzo calpestato affonda e risale un poco.
+    const squash = t => { const u = time - t; return u >= 0 && u < 0.6 ? 0.28 * Math.exp(-u * 7) * Math.cos(u * 22) : 0; };
+    const dip = t => { const u = time - t; return u >= 0 && u < 0.4 ? 2.5 * Math.exp(-u * 9) * Math.cos(u * 26) : 0; };
+    const drawLayer = (kind, x, y, segs, L) => {
+      const a = L ? squash(L.land) : 0;
+      g.save(); g.translate(x, y); if (a) g.scale(1 + a * 0.5, 1 - a);
+      layerBody(kind, segs, L);
+      g.restore();
+    };
+    const layerBody = (kind, segs, L) => {
+      const x = 0, y = 0;
       for (let s = 0; s < 4; s++) {
-        const x0 = x - HALF + s * SEG, yy = y - LH + (segs && segs[s] ? 3 : 0), first = s === 0, last = s === 3;
+        const x0 = x - HALF + s * SEG, yy = y - LH + (segs && segs[s] ? 3 + (L ? dip(L.segT[s]) : 0) : 0), first = s === 0, last = s === 3;
         if (kind === 'top') {
-          g.fillStyle = '#d98a3a'; g.beginPath();
+          g.fillStyle = GR.bun; g.beginPath();
           if (first) { g.moveTo(x0 + SEG, yy - 4); g.quadraticCurveTo(x0, yy - 4, x0, yy + LH); g.lineTo(x0 + SEG, yy + LH); }
           else if (last) { g.moveTo(x0, yy - 4); g.quadraticCurveTo(x0 + SEG, yy - 4, x0 + SEG, yy + LH); g.lineTo(x0, yy + LH); }
           else g.rect(x0, yy - 4, SEG, LH + 4);
@@ -340,13 +361,13 @@ registerGame({
           if (!first && !last) { R(x0 + 3, yy - 1, 2, 1, '#fff2c8'); R(x0 + 8, yy + 1, 2, 1, '#fff2c8'); }
           R(x0, yy + LH - 2, SEG, 2, '#b06a2a');
         } else if (kind === 'salad') {
-          R(x0, yy + 2, SEG, LH - 2, '#4cc24a');
+          R(x0, yy + 2, SEG, LH - 2, GR.salad);
           for (let k = 0; k < SEG; k += 4) circ(x0 + k + 2, yy + 3, 2.4, '#7be06a');
         } else if (kind === 'meat') {
-          g.fillStyle = '#7a3a1e'; g.beginPath(); g.roundRect(x0 - (first ? 0 : 1), yy, SEG + (first || last ? 1 : 2), LH, first ? [4, 0, 0, 4] : last ? [0, 4, 4, 0] : 0); g.fill();
+          g.fillStyle = GR.meat; g.beginPath(); g.roundRect(x0 - (first ? 0 : 1), yy, SEG + (first || last ? 1 : 2), LH, first ? [4, 0, 0, 4] : last ? [0, 4, 4, 0] : 0); g.fill();
           R(x0 + 2, yy + 2, 3, 1, '#a85a32'); R(x0 + 7, yy + 5, 3, 1, '#a85a32');
         } else {
-          g.fillStyle = '#d98a3a'; g.beginPath(); g.roundRect(x0, yy, SEG, LH, first ? [0, 0, 0, 5] : last ? [0, 0, 5, 0] : 0); g.fill();
+          g.fillStyle = GR.bottom; g.beginPath(); g.roundRect(x0, yy, SEG, LH, first ? [0, 0, 0, 5] : last ? [0, 0, 5, 0] : 0); g.fill();
           R(x0, yy, SEG, 2, '#f0b060');
         }
       }
@@ -401,7 +422,8 @@ registerGame({
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 368, 16, 'center', '#f5d31c');
         text('CAMMINA SUGLI STRATI PER FARLI CADERE', W / 2, 408, 11, 'center', '#aab3d8');
         text('A/B: PEPE CONTRO I NEMICI', W / 2, 426, 11, 'center', '#aab3d8');
-        text('RECORD ' + hi, W / 2, 470, 13, 'center');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL LIVELLO ' + saved(), W / 2, 448, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 468, 11, 'center', '#aab3d8'); }
+        text('RECORD ' + hi, W / 2, saved() > 1 ? 494 : 470, 13, 'center');
         return;
       }
 
@@ -414,7 +436,7 @@ registerGame({
       for (let f = 0; f < FLOORS; f++) for (const [a, b] of spans[f]) { R(a - 10, Y(f), b - a + 20, 4, '#3a7ad8'); R(a - 10, Y(f) + 4, b - a + 20, 2, '#1e3a7a'); }
       // piatti
       for (const x of BURGERS) { R(x - 30, PLATE, 60, 4, '#d8dcef'); R(x - 26, PLATE + 4, 52, 3, '#8a90b0'); }
-      for (const L of layers) drawLayer(L.kind, L.x, L.y, L.fall || L.onPlate ? null : L.segs);
+      for (const L of layers) drawLayer(L.kind, L.x, L.y, L.fall || L.onPlate ? null : L.segs, L);
       if (bonus && (bonus.t > 2 || ((bonus.t * 8) | 0) % 2)) {
         const x = bonus.x, y = Y(bonus.f);
         g.fillStyle = '#f2e6d0'; g.beginPath(); g.moveTo(x - 6, y - 16); g.lineTo(x + 6, y - 16); g.lineTo(x, y - 2); g.fill();

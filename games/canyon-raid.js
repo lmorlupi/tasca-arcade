@@ -18,7 +18,7 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, fuel = 100, loop = 0, sx = 0, time = 0, deadT = 0, flashMsg = '', flashT = 0, nextExtra = 30000;
-    let ship = { x: 70, y: H * 0.4, inv: 0 }, lasers = [], bombs = [], objs = [], parts = [], texts = [], touch = null, laserCd = 0, bombCd = 0, genTo = -1, meteorT = 0, lowBeep = 0, bPressed = false;
+    let ship = { x: 70, y: H * 0.4, inv: 0 }, lasers = [], bombs = [], objs = [], texts = [], touch = null, laserCd = 0, bombCd = 0, genTo = -1, meteorT = 0, lowBeep = 0, bPressed = false;
     const stars = Array.from({ length: 60 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.6, s: Math.random() * 1.5 + 0.4 }));
 
     const ss = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -34,7 +34,7 @@ registerGame({
     const arp = (notes, step, type, vol) => notes.forEach((f, i) => setTimeout(() => api.beep(f, step * 1.4, type || 'triangle', vol || 0.04), i * step * 1000));
     const flash = s => { flashMsg = s; flashT = 1.8; };
     const addText = (x, y, s) => texts.push({ x, y, s: String(s), t: 0.9 });
-    const boom = (x, y, c, n = 12) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = 40 + Math.random() * 150; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0.4 + Math.random() * 0.45, c }); } };
+    const boom = (x, y, c, n = 12) => api.fx.burst(x, y, { n, color: c, speed: 190, life: 0.85, size: 3, drag: 0 });
     const addScore = n => { score += n; while (score >= nextExtra) { lives = Math.min(6, lives + 1); nextExtra += 40000; flash('NAVE EXTRA'); arp([523, 659, 784, 1047], 0.09); } };
 
     // --- generazione dei bersagli per sezione ---
@@ -57,7 +57,7 @@ registerGame({
       lasers = []; bombs = []; meteorT = 1;
     };
     const newGame = () => {
-      score = 0; lives = 3; loop = 0; sx = 0; fuel = 100; nextExtra = 30000; parts = []; texts = []; objs = []; genTo = -1;
+      score = 0; lives = 3; loop = 0; sx = 0; fuel = 100; nextExtra = 30000; api.fx.clear(); texts = []; objs = []; genTo = -1;
       respawn(); ship.inv = 1; ensureGen(); state = 'play';
     };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
@@ -66,6 +66,7 @@ registerGame({
       boom(sx + ship.x - sx, ship.y, '#ffd27f', 24); boom(ship.x, ship.y, '#ff6a3a', 16);
       api.haptic(50); api.beep(120, 0.5, 'sawtooth', 0.06); setTimeout(() => api.beep(70, 0.6, 'sawtooth', 0.05), 120);
       lives--; deadT = 1.7; if (why) flash(why);
+      api.fx.shake(7, 0.45); api.fx.flash('#e5413b', 0.25, 0.4);
     };
     const checkpoint = () => {
       const sa = Math.floor((sx + ship.x) / SEC); sx = sa * SEC;
@@ -81,14 +82,14 @@ registerGame({
       addScore(pts); addText(o.x - sx, o.y - 16, pts);
       const bx = box(o); boom(o.x - sx, bx[1] + bx[3] / 2, o.k === 'tank' ? '#ffae3a' : '#ffd27f', o.k === 'base' ? 40 : 14);
       api.haptic(14); api.beep(220, 0.1, 'sawtooth', 0.05); setTimeout(() => api.beep(140, 0.15, 'sawtooth', 0.04), 50);
+      if (o.k === 'bld') api.fx.shake(2.5, 0.15);
       if (o.k === 'tank') { fuel = Math.min(100, fuel + 30); flash('PIENO DI CARBURANTE'); arp([660, 880], 0.07); }
-      if (o.k === 'base') { addScore(5000); flash('MISSIONE COMPIUTA! +5000'); loop++; arp([523, 659, 784, 1047, 1319], 0.1, 'triangle', 0.05); }
+      if (o.k === 'base') { api.fx.shake(8, 0.6); api.fx.flash('#ffd27f', 0.3, 0.45); addScore(5000); flash('MISSIONE COMPIUTA! +5000'); loop++; arp([523, 659, 784, 1047, 1319], 0.1, 'triangle', 0.05); }
     };
 
     const update = dt => {
       time += dt; flashT = Math.max(0, flashT - dt);
       stars.forEach(s => { s.x -= s.s * 8 * dt; if (s.x < 0) s.x = W; });
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; }); parts = parts.filter(p => p.t > 0);
       texts.forEach(t => { t.y -= 22 * dt; t.t -= dt; }); texts = texts.filter(t => t.t > 0);
       if (state !== 'play') return;
       ship.inv = Math.max(0, ship.inv - dt); laserCd = Math.max(0, laserCd - dt); bombCd = Math.max(0, bombCd - dt);
@@ -242,7 +243,6 @@ registerGame({
       lasers.forEach(l => { g.fillStyle = '#bff3ff'; g.fillRect(l.x, l.y - 1.2, 18, 2.4); g.fillStyle = '#fff'; g.fillRect(l.x + 4, l.y - 0.5, 14, 1); });
       bombs.forEach(b => { g.save(); g.translate(b.x - sx, b.y); g.rotate(Math.atan2(b.vy, b.vx)); g.fillStyle = '#2a2f40'; g.beginPath(); g.ellipse(0, 0, 6, 3, 0, 0, TAU); g.fill(); g.fillStyle = '#e5413b'; g.fillRect(-7, -2, 3, 4); g.restore(); });
       if (deadT <= 0 && !(ship.inv > 0 && ((ship.inv * 10) | 0) % 2 === 0)) drawShip(ship.x, ship.y, 1);
-      parts.forEach(p => { g.fillStyle = p.c; g.fillRect(p.x, p.y, 3, 3); });
       texts.forEach(t => text(t.s, t.x, t.y, 12, 'center', '#f5d31c'));
       // HUD
       g.fillStyle = 'rgba(5,7,15,.55)'; g.fillRect(0, 0, W, TOPH);

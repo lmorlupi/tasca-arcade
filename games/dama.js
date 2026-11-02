@@ -83,12 +83,17 @@ registerGame({
       return false;
     };
     const doMove = (m, who) => {
-      const [sr, sc] = m.path[0], [er, ec] = m.path[m.path.length - 1]; last = { from: [sr, sc], to: [er, ec] };
+      const [sr, sc] = m.path[0], [er, ec] = m.path[m.path.length - 1]; last = { from: [sr, sc], to: [er, ec], who, path: m.path };
+      // Per l'animazione: la pedina percorre il cammino un salto alla volta, le prese svaniscono quando ci passa sopra.
+      anim = { t0: time, seg: who === 1 ? 0.2 : 0.3, path: m.path, p: board[sr][sc], taken: m.taken.map(([x, y]) => [x, y, board[x][y]]) };
       board = apply(board, m); sel = null; legal = [];
       api.beep(who === 1 ? 420 : 360, 0.05, 'square', 0.08); api.beep(1700, 0.01, 'square', 0.04);
       if (m.taken.length) { api.haptic(who === 1 ? 25 : 10); api.beep(220, 0.1, 'triangle', 0.09); flash((who === 1 ? 'PRENDI ' : 'PRENDE IL TELEFONO ') + m.taken.length); }
-      turn = -who; if (check()) return; if (turn === -1) { state = 'think'; wait = 0.6; } else if (movesFor(board, 1)[0] && movesFor(board, 1)[0].taken.length) flash('PRESA OBBLIGATORIA');
+      turn = -who; if (check()) return; if (turn === -1) { state = 'think'; wait = Math.max(0.6, animLen() + 0.25); } else if (movesFor(board, 1)[0] && movesFor(board, 1)[0].taken.length) flash('PRESA OBBLIGATORIA');
     };
+    const animLen = () => anim ? anim.seg * (anim.path.length - 1) : 0;
+    const moving = () => anim && time - anim.t0 < animLen();
+    const ease = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt);
       if (state === 'think') { wait -= dt; if (wait <= 0) { state = 'play'; const m = cpuMove(); if (m) doMove(m, -1); } }
@@ -100,7 +105,7 @@ registerGame({
       if (state === 'title') { if (y > 330 && y < 440) { const k = Math.floor((x - 40) / 94); if (k >= 0 && k < 3 && y > 380) { level = k + 1; api.store.set('lvl', level); } if (y <= 380 || k < 0 || k > 2) { newGame(); return; } return; } newGame(); return; }
       if (state === 'end') { newGame(); return; }
       if (state === 'pause') { state = 'play'; return; }
-      if (state !== 'play' || turn !== 1) return;
+      if (state !== 'play' || turn !== 1 || moving()) return;
       const [r, c] = toRC(x, y); if (r < 0 || r > 7 || c < 0 || c > 7) return;
       const ms = movesFor(board, 1);
       if (sel) { const m = ms.find(m => m.path[0][0] === sel[0] && m.path[0][1] === sel[1] && m.path[m.path.length - 1][0] === r && m.path[m.path.length - 1][1] === c); if (m) { doMove(m, 1); return; } }
@@ -137,9 +142,27 @@ registerGame({
       }
       g.fillStyle = '#6a3d1c'; g.beginPath(); g.roundRect(BX - 10, BY - 10, 8 * SQ + 20, 8 * SQ + 20, 10); g.fill();
       for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { g.fillStyle = (r + c) % 2 ? '#8a5a30' : '#f0dcb0'; g.fillRect(BX + c * SQ, BY + r * SQ, SQ, SQ); }
-      if (last) { g.fillStyle = 'rgba(255,230,120,.35)'; for (const [r, c] of [last.from, last.to]) g.fillRect(BX + c * SQ, BY + r * SQ, SQ, SQ); }
+      // Ultima mossa: la tua in giallo; quella del telefono in azzurro con la cornice, con gli appoggi dei salti multipli.
+      if (last && last.who === -1) {
+        const pulse = 1 + 0.6 * Math.max(0, 1 - (time - anim.t0 - animLen()) / 1.2) * Math.abs(Math.sin((time - anim.t0) * 6));
+        for (const [[r, c], a, lw] of [[last.from, 0.22, 2], [last.to, 0.42, 3]]) {
+          const x = BX + c * SQ, y = BY + r * SQ;
+          g.fillStyle = 'rgba(90,200,255,' + a + ')'; g.fillRect(x, y, SQ, SQ);
+          g.strokeStyle = 'rgba(40,150,230,' + Math.min(1, 0.6 * pulse) + ')'; g.lineWidth = lw; g.strokeRect(x + lw / 2, y + lw / 2, SQ - lw, SQ - lw);
+        }
+        g.strokeStyle = 'rgba(40,150,230,.7)'; g.lineWidth = 2;
+        last.path.slice(1, -1).forEach(([r, c]) => { g.beginPath(); g.arc(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, SQ * 0.2, 0, 7); g.stroke(); });
+      } else if (last) { g.fillStyle = 'rgba(255,230,120,.35)'; for (const [r, c] of [last.from, last.to]) g.fillRect(BX + c * SQ, BY + r * SQ, SQ, SQ); }
       legal.forEach(m => { const [r, c] = m.path[m.path.length - 1]; g.fillStyle = 'rgba(111,255,160,.55)'; g.beginPath(); g.arc(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, SQ * 0.18, 0, 7); g.fill(); });
-      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = board[r][c]; if (p) piece(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, p, sel && sel[0] === r && sel[1] === c); }
+      const go = moving(), end = anim && anim.path[anim.path.length - 1], u = go ? (time - anim.t0) / anim.seg : 0;
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = board[r][c]; if (p && !(go && r === end[0] && c === end[1])) piece(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, p, sel && sel[0] === r && sel[1] === c); }
+      if (go) {
+        // le pedine prese restano finché la pedina non ci salta sopra, poi svaniscono
+        anim.taken.forEach(([r, c, p], i) => { const f = Math.max(0, Math.min(1, 1 - (u - i - 0.5) / 0.6)); if (f > 0) { g.save(); g.globalAlpha = f; piece(BX + c * SQ + SQ / 2, BY + r * SQ + SQ / 2, p); g.restore(); } });
+        const i = Math.min(anim.path.length - 2, Math.floor(u)), k = ease(u - i), [r0, c0] = anim.path[i], [r1, c1] = anim.path[i + 1];
+        const jump = Math.abs(r1 - r0) > 1 ? Math.sin(Math.PI * k) * 10 : Math.sin(Math.PI * k) * 3;
+        piece(BX + (c0 + (c1 - c0) * k) * SQ + SQ / 2, BY + (r0 + (r1 - r0) * k) * SQ + SQ / 2 - jump, anim.p);
+      }
       g.fillStyle = 'rgba(10,4,2,.7)'; g.fillRect(0, 0, VW, 60); text('DAMA', 14, 10, 18, 'left', '#ffe66a'); text(turn === 1 ? 'TOCCA A TE' : 'PENSA IL TELEFONO...', VW - 14, 12, 12, 'right', turn === 1 ? '#6fffa0' : '#c9b6a0');
       let w = 0, b = 0; board.forEach(row => row.forEach(p => { if (p > 0) w++; else if (p < 0) b++; })); text('TU ' + w + '   CPU ' + b + '   LIV ' + level, 14, 36, 12, 'left', '#fff4e0');
       if (msgT > 0) text(msg, VW / 2, BY + 8 * SQ + 26, 13, 'center', '#ffe66a');

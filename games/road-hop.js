@@ -45,6 +45,10 @@ registerGame({
     const die = reason => {
       if (state !== 'play') return;
       state = 'dead'; deadT = 0.9; why = reason; lives--; api.haptic(45); api.beep(140, 0.35, 'sawtooth', 0.06);
+      const py = rowY(P.r) + C / 2;
+      if (reason === 'ACQUA') api.fx.burst(P.x, py, { n: 18, color: ['#7fd4ff', '#d8f3ff', '#3b8fd6'], speed: 150, angle: -Math.PI / 2, spread: 2.2, gravity: 420, drag: 0, life: 0.6 });
+      else { api.fx.burst(P.x, py, { n: 16, color: ['#f5d31c', '#e5413b', '#ffffff'], speed: 170, life: 0.5 }); api.fx.shake(reason === 'AUTO' ? 6 : 3, 0.3); }
+      api.fx.flash('#e5413b', 0.2, 0.3);
     };
     const hop = (dx, dy) => {
       if (state !== 'play' || P.hop > 0.04) return;
@@ -60,7 +64,10 @@ registerGame({
     const landGoal = () => {
       const base = (W - COLS * C) / 2, idx = Math.round((P.x - base - C / 2) / C);
       if (idx % 2 === 1 && idx >= 1 && idx <= 7 && !bays[(idx - 1) / 2]) {
-        bays[(idx - 1) / 2] = true; score += 100 + Math.round(left) * 2; api.haptic(30); api.beep(988, 0.1); flash('TANA!');
+        const pts = 100 + Math.round(left) * 2;
+        bays[(idx - 1) / 2] = true; score += pts; api.haptic(30); api.beep(988, 0.1); flash('TANA!');
+        api.fx.burst(P.x, rowY(0) + C / 2, { n: 22, color: ['#f5d31c', '#4cc24a', '#ffffff'], speed: 150, gravity: 260, life: 0.8 });
+        api.fx.text(P.x, rowY(0) + C, '+' + pts, { color: '#f5d31c', size: 16 });
         if (bays.every(Boolean)) { level++; bays = [false, false, false, false]; buildLanes(); flash('LIVELLO ' + level); [660, 880, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.1), i * 110)); }
         resetPlayer();
       } else die('SIEPE');

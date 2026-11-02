@@ -20,13 +20,17 @@ registerGame({
     let wins = api.store.get('wins', 0);
     let state = 'title', time = 0, deck, hand, cpuHand, table, turn, thP, thC, msg = '', msgT = 0, wait = 0, selI = -1, lastWinner = null;
     const flash = t => { msg = t; msgT = 1.6; };
+    const mv = Cards.motion();
+    // Le carte arrivano dal mazzo e le prese volano verso chi vince.
+    const fromDeck = (c, delay) => mv.from(c, 14, 220, 50, { back: true, delay });
     const pts = t => Math.floor(t / 3) + (t % 3 ? ' ' + (t % 3) + '/3' : '');
     const mustFollow = () => !deck.length;
     const legal = (h, lead) => { if (!lead || !mustFollow()) return h.map((_, i) => i); const same = h.map((c, i) => (c.s === lead.s ? i : -1)).filter(i => i >= 0); return same.length ? same : h.map((_, i) => i); };
     const newGame = () => {
       deck = Cards.shuffle(Cards.deck()); hand = []; cpuHand = []; table = []; thP = 0; thC = 0; lastWinner = null;
-      for (let i = 0; i < 5; i++) { hand.push(deck.pop()); cpuHand.push(deck.pop()); }
-      turn = Math.random() < 0.5 ? 'P' : 'C'; state = 'play'; wait = 0.6; flash(turn === 'P' ? 'INIZI TU' : 'INIZIA IL TELEFONO');
+      mv.reset();
+      for (let i = 0; i < 5; i++) { hand.push(deck.pop()); cpuHand.push(deck.pop()); fromDeck(hand[i], i * 0.14); fromDeck(cpuHand[i], i * 0.14 + 0.07); }
+      turn = Math.random() < 0.5 ? 'P' : 'C'; state = 'play'; wait = 1.2; flash(turn === 'P' ? 'INIZI TU' : 'INIZIA IL TELEFONO');
     };
     const cpuPick = () => {
       const lead = table.length ? table[0].c : null, ok = legal(cpuHand, lead);
@@ -45,10 +49,11 @@ registerGame({
       if (win === 'P') thP += t; else thC += t; lastWinner = win;
       flash((win === 'P' ? 'PRENDI TU' : 'PRENDE IL TELEFONO') + (t ? ' +' + t + '/3' : ''));
       api.beep(win === 'P' ? 700 : 260, 0.07, 'triangle', 0.07); if (win === 'P') api.haptic(t >= 3 ? 30 : 12);
+      table.forEach((t, i) => mv.away(t.c, win === 'P' ? VW / 2 - 35 : VW / 2 - 24, win === 'P' ? VH + 30 : -100, win === 'P' ? 70 : 48, { back: true, delay: 0.25 + i * 0.07 }));
       table = []; state = 'collect'; wait = 0.9; turn = win;
     };
     const after = () => {
-      if (deck.length) { (lastWinner === 'P' ? [hand, cpuHand] : [cpuHand, hand]).forEach(h => { if (deck.length) h.push(deck.pop()); }); }
+      if (deck.length) { (lastWinner === 'P' ? [hand, cpuHand] : [cpuHand, hand]).forEach((h, k) => { if (deck.length) { const c = deck.pop(); fromDeck(c, k * 0.12); h.push(c); } }); }
       if (!hand.length && !cpuHand.length) {
         if (lastWinner === 'P') thP += 3; else thC += 3;
         state = 'end'; if (thP > thC) { wins++; api.store.set('wins', wins); [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => api.beep(f, 0.14, 'triangle', 0.08), k * 110)); api.haptic(50); } else api.beep(180, 0.3, 'sawtooth', 0.07);
@@ -57,13 +62,12 @@ registerGame({
       state = 'play'; wait = 0.4;
     };
     const play = (who, i) => {
-      const from = who === 'P' ? (() => { const r = rect(i); return [r.x, r.y, r.w]; })() : [VW / 2 - cpuHand.length * 24 + i * 48 - 4, 52, 48];
-      const c = (who === 'P' ? hand : cpuHand).splice(i, 1)[0]; table.push({ c, who, from, t0: time });
+      const c = (who === 'P' ? hand : cpuHand).splice(i, 1)[0]; table.push({ c, who });
       api.beep(who === 'P' ? 420 : 360, 0.04, 'square', 0.08); api.beep(1700, 0.01, 'square', 0.04);
       if (table.length === 2) { state = 'show'; wait = 1.0; } else turn = who === 'P' ? 'C' : 'P';
     };
     const update = dt => {
-      time += dt; msgT = Math.max(0, msgT - dt);
+      time += dt; msgT = Math.max(0, msgT - dt); mv.update(dt);
       if (state === 'play') { if (wait > 0) { wait -= dt; return; } if (turn === 'C') play('C', cpuPick()); }
       else if (state === 'show') { wait -= dt; if (wait <= 0) resolve(); }
       else if (state === 'collect') { wait -= dt; if (wait <= 0) after(); }
@@ -101,11 +105,12 @@ registerGame({
         text('PARTITE VINTE ' + wins, VW / 2, 470, 13, 'center'); g.restore(); return;
       }
       g.fillStyle = 'rgba(8,24,16,.7)'; g.fillRect(0, 0, VW, 44); text('TU ' + pts(thP), 12, 10, 16, 'left', '#ffe66a'); text('CPU ' + pts(thC), VW - 12, 10, 16, 'right', '#ffe66a'); text('MAZZO ' + deck.length, VW / 2, 16, 11, 'center', '#c8e8d0');
-      cpuHand.forEach((c, i) => Cards.draw(g, null, VW / 2 - cpuHand.length * 24 + i * 48 - 4, 52, 48, { back: true }));
+      cpuHand.forEach((c, i) => mv.card(g, c, VW / 2 - cpuHand.length * 24 + i * 48 - 4, 52, 48, { back: true }));
       if (deck.length) Cards.draw(g, null, 14, 220, 50, { back: true });
-      table.forEach((t, i) => { const tx = 125 + i * 56 + (t.who === 'P' ? 10 : -10), ty = 230 + (t.who === 'P' ? 20 : -20), k = Cards.ease((time - t.t0) / 0.28); Cards.draw(g, t.c, t.from[0] + (tx - t.from[0]) * k, t.from[1] + (ty - t.from[1]) * k, t.from[2] + (70 - t.from[2]) * k, { lift: true, angle: (1 - k) * (t.who === 'P' ? -0.15 : 0.15) }); });
+      table.forEach((t, i) => mv.card(g, t.c, 125 + i * 56 + (t.who === 'P' ? 10 : -10), 230 + (t.who === 'P' ? 20 : -20), 70, { lift: true, angle: t.who === 'P' ? 0.05 : -0.05 }));
       const lead = table.length ? table[0].c : null, ok = legal(hand, lead);
-      hand.forEach((c, i) => { const r = rect(i); Cards.draw(g, c, r.x, r.y, r.w, { sel: i === selI, lift: i === selI, dim: !(state === 'play' && turn === 'P' && ok.includes(i)) }); });
+      hand.forEach((c, i) => { const r = rect(i); mv.card(g, c, r.x, r.y, r.w, { sel: i === selI, lift: i === selI, dim: !(state === 'play' && turn === 'P' && ok.includes(i)) }); });
+      mv.flush(g);
       if (msgT > 0) text(msg, VW / 2, 396, 13, 'center', '#ffe66a');
       if (state === 'play' && turn === 'P' && wait <= 0) text(selI >= 0 ? 'TOCCA DI NUOVO PER GIOCARE' : mustFollow() && lead ? 'RISPONDI AL SEME' : 'SCEGLI UNA CARTA', VW / 2, 566, 11, 'center', '#c8e8d0');
       if (state === 'pause') banner(['PAUSA', 'START']);

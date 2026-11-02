@@ -65,7 +65,8 @@ registerGame({
         }
       } else if (e.type === 'move' && drag && e.id === drag.id) {
         trail.push({ x: e.x, y: e.y, t: e.t });
-        if (trail.length > 8) trail.shift();
+        // Si tengono gli ultimi 150 ms di movimento (con i punti intermedi del dito possono essere molti).
+        while (trail.length > 2 && e.t - trail[0].t > 150) trail.shift();
       } else if (e.type === 'up' && drag && e.id === drag.id) {
         drag = null;
         if (e.cancelled) return;
@@ -124,7 +125,7 @@ registerGame({
         }
         // tabellone: tocca il quadrato rosso e il tiro vale doppio
         if (!bankHit && ball.vy < 0 && Math.abs(ball.x - hoop.x) < 26 && ball.y < hoop.y - 12 && ball.y > hoop.y - 52 && ball.y > hoop.y - 90) { bankHit = true; ball.vy *= 0.55; ball.vx *= 0.5; api.haptic(10); api.beep(420, 0.05, 'triangle', 0.06); burst(ball.x, ball.y, 6, '#ffffff'); }
-        if (fire && ball.fly && ((shotT * 60) | 0) % 2 === 0) parts.push({ x: ball.x + (Math.random() - 0.5) * 10, y: ball.y + 6, vx: (Math.random() - 0.5) * 30, vy: 40 + Math.random() * 40, t: 0.4, c: Math.random() < 0.5 ? '#ffd24a' : '#ff6a2a', s: 4 });
+        if (fire && ball.fly && ((shotT * 30) | 0) !== ((shotT - dt) * 30 | 0)) parts.push({ x: ball.x + (Math.random() - 0.5) * 10, y: ball.y + 6, vx: (Math.random() - 0.5) * 30, vy: 40 + Math.random() * 40, t: 0.4, c: Math.random() < 0.5 ? '#ffd24a' : '#ff6a2a', s: 4 });
         // canestro: la palla attraversa l'anello dall'alto
         if (!scored && prevY < hoop.y && ball.y >= hoop.y && ball.vy > 0 && Math.abs(ball.x - hoop.x) < HOOP_HALF - 8) {
           scored = true; netWobble = 1;

@@ -16,7 +16,7 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, wave = 1, time = 0, msg = '', msgT = 0, respawnT = 0, deadT = 0, cd = 0;
-    let ship, bullets = [], rocks = [], parts = [], touch = null;
+    let ship, bullets = [], rocks = [], touch = null;
 
     const blob = (r) => {
       const n = 10, pts = [];
@@ -35,9 +35,10 @@ registerGame({
       }
     };
     const newShip = () => ({ x: W / 2, y: H / 2, vx: 0, vy: 0, a: -Math.PI / 2, inv: 2 });
-    const newGame = () => { score = 0; lives = 3; wave = 1; bullets = []; parts = []; ship = newShip(); spawnWave(); state = 'play'; };
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => { score = 0; lives = 3; wave = from; bullets = []; api.fx.clear(); ship = newShip(); spawnWave(); state = 'play'; };
     const flash = s => { msg = s; msgT = 1.3; };
-    const burst = (x, y, c, n) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, v = 30 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5 + Math.random() * 0.5, c }); } };
+    const burst = (x, y, c, n) => api.fx.burst(x, y, { n, color: c, speed: 150, life: 1, size: 3, drag: 0 });
     const shoot = () => {
       if (state !== 'play' || deadT > 0 || cd > 0 || bullets.length >= 5) return;
       cd = 0.16; bullets.push({ x: ship.x + Math.cos(ship.a) * 14, y: ship.y + Math.sin(ship.a) * 14, vx: ship.vx + Math.cos(ship.a) * 440, vy: ship.vy + Math.sin(ship.a) * 440, t: 0.95 });
@@ -52,14 +53,12 @@ registerGame({
     const hit = () => {
       if (deadT > 0) return;
       lives--; deadT = 1.4; api.haptic(50); api.beep(110, 0.5, 'sawtooth', 0.07);
-      burst(ship.x, ship.y, '#25c4f0', 18);
+      burst(ship.x, ship.y, '#25c4f0', 18); api.fx.shake(7, 0.45); api.fx.flash('#e5413b', 0.25, 0.4);
     };
     const wrap = o => { if (o.x < -40) o.x += W + 80; if (o.x > W + 40) o.x -= W + 80; if (o.y < -40) o.y += H + 80; if (o.y > H + 40) o.y -= H + 80; };
 
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt); cd = Math.max(0, cd - dt);
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; });
-      parts = parts.filter(p => p.t > 0);
       if (state !== 'play') return;
       for (const r of rocks) { r.x += r.vx * dt; r.y += r.vy * dt; r.a += r.w * dt; wrap(r); }
 
@@ -99,7 +98,8 @@ registerGame({
           if (r.dead) continue;
           if (Math.hypot(b.x - r.x, b.y - r.y) < SIZES[r.size].r * 0.85) {
             b.t = 0; r.dead = true; score += SIZES[r.size].pts; api.haptic(r.size === 2 ? 14 : 8); api.beep(180 + r.size * 120, 0.08, 'square', 0.04);
-            burst(r.x, r.y, '#aab3d8', 6 + r.size * 3);
+            burst(r.x, r.y, '#aab3d8', 6 + r.size * 3); api.fx.text(r.x, r.y, '+' + SIZES[r.size].pts, { size: 12, color: '#dfe6ff' });
+            if (r.size === 2) api.fx.shake(3, 0.15);
             if (r.size > 0) { added.push(makeRock(r.x, r.y, r.size - 1), makeRock(r.x, r.y, r.size - 1)); }
             break;
           }
@@ -109,20 +109,20 @@ registerGame({
       bullets = bullets.filter(b => b.t > 0);
       // la nave contro gli asteroidi
       if (deadT <= 0 && ship.inv <= 0) for (const r of rocks) if (Math.hypot(ship.x - r.x, ship.y - r.y) < SIZES[r.size].r * 0.85 + 8) { hit(); break; }
-      if (!rocks.length && deadT <= 0) { wave++; flash('ONDATA ' + wave); api.haptic(25); spawnWave(); ship.inv = 1.5; }
+      if (!rocks.length && deadT <= 0) { wave++; if (wave > saved()) api.store.set('stage', wave); flash('ONDATA ' + wave); api.haptic(25); spawnWave(); ship.inv = 1.5; }
     };
 
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play';
-      } else if (k === 'select') { if (state !== 'title') newGame(); }
-      else if (k === 'a') { if (state === 'title' || state === 'over') newGame(); else shoot(); }
+      } else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
+      else if (k === 'a') { if (state === 'title' || state === 'over') newGame(saved()); else shoot(); }
       else if (k === 'b' && state === 'play' && api.tilt) { /* B è anche la spinta: il teletrasporto è con SELECT+B */ }
     };
     const onPointer = e => {
       if (e.type === 'down') {
-        if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'title' || state === 'over') { newGame(saved()); return; }
         if (state === 'pause') { state = 'play'; return; }
         touch = { id: e.id, x: e.x, y: e.y };
       } else if (e.type === 'move' && touch && e.id === touch.id) { touch.x = e.x; touch.y = e.y; }
@@ -156,6 +156,7 @@ registerGame({
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 410, 16, 'center', '#f5d31c');
         text('DITO = DOVE ANDARE · A SPARA', W / 2, 460, 12, 'center', '#aab3d8');
         text('RECORD ' + hi, W / 2, 500, 14, 'center');
+        if (saved() > 1) { text('TOCCA: CONTINUA DALL\'ONDATA ' + saved(), W / 2, 530, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 550, 11, 'center', '#aab3d8'); }
         return;
       }
       g.lineWidth = 1.6; g.lineJoin = 'round';
@@ -170,7 +171,6 @@ registerGame({
       }
       bullets.forEach(b => { g.fillStyle = 'rgba(255,220,90,.28)'; g.beginPath(); g.arc(b.x, b.y, 5, 0, 7); g.fill(); g.fillStyle = '#fff3b0'; g.beginPath(); g.arc(b.x, b.y, 2, 0, 7); g.fill(); });
       if (deadT <= 0 && !(ship.inv > 0 && ((ship.inv * 10) | 0) % 2 === 0)) drawShip(ship, 1, !!(held.up || held.b || (touch && Math.hypot(touch.x - ship.x, touch.y - ship.y) > 46)));
-      parts.forEach(p => { g.globalAlpha = Math.min(1, p.t * 2); g.fillStyle = p.c; g.fillRect(p.x - 1.5, p.y - 1.5, 3, 3); });
       g.globalAlpha = 1;
       text('PUNTI ' + score, 10, 10, 15); text('ONDATA ' + wave, W / 2 + 14, 10, 15, 'center');
       for (let i = 0; i < lives; i++) drawShip({ x: W - 20 - i * 24, y: 22, a: -Math.PI / 2 }, 0.8);

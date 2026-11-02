@@ -20,7 +20,7 @@ registerGame({
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, reserve = 2, L = 0, time = 0, nextExtra = 20000;
     let ship = { a: Math.PI / 2, inv: 0, dbl: false };
-    let enemies = [], shots = [], ebul = [], parts = [], texts = [], waves = [], satLeft = {};
+    let enemies = [], shots = [], ebul = [], texts = [], waves = [], satLeft = {};
     let phase = 'intro', phaseT = 0, stageT = 0, chance = false, chHits = 0, chTotal = 0, resultLines = [];
     let deadT = 0, finalDeath = false, touch = null, cd = 0, flashMsg = '', flashT = 0, warpT = 0, fired = 0, hitsTotal = 0, wb = 0;
     const stars = Array.from({ length: 110 }, () => ({ a: Math.random() * TAU, r: Math.random() * 1.2, s: Math.random() }));
@@ -30,7 +30,7 @@ registerGame({
     const arp = (notes, step, type, vol) => notes.forEach((f, i) => setTimeout(() => api.beep(f, step * 1.4, type || 'triangle', vol || 0.04), i * step * 1000));
     const flash = s => { flashMsg = s; flashT = 1.8; };
     const addText = (x, y, s) => texts.push({ x, y, s: String(s), t: 0.9 });
-    const boom = (x, y, c, n = 12) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = 40 + Math.random() * 150; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0.4 + Math.random() * 0.45, c }); } };
+    const boom = (x, y, c, n = 12) => api.fx.burst(x, y, { n, color: c, speed: 190, life: 0.85, size: 3, drag: 0 });
     const addScore = n => {
       score += n;
       while (score >= nextExtra) { reserve = Math.min(6, reserve + 1); nextExtra = nextExtra === 20000 ? 70000 : nextExtra + 70000; flash('NAVE EXTRA'); arp([523, 659, 784, 1047], 0.09, 'triangle', 0.05); }
@@ -59,9 +59,10 @@ registerGame({
     };
 
     const respawn = () => { deadT = 0; ship.inv = 1.8; ship.dbl = false; };
-    const newGame = () => {
-      score = 0; reserve = 2; L = 0; nextExtra = 20000; fired = 0; hitsTotal = 0; deadT = 0; finalDeath = false; cd = 0;
-      parts = []; texts = []; ship = { a: Math.PI / 2, inv: 1, dbl: false };
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => {
+      score = 0; reserve = 2; L = from - 1; nextExtra = 20000; fired = 0; hitsTotal = 0; deadT = 0; finalDeath = false; cd = 0;
+      api.fx.clear(); texts = []; ship = { a: Math.PI / 2, inv: 1, dbl: false };
       spawnStage(); state = 'play';
     };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
@@ -69,7 +70,7 @@ registerGame({
     const shipPos = () => P(ship.a, 1);
     const hitShip = () => {
       if (ship.inv > 0 || deadT > 0) return;
-      const p = shipPos(); boom(p.x, p.y, '#eef1ff', 24); api.haptic(50);
+      const p = shipPos(); boom(p.x, p.y, '#eef1ff', 24); api.haptic(50); api.fx.shake(7, 0.45); api.fx.flash('#e5413b', 0.25, 0.4);
       api.beep(120, 0.5, 'sawtooth', 0.06); setTimeout(() => api.beep(70, 0.5, 'sawtooth', 0.05), 120);
       ebul = [];
       if (reserve > 0) { reserve--; finalDeath = false; } else finalDeath = true;
@@ -126,7 +127,6 @@ registerGame({
       time += dt; flashT = Math.max(0, flashT - dt); wb = Math.max(0, wb - dt * 3);
       const warping = phase === 'warp', sm = warping ? 9 : phase === 'clear' ? 3 : 1;
       stars.forEach(s => { s.r += (0.12 + s.r * 1.3) * sm * dt * (0.6 + s.s * 0.8); if (s.r > 1.35) { s.r = 0.02; s.a = Math.random() * TAU; } });
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; }); parts = parts.filter(p => p.t > 0);
       texts.forEach(t => { t.y -= 22 * dt; t.t -= dt; }); texts = texts.filter(t => t.t > 0);
       if (state !== 'play') return;
       cd = Math.max(0, cd - dt); ship.inv = Math.max(0, ship.inv - dt);
@@ -158,7 +158,7 @@ registerGame({
           } else { phase = 'clear'; phaseT = 1.2; }
         }
       } else if (phase === 'clear') { phaseT -= dt; if (phaseT <= 0) { phase = 'warp'; phaseT = 2.2; arp([220, 262, 330, 392, 523, 659, 880], 0.12, 'sawtooth', 0.025); } }
-      else if (phase === 'warp' || phase === 'result') { phaseT -= dt; if (phaseT <= 0) { L++; spawnStage(); } }
+      else if (phase === 'warp' || phase === 'result') { phaseT -= dt; if (phaseT <= 0) { L++; if (L + 1 > saved()) api.store.set('stage', L + 1); spawnStage(); } }
 
       // nemici
       enemies.forEach(e => { if (!e.dead) updateEnemy(e, dt); });
@@ -186,14 +186,14 @@ registerGame({
     const onPointer = e => {
       const ang = () => Math.atan2((e.y - CY) / RY, (e.x - CX) / RX);
       if (e.type === 'down') {
-        if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'title' || state === 'over') { newGame(saved()); return; }
         touch = { id: e.id, a: ang() };
       } else if (e.type === 'move' && touch && e.id === touch.id) touch.a = ang();
       else if (e.type === 'up' && touch && e.id === touch.id) touch = null;
     };
     const act = k => {
-      if (k === 'start') { if (state === 'title' || state === 'over') newGame(); else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play'; }
-      else if (k === 'select' && state !== 'title') newGame();
+      if (k === 'start') { if (state === 'title' || state === 'over') newGame(saved()); else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play'; }
+      else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
     };
 
     // ---------- disegno ----------
@@ -277,6 +277,7 @@ registerGame({
         text('VORTEX', W / 2, H * 0.30 - 4, 40, 'center', '#a58bff'); text('ORBIT', W / 2, H * 0.30 + 40, 40, 'center');
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, H * 0.62, 16, 'center', '#f5d31c');
         text('RECORD ' + hi, W / 2, H * 0.62 + 30, 13, 'center');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL QUADRO ' + saved(), W / 2, H * 0.62 + 58, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, H * 0.62 + 78, 11, 'center', '#aab3d8'); }
         return;
       }
       drawPlanet(pl, phase === 'warp' ? 8 + 34 * (1 - Math.max(0, phaseT) / 2.2) + close * 20 : 7 + close * 26);
@@ -294,7 +295,6 @@ registerGame({
         if (ship.dbl) { const nx = Math.cos(r) * 11, ny = Math.sin(r) * 11; drawShip(sp.x - nx, sp.y - ny, r, 0.95); drawShip(sp.x + nx, sp.y + ny, r, 0.95); }
         else drawShip(sp.x, sp.y, r, 1.1);
       }
-      parts.forEach(p => { g.fillStyle = p.c; g.fillRect(p.x, p.y, 3, 3); });
       texts.forEach(t => text(t.s, t.x, t.y, 12, 'center', '#f5d31c'));
 
       text('1UP', 10, 6, 11, 'left', '#a58bff'); text(String(score).padStart(6, '0'), 10, 18, 14);

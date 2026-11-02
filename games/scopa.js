@@ -19,6 +19,11 @@ registerGame({
     let wins = api.store.get('wins', 0);
     let state = 'title', time = 0, deck, table, hand, cpuHand, capP, capC, scoreP, scoreC, scopeP, scopeC, turn, lastCap, selI = -1, wait = 0, msg = '', msgT = 0, opts = [], choiceCard = -1, hint = null, result = null;
     const flash = t => { msg = t; msgT = 1.6; };
+    const mv = Cards.motion();
+    // Le carte arrivano dal mazzo, fuori dallo schermo a sinistra; le prese restano un momento evidenziate sul tavolo,
+    // con la carta giocata sopra, poi volano verso chi le ha prese.
+    const fromDeck = (c, delay) => mv.from(c, -70, 250, 56, { back: true, delay });
+    const toPile = (who, c, delay) => mv.away(c, who === 'P' ? VW / 2 - 28 : VW / 2 - 22, who === 'P' ? VH + 30 : -100, who === 'P' ? 56 : 44, { back: true, delay });
     const sums = (cards, target) => {          // tutte le combinazioni di carte del tavolo che sommano a target
       const out = [], n = cards.length;
       for (let m = 1; m < (1 << n); m++) { let s = 0, sel = []; for (let i = 0; i < n; i++) if (m & (1 << i)) { s += cards[i].n; sel.push(i); } if (s === target) out.push(sel); }
@@ -31,14 +36,15 @@ registerGame({
     };
     const newGame = () => {
       deck = Cards.shuffle(Cards.deck()); table = []; hand = []; cpuHand = []; capP = []; capC = []; scopeP = 0; scopeC = 0; lastCap = null; result = null;
-      for (let i = 0; i < 4; i++) table.push(deck.pop());
-      deal(); turn = Math.random() < 0.5 ? 'P' : 'C'; state = 'play'; wait = 0.6; flash(turn === 'P' ? 'INIZI TU' : 'INIZIA IL TELEFONO');
+      mv.reset();
+      for (let i = 0; i < 4; i++) { table.push(deck.pop()); fromDeck(table[i], i * 0.1); }
+      deal(0.45); turn = Math.random() < 0.5 ? 'P' : 'C'; state = 'play'; wait = 1.4; flash(turn === 'P' ? 'INIZI TU' : 'INIZIA IL TELEFONO');
     };
-    const deal = () => { for (let i = 0; i < 3; i++) { hand.push(deck.pop()); cpuHand.push(deck.pop()); } };
+    const deal = (d0 = 0) => { for (let i = 0; i < 3; i++) { hand.push(deck.pop()); cpuHand.push(deck.pop()); fromDeck(hand[i], d0 + i * 0.16); fromDeck(cpuHand[i], d0 + i * 0.16 + 0.08); } };
     const value = (c, taken) => (c.s === 0 && c.n === 7 ? 30 : 0) + (c.s === 0 ? 6 : 0) + (c.n === 7 ? 8 : 0) + (c.n === 6 || c.n === 1 ? 3 : 0) + 2;
     const apply = (who, ci, opt) => {
       const src = who === 'P' ? hand : cpuHand, c = src.splice(ci, 1)[0], pile = who === 'P' ? capP : capC;
-      hint = { who, card: c, took: opt ? opt.map(i => table[i]) : [] };
+      hint = { who, card: c, took: opt ? opt.map(i => table[i]) : [], before: table.slice() };
       if (opt) {
         const got = opt.map(i => table[i]); table = table.filter((_, i) => !opt.includes(i)); pile.push(c, ...got); lastCap = who;
         const last = !deck.length && !hand.length && !cpuHand.length;
@@ -57,7 +63,7 @@ registerGame({
       apply('C', best.i, best.o);
     };
     const finish = () => {
-      if (table.length && lastCap) (lastCap === 'P' ? capP : capC).push(...table.splice(0));
+      if (table.length && lastCap) { table.forEach((c, k) => toPile(lastCap, c, k * 0.06)); (lastCap === 'P' ? capP : capC).push(...table.splice(0)); }
       const sc = { P: 0, C: 0 }, rows = [], cnt = (pile, f) => pile.filter(f).length;
       const cmp = (label, a, b) => { if (a > b) { sc.P++; rows.push(label + ': TU'); } else if (b > a) { sc.C++; rows.push(label + ': CPU'); } else rows.push(label + ': PARI'); };
       cmp('CARTE ' + capP.length + '-' + capC.length, capP.length, capC.length);
@@ -71,11 +77,12 @@ registerGame({
     };
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt);
-      if (state === 'show') { wait -= dt; if (wait <= 0) { hint = null; if (!hand.length && !cpuHand.length) { if (deck.length) deal(); else { finish(); return; } } state = 'play'; wait = 0.4; } return; }
+      mv.update(dt);
+      if (state === 'show') { wait -= dt; if (wait <= 0) { if (hint.took.length) [hint.card, ...hint.took].forEach((c, k) => toPile(hint.who, c, k * 0.06)); hint = null; if (!hand.length && !cpuHand.length) { if (deck.length) { deal(); wait = 0.9; state = 'play'; return; } else { finish(); return; } } state = 'play'; wait = 0.4; } return; }
       if (state === 'play') { if (wait > 0) { wait -= dt; return; } if (turn === 'C' && cpuHand.length) cpuPlay(); else if (turn === 'C') { turn = 'P'; } else if (turn === 'P' && !hand.length) { turn = 'C'; } }
     };
     const handRect = i => { const n = hand.length, w = 78, gap = 8, tot = n * w + (n - 1) * gap, x0 = (VW - tot) / 2; return { x: x0 + i * (w + gap), y: 468 - (i === selI ? 12 : 0), w, h: w * 1.5 }; };
-    const tableRect = i => { const per = 5, w = 56, gap = 8, col = i % per, row = (i / per) | 0, n = Math.min(per, table.length - row * per), tot = n * w + (n - 1) * gap, x0 = (VW - tot) / 2; return { x: x0 + col * (w + gap), y: 150 + row * 96, w, h: w * 1.5 }; };
+    const tableRect = (i, len = table.length) => { const per = 5, w = 56, gap = 8, col = i % per, row = (i / per) | 0, n = Math.min(per, len - row * per), tot = n * w + (n - 1) * gap, x0 = (VW - tot) / 2; return { x: x0 + col * (w + gap), y: 150 + row * 96, w, h: w * 1.5 }; };
     const optRect = k => ({ x: 20 + (k % 2) * 160, y: 440 + ((k / 2) | 0) * 40, w: 150, h: 34 });
     const onPointer = e => {
       if (e.type !== 'down') return;
@@ -117,13 +124,16 @@ registerGame({
         text('PARTITE VINTE ' + wins, VW / 2, 470, 13, 'center'); g.restore(); return;
       }
       g.fillStyle = 'rgba(6,16,32,.7)'; g.fillRect(0, 0, VW, 44); text('TU ' + capP.length + ' · SCOPE ' + scopeP, 12, 8, 12, 'left', '#ffe66a'); text('CPU ' + capC.length + ' · SCOPE ' + scopeC, VW - 12, 8, 12, 'right', '#ffe66a'); text('MAZZO ' + deck.length, VW / 2, 26, 11, 'center', '#cfe3f5');
-      cpuHand.forEach((c, i) => Cards.draw(g, null, 120 + i * 44, 50, 44, { back: true }));
+      cpuHand.forEach((c, i) => mv.card(g, c, 120 + i * 44, 50, 44, { back: true }));
       const hi = new Set(state === 'choose' ? [] : []);
-      table.forEach((t, i) => { const r = tableRect(i); Cards.draw(g, t, r.x, r.y, r.w, { sel: hint && hint.took.includes(t) }); });
+      // Durante una presa il tavolo resta com'era, con le carte prese evidenziate e la carta giocata sopra la prima.
+      const lay = state === 'show' && hint && hint.took.length ? hint.before : table;
+      lay.forEach((t, i) => { const r = tableRect(i, lay.length); mv.card(g, t, r.x, r.y, r.w, { sel: hint && hint.took.includes(t) }); });
+      if (lay !== table) { const r = tableRect(lay.indexOf(hint.took[0]), lay.length); mv.card(g, hint.card, r.x + 8, r.y + 12, r.w, { sel: true, lift: true }); }
       if (state === 'choose') opts.forEach((o, k) => { const r = optRect(k); g.fillStyle = '#ffe66a'; g.beginPath(); g.roundRect(r.x, r.y, r.w, r.h, 8); g.fill(); text('PRENDI ' + o.map(i => table[i].n).join('+'), r.x + r.w / 2, r.y + 9, 13, 'center', '#1a1000'); });
       if (state === 'choose') text('SCEGLI COSA PRENDERE', VW / 2, 418, 12, 'center', '#ffe66a');
-      if (hint && hint.who === 'C') Cards.draw(g, hint.card, VW / 2 - 28, 108, 56, { lift: true, sel: true });
-      hand.forEach((c, i) => { const r = handRect(i); Cards.draw(g, c, r.x, r.y, r.w, { sel: i === selI, lift: i === selI, dim: !(state === 'play' && turn === 'P') }); });
+      hand.forEach((c, i) => { const r = handRect(i); mv.card(g, c, r.x, r.y, r.w, { sel: i === selI, lift: i === selI, dim: !(state === 'play' && turn === 'P') }); });
+      mv.flush(g);
       if (msgT > 0 && state !== 'choose') text(msg, VW / 2, 418, 13, 'center', '#ffe66a');
       if (state === 'play' && turn === 'P' && wait <= 0 && state !== 'choose') text(selI >= 0 ? 'TOCCA DI NUOVO PER GIOCARE' : 'SCEGLI UNA CARTA', VW / 2, 572, 11, 'center', '#cfe3f5');
       if (state === 'pause') banner(['PAUSA', 'START']);

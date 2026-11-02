@@ -75,8 +75,9 @@ registerGame({
       P = { x: 2 * T, y: GR * T, vx: 0, vy: 0, face: 1, ground: false, walk: 0, hurt: 0, cut: false };
       camX = 0; camY = 0; jumpBuf = 0; coyote = 0;
     };
-    const newGame = () => { score = 0; lives = 3; level = 1; gen(level); resetPlayer(); state = 'play'; };
-    const nextLevel = () => { level++; gen(level); resetPlayer(); state = 'play'; };
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => { score = 0; lives = 3; level = from; gen(level); resetPlayer(); state = 'play'; };
+    const nextLevel = () => { level++; if (level > saved()) api.store.set('stage', level); gen(level); resetPlayer(); state = 'play'; };
     const endGame = () => {
       state = 'over';
       if (score > hi) { hi = score; api.store.set('hi', hi); }
@@ -170,13 +171,13 @@ registerGame({
 
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
-      } else if (k === 'select' && state !== 'title') newGame();
+      } else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
       else if (k === 'a' && state === 'play') jumpBuf = 0.12;
     };
-    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(); };
+    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(saved()); };
 
     // Disegno
     const text = (s, x, y, size, align, c) => {
@@ -209,6 +210,7 @@ registerGame({
         g.save(); g.translate(W / 2, 330); g.scale(3, 3); drawMouse(0, 0, 1, time * 6, false); g.restore();
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 190, 16, 'center', '#a8500c');
         text('RECORD ' + hi, W / 2, 230, 13, 'center', '#1f2744');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL LIVELLO ' + saved(), W / 2, 368, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 388, 11, 'center', '#eef1ff'); }
         g.restore(); g.restore(); W = CW; H = CH;
         return;
       }

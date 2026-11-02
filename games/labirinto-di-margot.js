@@ -97,8 +97,9 @@ registerGame({
       power = 0; combo = 0;
     };
     const flash = t => { msg = t; msgT = 1.5; };
-    const newGame = () => { score = 0; lives = 3; level = 1; build(); spawn(); state = 'ready'; stateT = 1.8; api.beep(523, 0.1, 'triangle', 0.07); setTimeout(() => api.beep(659, 0.1, 'triangle', 0.07), 120); setTimeout(() => api.beep(784, 0.18, 'triangle', 0.07), 240); };
-    const nextLevel = () => { level++; build(); spawn(); state = 'ready'; stateT = 1.8; };
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => { score = 0; lives = 3; level = from; build(); spawn(); state = 'ready'; stateT = 1.8; api.beep(523, 0.1, 'triangle', 0.07); setTimeout(() => api.beep(659, 0.1, 'triangle', 0.07), 120); setTimeout(() => api.beep(784, 0.18, 'triangle', 0.07), 240); };
+    const nextLevel = () => { level++; if (level > saved()) api.store.set('stage', level); build(); spawn(); state = 'ready'; stateT = 1.8; };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
 
     // ---- movimento su griglia: x,y sono coordinate di tessera (intero = centro)
@@ -142,6 +143,8 @@ registerGame({
 
     const die = () => {
       state = 'dead'; stateT = 1.5; lives--; api.haptic(100); setTimeout(() => api.haptic(60), 140);
+      api.fx.burst(px(margot.x), py(margot.y), { n: 20, color: ['#f2c94c', '#ff7a9a', '#fff4e0'], speed: 140, life: 0.7 });
+      api.fx.shake(6, 0.4); api.fx.flash('#e5413b', 0.25, 0.35);
       for (let k = 0; k < 5; k++) setTimeout(() => api.beep(520 - k * 80, 0.16, 'sawtooth', 0.07), k * 110);
     };
 
@@ -160,12 +163,12 @@ registerGame({
       const tx = Math.round(margot.x), ty = Math.round(margot.y);
       if (Math.abs(margot.x - tx) < 0.35 && Math.abs(margot.y - ty) < 0.35 && dots[ty] && dots[ty][tx]) {
         const v = dots[ty][tx]; dots[ty][tx] = 0; dotsLeft--; eaten++;
-        if (v === 2) { score += 50; power = Math.max(2.5, 7 - level * 0.45); combo = 0; robots.forEach(r => { if (r.mode === 'chase') { r.mode = 'scared'; r.dx = -r.dx; r.dy = -r.dy; } }); api.haptic(35); api.beep(180, 0.1, 'square', 0.08); setTimeout(() => api.beep(360, 0.14, 'triangle', 0.08), 70); flash('TONNO! ROBOT IN TILT'); }
+        if (v === 2) { api.fx.burst(px(margot.x), py(margot.y), { n: 12, color: ['#7fd4ff', '#ffffff'], speed: 110, life: 0.45, glow: true }); score += 50; power = Math.max(2.5, 7 - level * 0.45); combo = 0; robots.forEach(r => { if (r.mode === 'chase') { r.mode = 'scared'; r.dx = -r.dx; r.dy = -r.dy; } }); api.haptic(35); api.beep(180, 0.1, 'square', 0.08); setTimeout(() => api.beep(360, 0.14, 'triangle', 0.08), 70); flash('TONNO! ROBOT IN TILT'); }
         else { score += 10; munch ^= 1; api.beep(munch ? 520 : 640, 0.04, 'triangle', 0.06); }
         if ((eaten === 60 || eaten === 130) && !bonus) bonus = { x: 7, y: ROWS - 6, t: 10 };
-        if (dotsLeft <= 0) { state = 'clear'; stateT = 1.8; api.haptic(60); [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.14, 'triangle', 0.08), i * 110)); flash('QUADRO PULITO!'); return; }
+        if (dotsLeft <= 0) { state = 'clear'; stateT = 1.8; api.haptic(60); api.fx.burst(VWd / 2, MY + ROWS * T / 2, { n: 60, color: ['#f2c94c', '#ff7a9a', '#7bdc72', '#7fd4ff'], speed: 240, gravity: 220, life: 1.1, size: 4 }); [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => api.beep(f, 0.14, 'triangle', 0.08), i * 110)); flash('QUADRO PULITO!'); return; }
       }
-      if (bonus) { bonus.t -= dt; if (Math.hypot(margot.x - bonus.x, margot.y - bonus.y) < 0.6) { score += 500; flash('GRILLO +500'); api.haptic(25); api.beep(880, 0.1, 'triangle', 0.08); setTimeout(() => api.beep(1175, 0.12, 'triangle', 0.08), 90); bonus = null; } else if (bonus.t <= 0) bonus = null; }
+      if (bonus) { bonus.t -= dt; if (Math.hypot(margot.x - bonus.x, margot.y - bonus.y) < 0.6) { api.fx.text(px(bonus.x), py(bonus.y), '+500', { color: '#7bdc72', size: 16 }); score += 500; flash('GRILLO +500'); api.haptic(25); api.beep(880, 0.1, 'triangle', 0.08); setTimeout(() => api.beep(1175, 0.12, 'triangle', 0.08), 90); bonus = null; } else if (bonus.t <= 0) bonus = null; }
       if (power > 0) { power -= dt; if (power <= 0) { power = 0; robots.forEach(r => { if (r.mode === 'scared') r.mode = 'chase'; }); } }
       // robot
       for (const r of robots) {
@@ -175,18 +178,18 @@ registerGame({
         step(r, spd, dt, chooseRobot);
         if (r.mode === 'eyes' && Math.abs(r.x - 7) < 0.2 && Math.abs(r.y - MID) < 0.2) { r.mode = power > 0 ? 'scared' : 'chase'; r.out = false; r.wait = 1.2; r.x = 7; r.y = MID; }
         if (r.out && r.mode !== 'eyes' && Math.hypot(r.x - margot.x, r.y - margot.y) < 0.62) {
-          if (r.mode === 'scared') { r.mode = 'eyes'; combo++; const pts = 200 * Math.pow(2, Math.min(combo - 1, 3)); score += pts; flash('ROBOT RICARICA! +' + pts); api.haptic(40); api.beep(300, 0.08, 'square', 0.08); setTimeout(() => api.beep(900, 0.14, 'triangle', 0.08), 70); setTimeout(() => api.beep(1300, 0.14, 'triangle', 0.08), 150); }
+          if (r.mode === 'scared') { r.mode = 'eyes'; combo++; const pts = 200 * Math.pow(2, Math.min(combo - 1, 3)); score += pts; flash('ROBOT RICARICA! +' + pts); api.fx.text(px(r.x), py(r.y), '+' + pts, { color: '#7fd4ff', size: 15 }); api.fx.burst(px(r.x), py(r.y), { n: 14, color: ['#7fd4ff', '#ffffff'], speed: 150, life: 0.5 }); api.fx.shake(2.5, 0.15); api.haptic(40); api.beep(300, 0.08, 'square', 0.08); setTimeout(() => api.beep(900, 0.14, 'triangle', 0.08), 70); setTimeout(() => api.beep(1300, 0.14, 'triangle', 0.08), 150); }
           else { die(); return; }
         }
       }
     };
     const act = k => {
-      if (k === 'start') { if (state === 'title' || state === 'over') newGame(); else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play'; }
-      else if (k === 'select' && state !== 'title') newGame();
+      if (k === 'start') { if (state === 'title' || state === 'over') newGame(saved()); else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play'; }
+      else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
     };
     const sw = new Map();
     const onPointer = e => {
-      if (e.type === 'down') { if (state === 'title' || state === 'over') { newGame(); return; } if (state === 'pause') { state = 'play'; return; } sw.set(e.id, { x: e.x, y: e.y }); }
+      if (e.type === 'down') { if (state === 'title' || state === 'over') { newGame(saved()); return; } if (state === 'pause') { state = 'play'; return; } sw.set(e.id, { x: e.x, y: e.y }); }
       else if (e.type === 'move' && sw.has(e.id)) {
         const s0 = sw.get(e.id), dx = (e.x - s0.x) / S, dy = (e.y - s0.y) / S;
         if (Math.abs(dx) > 14 || Math.abs(dy) > 14) { desired = Math.abs(dx) > Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)]; sw.set(e.id, { x: e.x, y: e.y }); }
@@ -233,6 +236,7 @@ registerGame({
         for (let k = 0; k < 4; k++) { const rr = { x: 0, y: 0, dx: 0, dy: 0, k, mode: 'chase' }; g.save(); g.translate(VWd / 2 - 90 + k * 60 - MX - 11.5, 330 - MY - 11.5); drawRobot({ ...rr, x: 0, y: 0 }); g.restore(); }
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', VWd / 2, 400, 16, 'center', '#fff4e0');
         text('CROCE O SWIPE PER GIRARE', VWd / 2, 440, 11, 'center', '#c9b6e8'); text('IL TONNO MANDA I ROBOT IN TILT', VWd / 2, 458, 11, 'center', '#c9b6e8');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL QUADRO ' + saved(), VWd / 2, 474, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', VWd / 2, 487, 11, 'center', '#c9b6e8'); }
         text('RECORD ' + hi, VWd / 2, 500, 14, 'center');
         g.restore(); return;
       }

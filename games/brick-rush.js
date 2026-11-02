@@ -38,13 +38,13 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, msg = '', msgT = 0, time = 0, hits = 0, nextExtra = 20000, introT = 0;
-    let pad = { x: W / 2, w: 64, mode: '' }, balls = [], bricks = [], caps = [], enemies = [], bolts = [], parts = [], target = null, touching = false;
+    let pad = { x: W / 2, w: 64, mode: '' }, balls = [], bricks = [], caps = [], enemies = [], bolts = [], target = null, touching = false;
     let slow = false, exitOpen = false, laserCd = 0, enemyT = 8;
 
     const baseSpeed = () => Math.min(400, 262 + level * 7);
     const ballSpeed = () => Math.min(540, baseSpeed() + Math.min(130, hits * 1.3)) * (slow ? 0.72 : 1);
     const flash = (s, t) => { msg = s; msgT = t || 1.4; };
-    const burst = (x, y, c, n) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = 50 + Math.random() * 110; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0.5 + Math.random() * 0.3, c }); } };
+    const burst = (x, y, c, n) => api.fx.burst(x, y, { n, color: c, speed: 160, life: 0.8, size: 4, gravity: 300, drag: 0 });
     const addScore = n => { score += n; while (score >= nextExtra) { lives = Math.min(8, lives + 1); nextExtra += nextExtra === 20000 ? 40000 : 60000; flash('VITA EXTRA'); [660, 880, 1100].forEach((f, i) => setTimeout(() => api.beep(f, 0.1, 'triangle', 0.05), i * 90)); } };
 
     const build = () => {
@@ -58,7 +58,8 @@ registerGame({
     const resetBall = () => { balls = [{ x: pad.x, y: PAD_Y - R - 1, vx: 0, vy: 0, on: true, off: 0 }]; slow = false; };
     const clearPowers = () => { pad.mode = ''; pad.w = 64; slow = false; caps = []; bolts = []; exitOpen = false; };
     const startLevel = () => { build(); clearPowers(); resetBall(); enemies = []; enemyT = 9; introT = 1.8; };
-    const newGame = () => { score = 0; lives = 3; level = 1; hits = 0; nextExtra = 20000; pad.x = W / 2; state = 'play'; startLevel(); };
+    const saved = () => api.store.get('stage', 1);
+    const newGame = (from = 1) => { score = 0; lives = 3; level = from; hits = 0; nextExtra = 20000; pad.x = W / 2; state = 'play'; startLevel(); };
     const launch = () => {
       let any = false;
       balls.forEach(b => { if (!b.on) return; const a = -Math.PI / 2 + (Math.random() - 0.5) * 0.5, s = ballSpeed(); b.vx = Math.cos(a) * s; b.vy = Math.sin(a) * s; b.on = false; any = true; });
@@ -114,26 +115,25 @@ registerGame({
       }
       for (const e of enemies) {
         if (e.dead) continue;
-        if (Math.hypot(b.x - e.x, b.y - e.y) < 12 + R) { e.dead = true; addScore(100); burst(e.x, e.y, '#e8a6ff', 10); api.beep(220, 0.1, 'sawtooth', 0.05); b.vy = -b.vy; }
+        if (Math.hypot(b.x - e.x, b.y - e.y) < 12 + R) { e.dead = true; addScore(100); burst(e.x, e.y, '#e8a6ff', 10); api.fx.text(e.x, e.y, '+100', { color: '#e8a6ff' }); api.beep(220, 0.1, 'sawtooth', 0.05); b.vy = -b.vy; }
       }
     };
 
     const loseLife = () => {
       lives--; api.haptic(40); api.beep(140, 0.3, 'sawtooth', 0.06); clearPowers();
+      api.fx.shake(6, 0.35); api.fx.flash('#e5413b', 0.25, 0.35);
       if (lives <= 0) { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } } else resetBall();
     };
 
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt);
-      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.t -= dt; });
-      parts = parts.filter(p => p.t > 0);
       bricks.forEach(b => { b.flashT = Math.max(0, b.flashT - dt); });
       if (state !== 'play') return;
       introT = Math.max(0, introT - dt);
       pad.x += ((held.right ? 1 : 0) - (held.left ? 1 : 0)) * 400 * dt;
       if (target !== null) pad.x += (target - pad.x) * Math.min(1, dt * 20);
       pad.x = Math.max(pad.w / 2 + SIDE, Math.min(W - pad.w / 2 - (exitOpen ? 0 : SIDE), pad.x));
-      if (exitOpen && pad.x >= W - pad.w / 2 - 0.5) { exitOpen = false; level++; startLevel(); flash('QUADRO ' + level); api.haptic(25); [660, 880, 1100].forEach((f, i) => setTimeout(() => api.beep(f, 0.1), i * 110)); return; }
+      if (exitOpen && pad.x >= W - pad.w / 2 - 0.5) { exitOpen = false; level++; if (level > saved()) api.store.set('stage', level); startLevel(); flash('QUADRO ' + level); api.haptic(25); [660, 880, 1100].forEach((f, i) => setTimeout(() => api.beep(f, 0.1), i * 110)); return; }
       // laser
       laserCd = Math.max(0, laserCd - dt);
       if (pad.mode === 'laser' && (touching || held.a || held.b) && laserCd <= 0 && !balls.every(b => b.on && !b.stuck && false)) {
@@ -142,7 +142,7 @@ registerGame({
       for (const bo of bolts) {
         bo.y -= 560 * dt;
         for (const br of bricks) if (!br.dead && bo.x > br.x && bo.x < br.x + br.w && bo.y < br.y + br.h && bo.y > br.y - 6) { hitBrick(br, 1); bo.dead = true; break; }
-        if (!bo.dead) for (const e of enemies) if (!e.dead && Math.hypot(bo.x - e.x, bo.y - e.y) < 14) { e.dead = true; bo.dead = true; addScore(100); burst(e.x, e.y, '#e8a6ff', 10); }
+        if (!bo.dead) for (const e of enemies) if (!e.dead && Math.hypot(bo.x - e.x, bo.y - e.y) < 14) { e.dead = true; bo.dead = true; addScore(100); burst(e.x, e.y, '#e8a6ff', 10); api.fx.text(e.x, e.y, '+100', { color: '#e8a6ff' }); }
         if (bo.y < WALL_T) bo.dead = true;
       }
       bolts = bolts.filter(b => !b.dead);
@@ -172,19 +172,19 @@ registerGame({
         if (e.y > PAD_Y + 6 || (e.y > PAD_Y - 8 && Math.abs(e.x - pad.x) < pad.w / 2 + 10)) e.dead = true;
       }
       enemies = enemies.filter(e => !e.dead);
-      if (!bricks.some(b => !b.gold)) { level++; startLevel(); flash('QUADRO ' + level); api.haptic(25); [660, 880, 1100].forEach((f, i) => setTimeout(() => api.beep(f, 0.1), i * 110)); }
+      if (!bricks.some(b => !b.gold)) { level++; if (level > saved()) api.store.set('stage', level); startLevel(); flash('QUADRO ' + level); api.haptic(25); [660, 880, 1100].forEach((f, i) => setTimeout(() => api.beep(f, 0.1), i * 110)); }
     };
 
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame();
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause'; else if (state === 'pause') state = 'play';
-      } else if (k === 'select') { if (state !== 'title') newGame(); }
+      } else if (k === 'select') { if (state === 'title') api.store.set('stage', 1); newGame(1); }
       else if ((k === 'a' || k === 'b') && state === 'play') launch();
     };
     const onPointer = e => {
       if (e.type === 'down') {
-        if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'title' || state === 'over') { newGame(saved()); return; }
         if (state === 'pause') { state = 'play'; return; }
         target = e.x; touching = true; launch();
       } else if (e.type === 'move' && state === 'play') target = e.x;
@@ -231,6 +231,7 @@ registerGame({
         text('BRICK', W / 2, 150, 56, 'center', '#e5413b'); text('RUSH', W / 2, 206, 56, 'center');
         ['w', 'o', 'c', 'g', 'r', 'b', 'm', 'y'].forEach((k, i) => { g.fillStyle = BR[k][0]; g.fillRect(40 + i * 33, 300, 30, 16); });
         if (((performance.now() / 500) | 0) % 2 === 0) text('TOCCA PER INIZIARE', W / 2, 380, 16, 'center', '#f5d31c');
+        if (saved() > 1) { text('TOCCA: CONTINUA DAL QUADRO ' + saved(), W / 2, 334, 12, 'center', '#7bdc72'); text('SELECT: RICOMINCIA', W / 2, 354, 11, 'center', '#aab3d8'); }
         text('TRASCINA PER MUOVERE · TOCCA PER LANCIARE', W / 2, 430, 11, 'center', '#aab3d8');
         text('RECORD ' + hi, W / 2, 470, 14, 'center');
         return;
@@ -265,7 +266,6 @@ registerGame({
         g.fillStyle = 'rgba(180,200,255,.25)'; g.beginPath(); g.arc(ball.x, ball.y, R + 3, 0, 7); g.fill();
         const bl = g.createRadialGradient(ball.x - R * 0.35, ball.y - R * 0.4, 1, ball.x, ball.y, R * 1.1); bl.addColorStop(0, '#ffffff'); bl.addColorStop(1, '#9fb0e8'); g.fillStyle = bl; g.beginPath(); g.arc(ball.x, ball.y, R, 0, 7); g.fill();
       });
-      parts.forEach(p => { g.globalAlpha = Math.min(1, p.t * 2.5); g.fillStyle = p.c; g.fillRect(p.x - 2, p.y - 2, 4, 4); });
       g.globalAlpha = 1;
       text('PUNTI ' + score, 12, 8, 14); text('QUADRO ' + level, W / 2, 8, 14, 'center'); text('RECORD ' + hi, 12, 28, 10, 'left', '#aab3d8');
       for (let i = 0; i < lives - 1 && i < 6; i++) { g.fillStyle = '#25c4f0'; rr(W - 38 - i * 26 + 14, 12, 22, 7, 3.5); g.fill(); }

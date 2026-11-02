@@ -109,13 +109,19 @@ registerGame({
       return false;
     };
     const doMove = (m, who) => {
-      const cap = G.b[m.to] || m.ep; last = { from: m.from, to: m.to };
+      const cap = G.b[m.to] || m.ep, col = sd(G.b[m.from]);
+      // Per l'animazione: pezzo che parte, pezzo preso (anche en passant) e torre dell'arrocco.
+      last = { from: m.from, to: m.to, who, t0: time, dur: who === 1 ? 0.25 : 0.4, p: G.b[m.from],
+        capSq: m.ep ? m.to + (col === 1 ? 8 : -8) : m.to, capP: m.ep ? G.b[m.to + (col === 1 ? 8 : -8)] : G.b[m.to],
+        rook: m.castle === 'K' ? { from: m.to + 1, to: m.to - 1 } : m.castle === 'Q' ? { from: m.to - 2, to: m.to + 1 } : null };
       G = make(G, m); sel = -1; legal = [];
       api.beep(who === 1 ? 420 : 360, 0.05, 'square', 0.08); api.beep(1700, 0.01, 'square', 0.04); if (cap) { api.beep(220, 0.1, 'triangle', 0.09); api.haptic(who === 1 ? 20 : 8); }
       if (m.promo) flash('PROMOZIONE A REGINA');
       if (status()) return;
       if (G.turn === -1) { state = 'think'; wait = 0.5; }
     };
+    const ease = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+    const sliding = () => last && time - last.t0 < last.dur;
     const newGame = () => { G = fresh(); sel = -1; legal = []; last = null; endMsg = ''; state = 'play'; flash('TOCCA A TE (BIANCHI)'); };
     const update = dt => {
       time += dt; msgT = Math.max(0, msgT - dt);
@@ -129,6 +135,7 @@ registerGame({
       if (state === 'pause') { state = 'play'; return; }
       if (state !== 'play' || G.turn !== 1) return;
       const r = Math.floor((y - BY) / SQ), c = Math.floor((x - BX) / SQ); if (r < 0 || r > 7 || c < 0 || c > 7) return; const sq = r * 8 + c;
+      if (sliding()) return;
       if (sel >= 0) { const m = legal.find(m => m.to === sq); if (m) { doMove(m, 1); return; } }
       if (sd(G.b[sq]) === 1) { sel = sq; legal = legalMoves(G, 1).filter(m => m.from === sq); api.beep(900, 0.02, 'triangle', 0.05); } else { sel = -1; legal = []; }
     };
@@ -169,11 +176,28 @@ registerGame({
       g.fillStyle = '#4a3366'; g.beginPath(); g.roundRect(BX - 10, BY - 10, 8 * SQ + 20, 8 * SQ + 20, 10); g.fill();
       for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { g.fillStyle = (r + c) % 2 ? '#8a6aa8' : '#ecdcc0'; g.fillRect(BX + c * SQ, BY + r * SQ, SQ, SQ); }
       g.font = 'bold 8px ui-monospace, monospace'; for (let i = 0; i < 8; i++) { text('abcdefgh'[i], BX + i * SQ + SQ - 8, BY + 8 * SQ - 10, 8, 'left', (7 + i) % 2 ? '#ecdcc0' : '#8a6aa8'); text(String(8 - i), BX + 2, BY + i * SQ + 2, 8, 'left', i % 2 ? '#ecdcc0' : '#8a6aa8'); }
-      if (last) { g.fillStyle = 'rgba(255,230,120,.4)'; for (const s of [last.from, last.to]) g.fillRect(BX + (s & 7) * SQ, BY + (s >> 3) * SQ, SQ, SQ); }
+      // Ultima mossa: la tua in giallo; quella del telefono in azzurro con la cornice, che pulsa appena arriva.
+      if (last && last.who === -1) {
+        const pulse = 1 + 0.6 * Math.max(0, 1 - (time - last.t0 - last.dur) / 1.2) * Math.abs(Math.sin((time - last.t0) * 6));
+        for (const [s, a, lw] of [[last.from, 0.22, 2], [last.to, 0.42, 3]]) {
+          const x = BX + (s & 7) * SQ, y = BY + (s >> 3) * SQ;
+          g.fillStyle = 'rgba(90,200,255,' + a + ')'; g.fillRect(x, y, SQ, SQ);
+          g.strokeStyle = 'rgba(40,150,230,' + Math.min(1, 0.6 * pulse) + ')'; g.lineWidth = lw; g.strokeRect(x + lw / 2, y + lw / 2, SQ - lw, SQ - lw);
+        }
+      } else if (last) { g.fillStyle = 'rgba(255,230,120,.4)'; for (const s of [last.from, last.to]) g.fillRect(BX + (s & 7) * SQ, BY + (s >> 3) * SQ, SQ, SQ); }
       const ks = kingSq(G.b, G.turn); if (ks >= 0 && attacked(G.b, ks, -G.turn)) { g.fillStyle = 'rgba(255,60,60,.55)'; g.fillRect(BX + (ks & 7) * SQ, BY + (ks >> 3) * SQ, SQ, SQ); }
       if (sel >= 0) { g.fillStyle = 'rgba(255,90,138,.5)'; g.fillRect(BX + (sel & 7) * SQ, BY + (sel >> 3) * SQ, SQ, SQ); }
       legal.forEach(m => { const cx = BX + (m.to & 7) * SQ + SQ / 2, cy = BY + (m.to >> 3) * SQ + SQ / 2; g.fillStyle = G.b[m.to] ? 'rgba(255,90,90,.6)' : 'rgba(80,220,120,.7)'; g.beginPath(); g.arc(cx, cy, G.b[m.to] ? SQ * 0.42 : SQ * 0.15, 0, 7); if (G.b[m.to]) { g.lineWidth = 3; g.strokeStyle = 'rgba(255,90,90,.8)'; g.stroke(); } else g.fill(); });
-      for (let s = 0; s < 64; s++) { const p = G.b[s]; if (p) drawPiece(Math.abs(p), p > 0, BX + (s & 7) * SQ + SQ / 2, BY + (s >> 3) * SQ + SQ / 2, SQ * 0.95); }
+      // Pezzo che scivola: parte dalla casella vecchia, si solleva un poco a metà strada; quello preso svanisce all'arrivo.
+      const k = sliding() ? ease((time - last.t0) / last.dur) : 1, moving = k < 1 ? [last.to, last.rook && last.rook.to] : [];
+      const at = s => [BX + (s & 7) * SQ + SQ / 2, BY + (s >> 3) * SQ + SQ / 2];
+      for (let s = 0; s < 64; s++) { const p = G.b[s]; if (p && !moving.includes(s)) { const [x, y] = at(s); drawPiece(Math.abs(p), p > 0, x, y, SQ * 0.95); } }
+      if (k < 1) {
+        if (last.capP) { const [x, y] = at(last.capSq), f = Math.max(0, 1 - k * 1.25); g.save(); g.globalAlpha = f; drawPiece(Math.abs(last.capP), last.capP > 0, x, y, SQ * 0.95 * (0.7 + 0.3 * f)); g.restore(); }
+        const slide = (from, to, p) => { const [x0, y0] = at(from), [x1, y1] = at(to), lift = Math.sin(Math.PI * k); drawPiece(Math.abs(p), p > 0, x0 + (x1 - x0) * k, y0 + (y1 - y0) * k - lift * 6, SQ * 0.95 * (1 + 0.08 * lift)); };
+        if (last.rook) slide(last.rook.from, last.rook.to, G.b[last.rook.to]);
+        slide(last.from, last.to, last.p);
+      }
       g.fillStyle = 'rgba(10,4,24,.7)'; g.fillRect(0, 0, VW, 62); text('SCACCHI', 14, 10, 18, 'left', '#ffe66a'); text(G.turn === 1 ? 'TOCCA A TE' : 'PENSA IL TELEFONO...', VW - 14, 12, 12, 'right', G.turn === 1 ? '#6fffa0' : '#c9b6e8'); text('LIVELLO ' + level + '  ·  START = PAUSA', 14, 38, 11, 'left', '#c9b6e8');
       if (msgT > 0) text(msg, VW / 2, BY + 8 * SQ + 24, 14, 'center', '#ffe66a');
       if (state === 'pause') banner(['PAUSA', 'START']);

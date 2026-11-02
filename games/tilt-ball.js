@@ -96,8 +96,9 @@ registerGame({
     const px = tile => tile * T + T / 2;
     const resetBall = () => { ball = { x: px(1), y: HUD + px(1), vx: 0, vy: 0, s: 1 }; fallAt = null; elapsed = 0; };
     const startLevel = () => { build(level); resetBall(); state = 'play'; };
-    const newGame = () => { score = 0; lives = 3; level = 1; startLevel(); };
-    const flash = s => { msg = s; msgT = 1.2; };
+    const saved = () => api.store.get('stage', 1);
+    const flash = (s, t = 1.2) => { msg = s; msgT = t; };
+    const newGame = (from = 1) => { score = 0; lives = 3; level = from; startLevel(); if (from > 1) flash('LV ' + from + ' · SELECT: DA CAPO', 2.5); };
 
     const endGame = () => {
       state = 'over';
@@ -176,16 +177,16 @@ registerGame({
         if (stateT <= 0) { if (lives <= 0) endGame(); else { build(level); resetBall(); state = 'play'; } }
       } else if (state === 'win') {
         stateT -= dt;
-        if (stateT <= 0) { level++; startLevel(); }
+        if (stateT <= 0) { level++; if (level > saved()) api.store.set('stage', level); startLevel(); }
       }
     };
 
     const act = k => {
       if (k === 'start') {
-        if (state === 'over') newGame();
+        if (state === 'over') newGame(saved());
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
-      } else if (k === 'select') newGame();
+      } else if (k === 'select') newGame(1);   // da capo, ma il quadro più alto raggiunto resta salvato
       else if (k === 'a' && state === 'play') { tilt.calibrate(); api.haptic(15); flash('AZZERATO'); }
     };
 
@@ -264,7 +265,7 @@ registerGame({
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
     };
 
-    newGame();
+    newGame(saved());
     return {
       onPress: act,
       onPointer,

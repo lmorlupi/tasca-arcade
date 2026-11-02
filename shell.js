@@ -143,6 +143,7 @@
     };
   }
   let HR = null;   // alta definizione del gioco in corso
+  let FX = null;   // effetti del gioco in corso (fx.js): particelle, scuotimento, lampo, testi
   // Quanti pixel veri per ogni unità del gioco: quelli dello schermo del telefono (fino a 3x), senza esagerare.
   const pickK = (def, cw, ch) => {
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
@@ -152,7 +153,7 @@
     return Math.max(1, Math.min(k, Math.sqrt(4.6e6 / (cw * ch)), 4));
   };
   const apiFor = def => ({
-    cv: HR.cvP, g: HR.gP, w: HR.cw, h: HR.ch, held, tilt, haptic, beep, goMenu: () => toMenu(),
+    cv: HR.cvP, g: HR.gP, w: HR.cw, h: HR.ch, held, tilt, haptic, beep, fx: FX.api, goMenu: () => toMenu(),
     store: { get: (k, d) => ls.get(def.id + ':' + k, d), set: (k, v) => ls.set(def.id + ':' + k, v) },
   });
 
@@ -164,11 +165,11 @@
   // ======================================================================================================
 
   // Questa funzione NON gira qui: il suo testo viene messo dentro la scatola, dove fa da "console in miniatura".
-  function sdkMain(hiResFactory) {
+  function sdkMain(hiResFactory, fxFactory) {
     var post = function (m) { parent.postMessage(m, '*'); };
-    var def = null, inst = null, running = false, last = 0;
+    var def = null, inst = null, running = false, last = 0, acc = 0, STEP = 1 / 120;
     var held = {}, tiltS = { x: 0, y: 0, sensor: false }, store = {};
-    var cv = document.createElement('canvas'), hr = null, LW = 1, LH = 1;
+    var cv = document.createElement('canvas'), hr = null, LW = 1, LH = 1, fx = fxFactory(), shook = false;
     document.body.appendChild(cv);
     window.registerGame = function (d) { if (!def && d && typeof d === 'object') def = d; };
     window.addEventListener('error', function (e) { post({ t: 'error', msg: String(e.message || 'errore').slice(0, 120) }); });
@@ -176,6 +177,7 @@
       cv: null, g: null, w: 0, h: 0, held: held,
       tilt: { get x() { return tiltS.x; }, get y() { return tiltS.y; }, get sensor() { return tiltS.sensor; }, calibrate: function () { post({ t: 'calibrate' }); } },
       haptic: function (ms) { post({ t: 'haptic', ms: +ms || 10 }); },
+      fx: fx.api,
       beep: function (f, d, type, v) { post({ t: 'beep', f: +f, d: +d, type: type, v: +v }); },
       goMenu: function () { post({ t: 'menu' }); },
       store: {
@@ -186,7 +188,15 @@
     function loop(now) {
       if (!running) return;
       var dt = Math.min(0.05, (now - last) / 1000); last = now;
-      try { hr.base(); inst.update(dt); inst.render(hr.gP); }
+      acc += dt;
+      try {
+        while (acc > STEP / 2) { inst.update(STEP); fx.update(STEP); acc -= STEP; }
+        hr.base(); inst.render(hr.gP); hr.base(); fx.draw(hr.gP, LW, LH);
+        if (fx.dx || fx.dy || shook) {
+          var ks = Math.min(cv.clientWidth / LW, cv.clientHeight / LH) || 1;
+          cv.style.transform = (shook = !!(fx.dx || fx.dy)) ? 'translate(' + fx.dx * ks + 'px,' + fx.dy * ks + 'px)' : '';
+        }
+      }
       catch (err) { running = false; post({ t: 'error', msg: String(err && err.message).slice(0, 120) }); return; }
       requestAnimationFrame(loop);
     }
@@ -200,11 +210,19 @@
         if (!inst || !inst.onPointer) return;
         e.preventDefault();
         if (type === 'down') { try { cv.setPointerCapture(e.pointerId); } catch (x) {} }
-        var r = cv.getBoundingClientRect(), k = Math.min(r.width / LW, r.height / LH);
-        var ox = r.left + (r.width - LW * k) / 2, oy = r.top + (r.height - LH * k) / 2;
-        inst.onPointer({ type: type === 'cancel' ? 'up' : type, cancelled: type === 'cancel', id: e.pointerId, t: e.timeStamp, x: (e.clientX - ox) / k, y: (e.clientY - oy) / k });
+        if (type === 'down' || !box) {
+          var r = cv.getBoundingClientRect(), k = Math.min(r.width / LW, r.height / LH);
+          box = { k: k, ox: r.left + (r.width - LW * k) / 2, oy: r.top + (r.height - LH * k) / 2 };
+        }
+        var send = function (p, t) {
+          if (inst) inst.onPointer({ type: t === 'cancel' ? 'up' : t, cancelled: t === 'cancel', id: e.pointerId, t: p.timeStamp, x: (p.clientX - box.ox) / box.k, y: (p.clientY - box.oy) / box.k });
+        };
+        var subs = type === 'move' && e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+        if (subs.length > 1) subs.forEach(function (p) { send(p, 'move'); }); else send(e, type);
       };
     };
+    var box = null;
+    window.addEventListener('resize', function () { box = null; });
     ['down', 'move', 'up', 'cancel'].forEach(function (t) { cv.addEventListener('pointer' + t, ptr(t)); });
     document.addEventListener('touchstart', function (e) { e.preventDefault(); }, { passive: false });
     ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }); });
@@ -241,7 +259,7 @@
     + '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">'
     + '<style>html,body{margin:0;height:100%;background:transparent;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}'
     + 'canvas{display:block;width:100vw;height:100vh;object-fit:contain;touch-action:none}</style></head>'
-    + '<body><script>(' + sdkMain.toString() + ')(' + hiResFactory.toString() + ');<\/script></body></html>';
+    + '<body><script>(' + sdkMain.toString() + ')(' + hiResFactory.toString() + ', ' + fxFactory.toString() + ');<\/script></body></html>';
 
   const MAX_CODE = 400000, MAX_COMMUNITY = 12;
   const hexOk = c => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c);
@@ -517,6 +535,8 @@
     if (window.Shell && window.Shell.reloadOnMenu) { location.reload(); return; }
     if (inst && inst.destroy) inst.destroy();
     inst = null; cur = null; mode = 'menu';
+    if (FX) FX.api.clear();
+    cv.style.transform = ''; shook = false;
     letSleep();
     cv.classList.add('off'); menuEl.classList.remove('off');
     screenEl.style.background = '';
@@ -537,6 +557,7 @@
         ch = Math.round(clamp(cw * screenEl.clientHeight / screenEl.clientWidth, cw * (def.flexMin || 1), cw * 2.1));
       }
       HR = hiResFactory(cv, cw, ch);
+      FX = fxFactory(); cv.style.transform = ''; shook = false;
       if (!def.community) HR.setK(pickK(def, cw, ch));
       cv.style.aspectRatio = cw + ' / ' + ch;
       cv.classList.toggle('px', !!def.pixel);
@@ -683,19 +704,28 @@
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => ab.addEventListener(t, abEnd));
 
   // Tocco diretto sullo schermo: coordinate in pixel del canvas del gioco.
+  // La posizione del canvas si misura all'inizio di ogni tocco, non a ogni movimento.
+  let ptrBox = null;
   const ptr = type => e => {
     if (mode !== 'game' || !inst || !inst.onPointer) return;
     e.preventDefault();
     if (type === 'down') { try { cv.setPointerCapture(e.pointerId); } catch (err) {} }
     // Il canvas riempie lo schermo con object-fit: contain: le coordinate vanno riportate all'area realmente disegnata.
-    const LW = HR ? HR.cw : cv.width, LH = HR ? HR.ch : cv.height;
-    const r = cv.getBoundingClientRect(), k = Math.min(r.width / LW, r.height / LH);
-    const ox = r.left + (r.width - LW * k) / 2, oy = r.top + (r.height - LH * k) / 2;
-    inst.onPointer({
-      type: type === 'cancel' ? 'up' : type, cancelled: type === 'cancel', id: e.pointerId, t: e.timeStamp,
-      x: (e.clientX - ox) / k, y: (e.clientY - oy) / k,
+    if (type === 'down' || !ptrBox) {
+      const LW = HR ? HR.cw : cv.width, LH = HR ? HR.ch : cv.height;
+      const r = cv.getBoundingClientRect(), k = Math.min(r.width / LW, r.height / LH);
+      ptrBox = { k, ox: r.left + (r.width - LW * k) / 2, oy: r.top + (r.height - LH * k) / 2 };
+    }
+    const { k, ox, oy } = ptrBox;
+    const send = (p, t) => inst && inst.onPointer({
+      type: t === 'cancel' ? 'up' : t, cancelled: t === 'cancel', id: e.pointerId, t: p.timeStamp,
+      x: (p.clientX - ox) / k, y: (p.clientY - oy) / k,
     });
+    // Il telefono legge il dito più spesso dello schermo: i punti intermedi rendono più precisi scatti e trascinamenti.
+    const subs = type === 'move' && e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    if (subs.length > 1) subs.forEach(p => send(p, 'move')); else send(e, type);
   };
+  addEventListener('resize', () => { ptrBox = null; });
   ['down', 'move', 'up', 'cancel'].forEach(t => cv.addEventListener('pointer' + t, ptr(t)));
 
   // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").
@@ -819,15 +849,28 @@
   };
   bootEl.addEventListener('pointerdown', () => { audioUnlock(); endBoot(); });
 
-  // Ciclo
-  let last = performance.now();
-  let slow = 0;
+  // Ciclo. La fisica avanza a passi fissi di 1/120 s: a 60 Hz due passi per fotogramma, a 120 Hz uno, cosi'
+  // salti e rimbalzi sono uguali su ogni telefono. Il resto puo' andare un po' sotto zero (al massimo mezzo passo):
+  // le piccole irregolarita' dei fotogrammi non alternano 1 e 3 passi, e il movimento resta fluido.
+  const STEP = 1 / 120;
+  let last = performance.now(), acc = 0;
+  let slow = 0, shook = false;
+  // Scuotimento: si sposta il canvas con il CSS, così vale anche se il gioco cambia la trasformazione mentre disegna.
+  const applyShake = () => {
+    if (!(FX.dx || FX.dy || shook)) return;
+    const ks = cv.clientWidth / HR.cw || 1;
+    shook = !!(FX.dx || FX.dy);
+    cv.style.transform = shook ? 'translate(' + FX.dx * ks + 'px,' + FX.dy * ks + 'px)' : '';
+  };
   const frame = now => {
     const raw = (now - last) / 1000, dt = Math.min(0.05, raw); last = now;
     if (mode === 'game' && inst) {
       try {
-        inst.update(dt);
-        if (HR && !(cur && cur.community)) { HR.base(); inst.render(HR.gP); } else inst.render(g);
+        acc += dt;
+        const own = HR && !(cur && cur.community);
+        while (acc > STEP / 2 && mode === 'game' && inst) { inst.update(STEP); if (own) FX.update(STEP); acc -= STEP; }
+        if (!inst) { requestAnimationFrame(frame); return; }
+        if (own) { HR.base(); inst.render(HR.gP); HR.base(); FX.draw(HR.gP, HR.cw, HR.ch); applyShake(); } else inst.render(g);
         // Se il telefono fatica a tenere i fotogrammi, la definizione scende un po' alla volta (mai sotto 1x).
         if (HR && !(cur && cur.community) && HR.k > 1.05 && raw < 0.25) {
           slow = Math.max(0, Math.min(140, slow + (raw > 0.032 ? 1 : -1)));

@@ -83,7 +83,8 @@ registerGame({
         return;
       }
       // palla
-      ball.hitT += dt; ball.trail.push({ x: ball.x, y: ball.y, z: ball.z }); if (ball.trail.length > 7) ball.trail.shift();
+      ball.hitT += dt; ball.trailT = (ball.trailT || 0) + dt;
+      if (ball.trailT >= 1 / 60) { ball.trailT -= 1 / 60; ball.trail.push({ x: ball.x, y: ball.y, z: ball.z }); if (ball.trail.length > 7) ball.trail.shift(); }
       const py = ball.y, pz = ball.z;
       ball.x += ball.vx * dt; ball.y += ball.vy * dt; ball.vz -= GRAV * dt; ball.z += ball.vz * dt;
       // rete

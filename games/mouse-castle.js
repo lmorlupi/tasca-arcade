@@ -107,7 +107,7 @@ registerGame({
     };
 
     const resetPlayer = () => {
-      P = { f: start.f, x: start.x, face: 1, walk: 0, st: null, s: 0, anim: null, item: null, inv: 1.5, star: 0, jy: 0, jv: 0 };
+      P = { f: start.f, x: start.x, face: 1, walk: 0, st: null, s: 0, anim: null, item: null, inv: 1.5, star: 0, jy: 0, jv: 0, jb: 0 };
       foes.forEach(e => { if (!e.dead) { e.f = e.home.f; e.x = e.home.x; e.st = null; } });
       arrows = []; freeze = 1;
     };
@@ -152,6 +152,7 @@ registerGame({
     const leaveStair = o => { const top = o.s >= 1; o.f = top ? o.st.f - 1 : o.st.f; o.x = top ? o.st.tx : o.st.x; o.st = null; };
 
     const movePlayer = dt => {
+      P.jb = Math.max(0, P.jb - dt);
       if (P.anim) {
         const a = P.anim; a.t += dt;
         if (a.t >= a.dur) {
@@ -170,7 +171,7 @@ registerGame({
       }
       if (P.jy > 0 || P.jv > 0) {
         P.jy += P.jv * dt; P.jv -= GRAV * dt;
-        if (P.jy <= 0) { P.jy = 0; P.jv = 0; api.beep(240, 0.03, 'triangle', 0.03); }
+        if (P.jy <= 0) { P.jy = 0; P.jv = 0; api.beep(240, 0.03, 'triangle', 0.03); if (P.jb > 0) { P.jb = 0; jump(); } }
       }
       if (dy && !P.jy) {
         const st = stairs.find(s => dy < 0 ? s.f === P.f && Math.abs(P.x - s.x) < 7 : s.f - 1 === P.f && Math.abs(P.x - s.tx) < 7);
@@ -181,6 +182,8 @@ registerGame({
 
     // ▲ porte (uscita compresa), ▼ tubi. Si usano alla pressione, non tenendo premuto.
     const jump = () => {
+      // Premuto ancora in aria: il salto parte appena il topo tocca terra (entro 0,12 s).
+      if (P.jy > 0 && !P.st && !P.anim) { P.jb = 0.12; return; }
       if (P.st || P.anim || P.jy > 0) return;
       P.jv = JUMP; P.jy = 0.01; api.haptic(6); api.beep(560, 0.06);
     };

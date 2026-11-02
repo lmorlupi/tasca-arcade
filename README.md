@@ -43,7 +43,8 @@ Un gioco chiama `registerGame({ ... })` con questi campi:
 
 `create(api)` restituisce un oggetto con: `update(dt)`, `render()`, e facoltativi `onPress(k)`, `onRelease(k)`,
 `onPointer(e)`, `onHide()`, `destroy()`. L'oggetto `api` contiene `cv`, `g`, `held`, `tilt`, `haptic()`, `beep()`,
-`store`, `goMenu()`. Tutto è descritto, con un esempio funzionante, in `games/_template.js`.
+`store`, `fx`, `goMenu()`. Con `api.fx` si hanno particelle (`burst`), scuotimento (`shake`), lampo (`flash`)
+e testo dei punti che sale (`text`), disegnati dalla console sopra il gioco. Tutto è descritto, con un esempio funzionante, in `games/_template.js`.
 
 ### Alta definizione
 
