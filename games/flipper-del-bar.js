@@ -48,7 +48,7 @@ registerGame({
     const drops = Array.from({ length: 4 }, (_, i) => ({ x: 300, y: 196 + i * 18, down: false })); let dropReset = 0, starL = 0, starR = 0, extraFlash = 0;
     let state = 'title', score = 0, balls = 3, ball = null, charge = 0, charging = false, time = 0, msg = '', msgT = 0, bonusLit = [false, false, false], flashT = 0, chain = 0;
     const flip = { L: { a: 0.5, w: 0, down: false }, R: { a: Math.PI - 0.5, w: 0, down: false } };
-    const REST = 0.5, ACT = -0.45, FSPEED = 20, FLEN = 62, FR = 7;
+    const REST = 0.5, ACT = -0.45, FSPEED = 20, FLEN = 48, FR = 7;
     const PIV = { L: [118, 566], R: [242, 566] };
     const bumpers = [{ x: 108, y: 255, r: 18, l: 0 }, { x: 232, y: 255, r: 18, l: 0 }, { x: 170, y: 330, r: 18, l: 0 }];
     const targets = [{ x: 62, y: 170, lit: false }, { x: 180, y: 148, lit: false }, { x: 288, y: 170, lit: false }];
