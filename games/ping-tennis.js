@@ -70,7 +70,7 @@ registerGame({
       racket.sw = Math.max(0, racket.sw - dt); cpu.sw = Math.max(0, cpu.sw - dt);
       if (held.a) charge = Math.min(1, charge + dt * 1.8); else charge = Math.max(0, charge - dt * 2.5);
       // avversario
-      const spd = 0.9 + level * 0.14, aimX = ball.live && ball.last === 'P' ? ball.x + ball.vx * 0.12 : 0;
+      const spd = (0.9 + level * 0.14) * Math.min(1, 0.87 + (level - 1) * 0.065), aimX = ball.live && ball.last === 'P' ? ball.x + ball.vx * 0.12 : 0;
       const prevC = cpu.x; if (ball.live && ball.last === 'P' && ball.vy < 0) cpu.x += Math.max(-spd * dt, Math.min(spd * dt, aimX - cpu.x)); else cpu.x += Math.max(-0.5 * dt, Math.min(0.5 * dt, -cpu.x));
       cpu.vx = (cpu.x - prevC) / Math.max(dt, 1e-3);
       if (!ball.live) {
@@ -105,8 +105,9 @@ registerGame({
       // colpo del giocatore
       if (ball.last === 'A' && ball.vy > 0 && ball.y > 0.84 && ball.y < 1.06 && ball.z < 0.5) {
         const off = ball.x - racket.x;
-        if (Math.abs(off) < 0.36) {
-          racket.sw = 0.25; const power = held.a ? 1 : 0.55 + charge * 0.45, edge = Math.abs(off) / 0.36;
+        const reach = 0.36 + Math.max(0, 3 - level) * 0.02;
+        if (Math.abs(off) < reach) {
+          racket.sw = 0.25; const power = held.a ? 1 : 0.55 + charge * 0.45, edge = Math.abs(off) / reach;
           const tgt = Math.max(-0.95, Math.min(0.95, off * 3.2 + racket.vx * 0.22));
           hit('P', tgt, 0.1 + (1 - power) * 0.24, 0.8 + power * 0.55, 0.12 + edge * 0.5 + (ball.z > 0.3 ? 0.2 : 0));
           if (power > 0.9) { flash('POTENTE!'); api.haptic(35); puff(sx(ball.x, ball.y), sy(ball.y), 12); }

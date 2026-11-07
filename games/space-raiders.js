@@ -140,7 +140,7 @@ registerGame({
       const n = aliveCount();
       if (n === 0) { wave++; if (wave > saved()) api.store.set('stage', wave); flash('ONDATA ' + wave); api.haptic(30); spawnWave(); return; }
       tickT += dt;
-      const interval = Math.max(0.02, 0.62 * n / (COLS * ROWS)) * Math.pow(0.92, wave - 1);
+      const interval = Math.max(0.02, 0.62 * n / (COLS * ROWS)) * Math.pow(0.92, wave - 1) * (1 + Math.max(0, 3 - wave) * 0.08);
       if (tickT >= interval) {
         tickT = 0; frame ^= 1;
         let minX = 1e9, maxX = -1e9, maxY = 0;
@@ -164,10 +164,10 @@ registerGame({
         for (const a of aliens) if (a.alive && (!cols[a.c] || a.r > cols[a.c].r)) cols[a.c] = a;
         const list = Object.values(cols);
         if (list.length) { const a = list[(Math.random() * list.length) | 0]; const [x, y] = apos(a); ebullets.push({ x: x + AW / 2, y: y + AW }); }
-        shootT = Math.max(0.35, 1.1 - wave * 0.08) * (0.6 + Math.random() * 0.8);
+        shootT = Math.max(0.35, 1.1 - wave * 0.08) * (0.6 + Math.random() * 0.8) * (1 + Math.max(0, 3 - wave) * 0.1);
       }
       for (const b of ebullets) {
-        let left = (170 + wave * 12) * dt;
+        let left = (170 + wave * 12) * Math.min(1, 0.88 + (wave - 1) * 0.06) * dt;
         while (left > 0 && !b.dead) {
           const d = Math.min(2, left); left -= d; b.y += d;
           if (b.y > H) { b.dead = true; break; }

@@ -16,7 +16,7 @@ registerGame({
     const HY = START.y - 340;
 
     let hi = api.store.get('hi', 0);
-    let state = 'ready', score = 0, timeLeft = 45, streak = 0, best = 0, fire = false, shakeT = 0, bankHit = false, lastSlot = 1, parts = [];
+    let state = 'ready', score = 0, timeLeft = 50, streak = 0, best = 0, fire = false, shakeT = 0, bankHit = false, lastSlot = 1, parts = [];
     let ball, hoop, shotT = 0, netWobble = 0, msg = '', msgT = 0, rimHit = false, scored = false;
     let drag = null, trail = [];
 
@@ -26,7 +26,7 @@ registerGame({
       START.x = [W * 0.2, W * 0.5, W * 0.8][slot];
       ball = { x: START.x, y: START.y, vx: 0, vy: 0, fly: false, pop: 0 }; rimHit = false; scored = false; bankHit = false;
     };
-    const newGame = () => { score = 0; timeLeft = 45; streak = 0; best = 0; fire = false; parts = []; resetHoop(); newBall(); state = 'ready'; };
+    const newGame = () => { score = 0; timeLeft = 50; streak = 0; best = 0; fire = false; parts = []; resetHoop(); newBall(); state = 'ready'; };
     const flash = s => { msg = s; msgT = 0.9; };
 
     const endGame = () => {
@@ -39,7 +39,7 @@ registerGame({
     const aim = (vx, vy) => {
       const dy = START.y - hoop.y;
       const disc = vy * vy - 2 * GRAV * dy;
-      if (disc > 0) { const t = (-vy + Math.sqrt(disc)) / GRAV; vx = vx * 0.6 + ((hoop.x - START.x) / t) * 0.4; }
+      if (disc > 0) { const t = (-vy + Math.sqrt(disc)) / GRAV, assist = score < 8 ? 0.46 : 0.4; vx = vx * (1 - assist) + ((hoop.x - START.x) / t) * assist; }
       return vx;
     };
     const flickVel = (last) => {
@@ -97,7 +97,7 @@ registerGame({
       if (state === 'play' || state === 'ready') {
         hoop.t += dt;
         const lvl = Math.min(score / 2, 12);
-        hoop.amp = lvl >= 1.5 ? Math.min(100, (lvl - 1) * 12) : 0;
+        hoop.amp = lvl >= 3 ? Math.min(100, (lvl - 2.5) * 12) : 0;
         hoop.x = hoop.base + Math.sin(hoop.t * (1.2 + lvl * 0.08)) * hoop.amp;
         hoop.y = HY + (lvl >= 8 ? Math.sin(hoop.t * 1.7) * 30 : 0);
       }

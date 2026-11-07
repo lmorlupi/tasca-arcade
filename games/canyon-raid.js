@@ -97,7 +97,7 @@ registerGame({
     const XMIN = 24, XMAX = W * 0.58, YMIN = TOPH + 8, YMAX = H - 40;
     const update = dt => {
       time += dt; flashT = Math.max(0, flashT - dt);
-      const scroll = state === 'play' && deadT <= 0 ? Math.min(150, 72 + loop * 10) : 30;
+      const scroll = state === 'play' && deadT <= 0 ? Math.min(150, 72 + loop * 10) * Math.min(1, 0.9 + loop * 0.05) : 30;
       stars.forEach(s => { s.x -= (4 + s.d * s.d * 26) * (scroll / 72) * dt; if (s.x < 0) s.x += W; });
       texts.forEach(t => { t.y -= 22 * dt; t.t -= dt; }); texts = texts.filter(t => t.t > 0);
       pops.forEach(p => { p.t += dt; }); pops = pops.filter(p => p.t < (p.big ? 0.7 : 0.45));
@@ -106,7 +106,7 @@ registerGame({
       if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (lives <= 0) { endGame(); return; } checkpoint(); respawn(); } return; }
       const speed = scroll;
       sx += speed * dt; ensureGen();
-      fuel -= 4.2 * dt;
+      fuel -= 4.2 * Math.min(1, 0.9 + loop * 0.05) * dt;
       if (fuel < 25) { lowBeep -= dt; if (lowBeep <= 0) { api.beep(880, 0.08, 'square', 0.025); lowBeep = 0.6; } }
       if (fuel <= 0) { fuel = 0; die('SENZA CARBURANTE!'); }
 

@@ -259,7 +259,7 @@ registerGame({
       if (phase !== 'fight') { ai.mx = 0; ai.my = 0; return; }
       if (ai.cd > 0 || f.st === 'dizzy') return;
       const d = Math.abs(o.x - f.x), react = .18 + lv * .14, r = Math.random();
-      ai.cd = .12 + Math.random() * (.5 - lv * .07);
+      ai.cd = .12 + Math.random() * (.5 - lv * .07) + Math.max(0, 2 - ladder) * .06;
       const has = t => f.ch.sp.find(s => s.type === t);
       const sp = t => free(f) && has(t) && special(f, has(t));
       const go = (dir, t) => { ai.mx = dir; ai.my = 0; ai.hold = t; ai.block = 0; };

@@ -173,7 +173,7 @@ registerGame({
       // robot
       for (const r of robots) {
         if (!r.out) { r.wait -= dt; if (r.wait <= 0) { r.out = true; r.x = 7; r.y = MID; r.dx = 0; r.dy = -1; } else continue; }
-        const base = 2.8 + 0.05 * Math.min(level, 12);
+        const base = (2.8 + 0.05 * Math.min(level, 12)) * Math.min(1, 0.9 + (level - 1) * 0.05);
         const spd = r.mode === 'scared' ? base * 0.55 : r.mode === 'eyes' ? 9 : base * (r.k === 0 ? 1.04 : 1);
         step(r, spd, dt, chooseRobot);
         if (r.mode === 'eyes' && Math.abs(r.x - 7) < 0.2 && Math.abs(r.y - MID) < 0.2) { r.mode = power > 0 ? 'scared' : 'chase'; r.out = false; r.wait = 1.2; r.x = 7; r.y = MID; }

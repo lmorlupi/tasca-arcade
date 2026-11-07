@@ -46,7 +46,7 @@ registerGame({
     let lastN = [0, -1], slingRun = 0, slingCool = [0, 0], mult = 0, bonusN = 0, laneLit = [false, false, false], saucer = { x: 180, y: 192, t: 0, ball: false }, slingL = 0, slingR = 0, extraLit = false;
     const MULTS = [1, 2, 3, 5, 10];
     const drops = Array.from({ length: 4 }, (_, i) => ({ x: 300, y: 196 + i * 18, down: false })); let dropReset = 0, starL = 0, starR = 0, extraFlash = 0;
-    let state = 'title', score = 0, balls = 3, ball = null, charge = 0, charging = false, time = 0, msg = '', msgT = 0, bonusLit = [false, false, false], flashT = 0, chain = 0;
+    let state = 'title', score = 0, balls = 3, ball = null, charge = 0, charging = false, time = 0, msg = '', msgT = 0, bonusLit = [false, false, false], flashT = 0, chain = 0, ballSave = 0, saveReady = true;
     const flip = { L: { a: 0.5, w: 0, down: false }, R: { a: Math.PI - 0.5, w: 0, down: false } };
     const REST = 0.5, ACT = -0.45, FSPEED = 20, FLEN = 48, FR = 7;
     const PIV = { L: [118, 566], R: [242, 566] };
@@ -66,7 +66,7 @@ registerGame({
       else if (tiltG >= 0.6) { flash('ATTENTO AL TILT!'); }
     };
     const spawn = () => { slingRun = 0; slingCool = [0, 0]; ball = { x: 332, y: 602, vx: 0, vy: 0, lane: true }; charge = 0; charging = false; tilted = false; tiltG = 0; };
-    const newGame = () => { score = 0; balls = 3; mult = 0; bonusN = 0; laneLit = [false, false, false]; extraLit = false; drops.forEach(d => d.down = false); state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
+    const newGame = () => { score = 0; balls = 3; ballSave = 0; saveReady = true; mult = 0; bonusN = 0; laneLit = [false, false, false]; extraLit = false; drops.forEach(d => d.down = false); state = 'play'; targets.forEach(t => t.lit = false); spawn(); };
     const endGame = () => { state = 'over'; if (score > hi) { hi = score; api.store.set('hi', hi); } };
 
     const colCircleOut = (cx, cy, cr, e, kick) => {          // la pallina deve restare fuori dal cerchio
@@ -154,6 +154,7 @@ registerGame({
       time += dt; msgT = Math.max(0, msgT - dt); flashT = Math.max(0, flashT - dt);
       bumpers.forEach(b => b.l = Math.max(0, b.l - dt)); starL = Math.max(0, starL - dt); starR = Math.max(0, starR - dt); extraFlash = Math.max(0, extraFlash - dt); if (dropReset > 0) { dropReset -= dt; if (dropReset <= 0) drops.forEach(d => d.down = false); } slingL = Math.max(0, slingL - dt); slingR = Math.max(0, slingR - dt);
       if (state !== 'play') return;
+      if (!ball.lane) ballSave = Math.max(0, ballSave - dt);
       tiltG = Math.max(0, tiltG - 0.3 * dt); nudgeCool = Math.max(0, nudgeCool - dt); shake.t = Math.max(0, shake.t - dt);
       if (held.up && !prevUp) nudge(0, -1); prevUp = !!held.up;
       if (tilt && tilt.sensor) { const dtx = tilt.x - prevTx; prevTx = tilt.x; if (Math.abs(dtx) > 0.16) nudge(Math.sign(dtx), -0.25); }
@@ -169,6 +170,7 @@ registerGame({
       }
       const n = 8; for (let i = 0; i < n; i++) step(dt / n);
       if (ball.y > 668) {
+        if (ballSave > 0 && !tilted) { ballSave = 0; spawn(); flash('PALLINA SALVATA!'); return; }
         const bonus = bonusN * 1000 * MULTS[mult]; score += bonus; const had = bonusN;
         balls--; chain = 0; bonusN = 0; sfx.drain();
         if (balls <= 0) endGame(); else { spawn(); flash(had ? 'BONUS ' + bonus : 'PALLINA ' + (4 - balls)); }
@@ -176,6 +178,7 @@ registerGame({
     };
     const launch = () => {
       if (!ball || !ball.lane || ball.y < 590) return;
+      if (saveReady) { saveReady = false; ballSave = 6; }
       ball.vy = -(780 + 330 * charge); ball.vx = 0; sfx.launch(); charging = false; charge = 0;
     };
     const act = k => {

@@ -99,7 +99,7 @@ registerGame({
     const arp = (notes, step, type, vol) => notes.forEach((f, i) => setTimeout(() => api.beep(f, step * 1.4, type || 'triangle', vol || 0.04), i * step * 1000));
     const flash = s => { flashMsg = s; flashT = 2; };
     const newGame = () => {
-      score = 0; time = 62; position = 0; speed = 0; playerX = 0; lap = 0; stageIdx = 0; lastStage = 0; curMod = 0; choice = 0; stageCount = 1; shake = 0; skyOff = 0; overtakes = 0;
+      score = 0; time = 68; position = 0; speed = 0; playerX = 0; lap = 0; stageIdx = 0; lastStage = 0; curMod = 0; choice = 0; stageCount = 1; shake = 0; skyOff = 0; overtakes = 0;
       if (!segments.length) buildTrack();
       cars.forEach(c => { c.passed = false; });
       countdown = 3.4; state = 'play'; flash('STAGE 1 · ' + STAGES[0].name + ' · LA PROSSIMA TAPPA LA SCEGLI TU');
@@ -143,7 +143,7 @@ registerGame({
       smoke.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; }); smoke = smoke.filter(p => p.t > 0);
       if (skid > 0.2) { engT -= 0; if (Math.random() < dt * 8) api.beep(520 + Math.random() * 120, 0.12, 'sawtooth', 0.012); }
       // collisioni con le auto
-      for (const car of playerSeg.cars) if (speed > car.speed && overlap(playerX, 0.42, car.offset, car.w, 0.8)) {
+      for (const car of playerSeg.cars) if (speed > car.speed && overlap(playerX, 0.42, car.offset, car.w, stageCount <= 2 ? 0.72 : 0.8)) {
         speed = car.speed * (car.speed / Math.max(1, speed)); position = incr(car.z, -PLAYERZ, trackLength); shake = 0.4; api.haptic(40); api.beep(110, 0.25, 'sawtooth', 0.06); break;
       }
       // traffico

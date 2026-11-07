@@ -239,7 +239,7 @@ registerGame({
         return;
       }
       if (freeze > 0) return;
-      const sp = e.type === 'c' ? 44 : 34;
+      const sp = (e.type === 'c' ? 44 : 34) * Math.min(1, 0.85 + (level - 1) * 0.075);
       if (e.st) {
         e.s += e.up * sp / FH * dt;
         if (e.s >= 1 || e.s <= 0) { e.s = e.s >= 1 ? 1 : 0; leaveStair(e); e.cool = 0.8; }

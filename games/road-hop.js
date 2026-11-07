@@ -27,7 +27,7 @@ registerGame({
       for (let k = 0; k < ROADS; k++) {
         const row = ROAD0 + k, dir = k % 2 ? 1 : -1, truck = k % 3 === 2;
         const w = truck ? 88 : 48, span = W + 160, n = Math.max(2, Math.floor(span / (w + 90 + (4 - k % 4) * 12)));
-        lanes.push({ row, kind: 'car', dir, speed: (46 + k * 11 + level * 7) * (0.9 + (k % 3) * 0.12), w, span, n, color: CAR_COLORS[k % CAR_COLORS.length], off: k * 53 });
+        lanes.push({ row, kind: 'car', dir, speed: (46 + k * 11 + level * 7) * (0.9 + (k % 3) * 0.12) * Math.min(1, 0.8 + (level - 1) * 0.07), w, span, n, color: CAR_COLORS[k % CAR_COLORS.length], off: k * 53 });
       }
       for (let k = 0; k < 4; k++) {
         const row = 1 + k, dir = k % 2 ? -1 : 1, w = [124, 92, 150, 104][k], span = W + 200, n = Math.max(2, Math.floor(span / (w + 78)));
@@ -39,7 +39,7 @@ registerGame({
       const gap = l.span / l.n, p = ((i * gap + l.off + l.dir * l.speed * time) % l.span + l.span) % l.span;
       return p - l.w - 20;
     };
-    const resetPlayer = () => { P = { x: W / 2 - ((W / 2) % C) + C / 2 - (COLS % 2 ? 0 : 0), r: START, vx: 0, vy: 0, hop: 0, carried: 0 }; P.x = Math.floor(COLS / 2) * C + C / 2 + (W - COLS * C) / 2; maxRow = START; left = 30; };
+    const resetPlayer = () => { P = { x: W / 2 - ((W / 2) % C) + C / 2 - (COLS % 2 ? 0 : 0), r: START, vx: 0, vy: 0, hop: 0, carried: 0 }; P.x = Math.floor(COLS / 2) * C + C / 2 + (W - COLS * C) / 2; maxRow = START; left = Math.max(30, 40 - (level - 1) * 4); };
     const newGame = () => { score = 0; lives = 3; level = 1; bays = [false, false, false, false]; buildLanes(); resetPlayer(); state = 'play'; };
     const flash = s => { msg = s; msgT = 1.2; };
     const die = reason => {

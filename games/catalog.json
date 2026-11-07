@@ -1,5 +1,8 @@
 {
   "games": [
+    "biliardo.js",
+    "spaccaquindici.js",
+    "bolle-pop.js",
     "pugni-in-piazza.js",
     "flipper-del-bar.js",
     "space-raiders.js",

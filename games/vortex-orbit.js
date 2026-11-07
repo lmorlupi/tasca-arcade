@@ -26,7 +26,7 @@ registerGame({
     const stars = Array.from({ length: 110 }, () => ({ a: Math.random() * TAU, r: Math.random() * 1.2, s: Math.random() }));
 
     const cycle = () => Math.floor(L / 24);
-    const spd = () => 1 + Math.min(0.7, L * 0.035 + cycle() * 0.1);
+    const spd = () => (1 + Math.min(0.7, L * 0.035 + cycle() * 0.1)) * Math.min(1, 0.86 + L * 0.035);
     const arp = (notes, step, type, vol) => notes.forEach((f, i) => setTimeout(() => api.beep(f, step * 1.4, type || 'triangle', vol || 0.04), i * step * 1000));
     const flash = s => { flashMsg = s; flashT = 1.8; };
     const addText = (x, y, s) => texts.push({ x, y, s: String(s), t: 0.9 });
@@ -78,7 +78,7 @@ registerGame({
     };
     const fireEnemy = e => {
       if (ebul.length >= 3 + Math.min(4, L >> 2)) return;
-      const sp = shipPos(), d = Math.hypot(sp.x - e.x, sp.y - e.y) || 1, v = Math.min(260, 150 + L * 4);
+      const sp = shipPos(), d = Math.hypot(sp.x - e.x, sp.y - e.y) || 1, v = Math.min(260, 150 + L * 4) * Math.min(1, 0.85 + L * 0.05);
       ebul.push({ x: e.x, y: e.y, vx: (sp.x - e.x) / d * v, vy: (sp.y - e.y) / d * v, t: 0, T: d / v });
     };
 

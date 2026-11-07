@@ -68,7 +68,7 @@ registerGame({
       }
       for (const [px, w] of pits) { add(px + ((w - 1) >> 1), 12); if (w === 3) add(px + 2, 12); }
       door = { x: (cols - 4) * T, y: GR * T };
-      need = Math.ceil(cheese.length * 0.6); got = 0;
+      need = Math.ceil(cheese.length * Math.min(0.6, 0.5 + (lv - 1) * 0.05)); got = 0;
     };
 
     const resetPlayer = () => {
@@ -98,7 +98,7 @@ registerGame({
       P.vx += (target - P.vx) * Math.min(1, dt * (P.ground ? 14 : 6));
       if (dir) { P.face = dir; P.walk += dt * (run > 1 ? 14 : 9); }
       jumpBuf = Math.max(0, jumpBuf - dt); coyote = Math.max(0, coyote - dt);
-      if (P.ground) coyote = 0.1;
+      if (P.ground) coyote = level <= 2 ? 0.14 : 0.1;
       if (jumpBuf > 0 && coyote > 0) { P.vy = JUMP; P.ground = false; jumpBuf = 0; coyote = 0; P.cut = false; api.haptic(6); api.beep(560, 0.07); }
       if (P.cut && P.vy < -180) { P.vy = -180; }
       P.cut = false;
@@ -141,7 +141,7 @@ registerGame({
         }
         for (const k of cats) {
           if (k.dead) continue;
-          k.t += dt; k.x += k.dir * 38 * dt;
+          k.t += dt; k.x += k.dir * 38 * Math.min(1, 0.85 + (level - 1) * 0.075) * dt;
           if (k.x < k.min) { k.x = k.min; k.dir = 1; }
           if (k.x > k.max) { k.x = k.max; k.dir = -1; }
           if (Math.abs(k.x - P.x) < 14 && P.y > k.y - 22 && P.y - PH < k.y) {

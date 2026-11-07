@@ -66,7 +66,7 @@ registerGame({
       if (kind === 'spike') { shake = 0.12; api.haptic(18); }
       for (let i = 0; i < 4; i++) parts.push({ x: ball.x, y: ball.y, vx: (Math.random() - 0.5) * 120, vy: (Math.random() - 0.5) * 120, t: 0.3 });
     };
-    const aiLevel = () => Math.min(5, level);
+    const aiLevel = () => Math.min(5, level) - Math.max(0, 3 - level) * 0.25;
     const doReceive = (t, p, q) => {
       touchBall(t, p, 'dig', q); const d = dirOf(t);
       const err = (1 - q) * 70 * (Math.random() < 0.5 ? -1 : 1), tx = NETX - d * (SET_X + 6) + err * 0.6;
@@ -142,7 +142,7 @@ registerGame({
           const rc = e.rc && e.rc.team === e.team ? (Math.abs(e.rc.x - want) < Math.abs(nearestTo(e.team, want).x - want) + 40 ? e.rc : nearestTo(e.team, want)) : nearestTo(e.team, want); e.rc = rc;
           move(rc, want, human ? 200 : 118 + lvl * 16, dt);
           const hand = { x: rc.x + rc.face * 10, y: FL - 52 - rc.y }, dist = Math.hypot(ball.x - hand.x, ball.y - hand.y), age = time - tapT;
-          const dive = human && age < 0.55; const reach = 24 + (dive ? 36 : 0);
+          const dive = human && age < 0.55; const reach = 24 + (human ? Math.max(0, 3 - level) * 3 : 0) + (dive ? 36 : 0);
           ring = human && ball.vy > 0 ? { x: ball.x, y: ball.y, k: Math.max(0, Math.min(1, ttcTo(ball, FL - 52) / 0.9)), label: 'RICEVI' } : null;
           if (ball.vy > 0 && dist < reach && side(ball.x) === e.team) {
             if (human) { const q = age < 0.5 ? (age > 0.05 && age < 0.3 ? 1 : 0.8) : 0.62; if (dive && dist > 26) rc.act = 'dive'; doReceive(0, rc, q); }

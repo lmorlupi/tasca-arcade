@@ -79,7 +79,7 @@ registerGame({
       for (let i = free.length - 1; i > 0; i--) { const j = (rand() * (i + 1)) | 0; [free[i], free[j]] = [free[j], free[i]]; }
 
       holes = [];
-      const want = Math.min(2 + lv, 11);
+      const want = Math.min(2 + lv - (lv <= 2 ? 1 : 0), 11);
       for (const [x, y] of free) {
         if (holes.length >= want) break;
         const probe = [...holes, [x, y]];

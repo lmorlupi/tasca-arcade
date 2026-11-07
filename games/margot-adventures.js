@@ -106,7 +106,7 @@ registerGame({
       door = { x: (cols - 4) * T, y: GR * T };
       treats.forEach((t, i) => { if (i % 7 === 3) t.kind = 'stick'; });
       if (treats.length > 4) treats[Math.floor(treats.length * 0.55)].kind = 'tuna';
-      need = Math.ceil(treats.length * 0.6); got = 0;
+      need = Math.ceil(treats.length * Math.min(0.6, 0.5 + (lv - 1) * 0.05)); got = 0;
     };
 
     // Le foto di Margot si sbloccano trovando le cornici nei livelli; si rivedono dalla schermata iniziale.
@@ -169,7 +169,7 @@ registerGame({
       P.vx += (target - P.vx) * Math.min(1, dt * (P.ground ? 14 : 6));
       if (dir) { P.face = dir; P.walk += dt * (run > 1 ? 14 : 9); }
       jumpBuf = Math.max(0, jumpBuf - dt); coyote = Math.max(0, coyote - dt);
-      if (P.ground) coyote = 0.1;
+      if (P.ground) coyote = level <= 2 ? 0.14 : 0.1;
       if (jumpBuf > 0 && coyote > 0) { P.vy = JUMP; P.ground = false; jumpBuf = 0; coyote = 0; P.cut = false; api.haptic(6); api.beep(560, 0.07); }
       if (P.cut && P.vy < -180) { P.vy = -180; }
       P.cut = false;
@@ -717,7 +717,7 @@ registerGame({
         if (!chaser.on && P.x > 9 * T && door && P.x < door.x - 10 * T) { chaser.on = true; chaser.x = Math.max(-60, camX - 50); flash('ARRIVA IL ROBOT! SCAPPA!'); api.haptic(30); api.beep(120, 0.4, 'sawtooth', 0.06); }
         if (chaser.on) {
           chaser.t += dt;
-          const sp = Math.min(118, 78 + level * 5 + chaser.t * 0.8);
+          const sp = Math.min(118, 78 + level * 5 + chaser.t * 0.8) * Math.min(1, 0.88 + (level - 1) * 0.06);
           chaser.x += sp * dt;
           const dx = P.x - chaser.x;
           if (dx > 110 + 40 * 0) chaser.x += (dx - 110) * Math.min(1, dt * 1.2);   // non resta troppo indietro
@@ -728,7 +728,7 @@ registerGame({
         }
         for (const k of cats) {
           if (k.dead) continue;
-          k.t += dt; k.x += k.dir * 38 * dt;
+          k.t += dt; k.x += k.dir * 38 * Math.min(1, 0.85 + (level - 1) * 0.075) * dt;
           if (k.x < k.min) { k.x = k.min; k.dir = 1; }
           if (k.x > k.max) { k.x = k.max; k.dir = -1; }
           if (!P.hidden && Math.abs(k.x - P.x) < 19 && P.y > k.y - 14 && P.y - PH < k.y) {

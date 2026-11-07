@@ -59,7 +59,7 @@ registerGame({
 
     const kinds = ['tomato', 'mushroom', 'chili'];
     const makeFoes = () => {
-      const n = Math.min(3 + ((level - 1) >> 1), 6);
+      const n = level <= 3 ? Math.min(3, level + 1) : Math.min(3 + ((level - 1) >> 1), 6);
       foes = [];
       for (let i = 0; i < n; i++) foes.push({ type: kinds[i % 3], wait: 1.2 + i * 1.6, alive: false, stun: 0, ride: null, dead: 0 });
     };
@@ -183,7 +183,7 @@ registerGame({
       if (!e.alive) { e.wait -= dt; if (e.wait <= 0) spawnFoe(e); return; }
       if (e.ride) { e.x = Math.max(e.ride.x - 18, Math.min(e.ride.x + 18, e.x)); e.y = e.ride.y; return; }
       if (e.stun > 0) { e.stun -= dt; return; }
-      const sp = (e.type === 'chili' ? 50 : e.type === 'mushroom' ? 40 : 44) + Math.min(level, 10) * 2.5;
+      const sp = ((e.type === 'chili' ? 50 : e.type === 'mushroom' ? 40 : 44) + Math.min(level, 10) * 2.5) * Math.min(1, 0.88 + (level - 1) * 0.06);
       let d = sp * dt;
       for (let k = 0; k < 3 && d > 0.01; k++) {
         let m = e.dx < 0 ? 'l' : e.dx > 0 ? 'r' : e.dy < 0 ? 'u' : 'd';

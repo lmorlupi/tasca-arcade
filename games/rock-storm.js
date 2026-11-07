@@ -24,12 +24,12 @@ registerGame({
       return pts;
     };
     const makeRock = (x, y, size, vx, vy) => {
-      const a = Math.random() * TAU, s = (24 + Math.random() * 38 + wave * 3) * (size === 2 ? 0.8 : size === 1 ? 1.25 : 1.8);
+      const a = Math.random() * TAU, s = (24 + Math.random() * 38 + wave * 3) * (size === 2 ? 0.8 : size === 1 ? 1.25 : 1.8) * Math.min(1, 0.82 + (wave - 1) * 0.06);
       return { x, y, size, vx: vx !== undefined ? vx : Math.cos(a) * s, vy: vy !== undefined ? vy : Math.sin(a) * s, a: 0, w: (Math.random() - 0.5) * 1.6, pts: blob(SIZES[size].r) };
     };
     const spawnWave = () => {
       rocks = [];
-      for (let i = 0; i < Math.min(11, 3 + wave); i++) {
+      for (let i = 0; i < Math.min(11, 3 + wave - (wave <= 2 ? 1 : 0)); i++) {
         let x, y; do { x = Math.random() * W; y = Math.random() * H; } while (Math.hypot(x - W / 2, y - H / 2) < 140);
         rocks.push(makeRock(x, y, 2));
       }

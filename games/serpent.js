@@ -17,7 +17,7 @@ registerGame({
     let state = 'title', score = 0, eaten = 0, tick = 0, time = 0, deadT = 0;
     let snake, dir, queue, apple, gold, sw = null;
 
-    const interval = () => Math.max(0.07, 0.17 - eaten * 0.0035);
+    const interval = () => Math.max(0.07, 0.17 - eaten * 0.0035 + 0.025 * Math.max(0, 1 - eaten / 8));
     const freeCell = () => {
       for (let k = 0; k < 200; k++) {
         const c = { x: (Math.random() * COLS) | 0, y: (Math.random() * ROWS) | 0 };

@@ -41,7 +41,7 @@ registerGame({
     let pad = { x: W / 2, w: 64, mode: '' }, balls = [], bricks = [], caps = [], enemies = [], bolts = [], target = null, touching = false;
     let slow = false, exitOpen = false, laserCd = 0, enemyT = 8;
 
-    const baseSpeed = () => Math.min(400, 262 + level * 7);
+    const baseSpeed = () => Math.min(400, 262 + level * 7) * Math.min(1, 0.88 + (level - 1) * 0.04);
     const ballSpeed = () => Math.min(540, baseSpeed() + Math.min(130, hits * 1.3)) * (slow ? 0.72 : 1);
     const flash = (s, t) => { msg = s; msgT = t || 1.4; };
     const burst = (x, y, c, n) => api.fx.burst(x, y, { n, color: c, speed: 160, life: 0.8, size: 4, gravity: 300, drag: 0 });
@@ -56,7 +56,7 @@ registerGame({
       }));
     };
     const resetBall = () => { balls = [{ x: pad.x, y: PAD_Y - R - 1, vx: 0, vy: 0, on: true, off: 0 }]; slow = false; };
-    const clearPowers = () => { pad.mode = ''; pad.w = 64; slow = false; caps = []; bolts = []; exitOpen = false; };
+    const clearPowers = () => { pad.mode = ''; pad.w = 64 + Math.max(0, 4 - level) * 4; slow = false; caps = []; bolts = []; exitOpen = false; };
     const startLevel = () => { build(); clearPowers(); resetBall(); enemies = []; enemyT = 9; introT = 1.8; };
     const saved = () => api.store.get('stage', 1);
     const newGame = (from = 1) => { score = 0; lives = 3; level = from; hits = 0; nextExtra = 20000; pad.x = W / 2; state = 'play'; startLevel(); };
