@@ -1,5 +1,6 @@
 {
   "games": [
+    "tetris-color.js",
     "tetris-classico.js",
     "sfere-ribelli.js",
     "isola-felice.js",

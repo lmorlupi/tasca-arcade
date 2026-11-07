@@ -15,6 +15,7 @@
     c.restore();
   };
   const DRAW = {
+    'tetris-color': c => { bg(c,'#25375e','#10182c');rect(c,17,9,78,99,'#0b1427',5);const colors=['#4ddcee','#ffda61','#ba8aff','#6799ff','#ffb568','#6ae0a2','#ff7799'];[[0,5,0],[1,5,0],[2,5,0],[3,5,0],[4,5,1],[5,5,1],[4,4,1],[5,4,1],[0,4,2],[1,4,2],[2,4,2],[1,3,2],[4,1,6],[5,1,6],[3,0,6],[4,0,6]].forEach(([x,y,n])=>{rect(c,23+x*11,32+y*11,10,10,colors[n],2);rect(c,25+x*11,34+y*11,6,2,'#ffffff66');}); },
     'tetris-classico': c => { bg(c,'#c5d29b','#9eae79');rect(c,12,9,64,95,'#263b2c');rect(c,15,12,58,89,'#c5d29b');[[0,5],[1,5],[0,4],[1,4],[2,5],[3,5],[3,4],[3,3],[2,3],[4,5],[5,5],[5,4],[5,3],[3,1],[3,0],[4,1],[5,1]].forEach(([x,y])=>{rect(c,18+x*9,42+y*9,8,8,'#263b2c');rect(c,20+x*9,44+y*9,4,4,'#9eae79');});[[0,0],[1,0],[1,1],[2,1]].forEach(([x,y])=>rect(c,81+x*7,27+y*7,6,6,'#263b2c')); },
     'sfere-ribelli': c => { bg(c, '#687eac', '#f4cda8'); rect(c, 0, 87, 112, 25, '#796d83');
       [[28, 32, 22, '#ed9cae'], [83, 58, 16, '#8bd9e2'], [39, 75, 9, '#ffe193']].forEach(([x, y, r, color]) => { const a = c.createRadialGradient(x-r*.35,y-r*.4,1,x,y,r); a.addColorStop(0,'#fff5df'); a.addColorStop(.4,color); a.addColorStop(1,'#77688d'); circ(c,x,y,r,a); });

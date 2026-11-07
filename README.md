@@ -17,6 +17,8 @@ Negli 11 giochi giocabili col tocco la pulsantiera scompare per lasciare più sp
 
 ## Preferiti e nuovi giochi
 
+- **Tetris Color:** la versione più semplice e a colori, con croce e A/B sempre visibili. Sinistra/destra spostano, giù accelera la caduta, A/B ruotano e su posa subito il pezzo. Partenza tranquilla, ombra di atterraggio, rotazioni permissive vicino alle pareti, tre pezzi in anteprima e riserva con SELECT. START pausa; partita e record si salvano anche offline. Tetris Classico resta disponibile.
+
 - **Tetris Classico:** ricostruzione web delle regole del classico portatile del 1989: campo10×18, sette pezzi, A-TYPE e B-TYPE (25 linee), livelli0–20, punteggi40/100/300/1200×(livello+1), velocità classiche, anteprima disattivabile con SELECT e pausa START. A ruota a destra, B a sinistra; croce o comandi sul canvas per muovere/scendere. Trascina i pezzi o tocca per ruotare. Musica: melodia tradizionale Korobeiniki con accompagnamento e sintesi nuovi. Partita e record locali, anche offline. Il layout LCD è adattato al telefono; non è un’emulazione della cartuccia originale.
 
 
