@@ -41,6 +41,8 @@ registerGame({
     const angDiff = (a, b) => { let d = (a - b) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
     const vDive = () => Math.min(340, 210 + stage * 8);
     const maxAtt = () => Math.min(2 + (stage >> 1), 7);
+    // I bordi lasciano un po' di respiro: gli attacchi mirano alla corsia interna.
+    const attackX = () => Math.max(46, Math.min(W - 46, ship.x));
     const bz = (x0, y0, cx, cy, x1, y1, u) => {
       const m = 1 - u;
       return [m * m * x0 + 2 * m * u * cx + u * u * x1, m * m * y0 + 2 * m * u * cy + u * u * y1,
@@ -136,7 +138,7 @@ registerGame({
 
     const aimShot = e => {
       if (ebullets.length >= 3 + Math.min(4, stage)) return;
-      const dx = ship.x - e.x, dy = SHIP_Y - e.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(250, 150 + stage * 7);
+      const dx = attackX() - e.x, dy = SHIP_Y - e.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(230, 140 + stage * 6);
       ebullets.push({ x: e.x, y: e.y + 8, vx: dx / d * sp, vy: Math.max(60, dy / d * sp) });
     };
 
@@ -289,7 +291,7 @@ registerGame({
     };
 
     const steer = (e, dt) => {
-      const ph = Math.atan2(SHIP_Y - e.y, ship.x - e.x), lim = (1.2 + stage * 0.06) * dt;
+      const ph = Math.atan2(SHIP_Y - e.y, attackX() - e.x), lim = (1.2 + stage * 0.06) * dt;
       e.th += Math.max(-lim, Math.min(lim, angDiff(ph, e.th)));
     };
     const enemyFire = (e, dt) => {
@@ -325,7 +327,7 @@ registerGame({
         } else if (e.state === 'dive') {
           const left = turtle(e, dt);
           if (e.si >= e.sc.length) {
-            if (e.y < SHIP_Y - 150 && e.y > -10) steer(e, dt);
+            if (e.y < SHIP_Y - 180 && e.y > -10) steer(e, dt);
             e.x += Math.cos(e.th) * e.v * left; e.y += Math.sin(e.th) * e.v * left;
           }
           enemyFire(e, dt);
@@ -541,6 +543,7 @@ registerGame({
         get capt() { return capt; }, get rescue() { return rescue; }, get reserve() { return reserve; },
         get challenge() { return challenge; }, get chHits() { return chHits; },
         get shots() { return shots; },
+        get enemyShots() { return ebullets; },
       },
     };
   },
