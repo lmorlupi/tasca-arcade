@@ -805,7 +805,7 @@
     const other = ios
       ? ['Su Android (Chrome): tre puntini → «Aggiungi a schermata Home» o «Installa app».']
       : ['Su iPhone (Safari): Condividi → «Aggiungi alla schermata Home».'];
-    menuEl.innerHTML = `<header><button class="snd" id="helpBack">‹ CATALOGO</button><h1>AIUTO</h1></header>
+    menuEl.innerHTML = `<header><button class="snd" id="helpBack">‹ CATALOGO</button><h1 class="help-title">AIUTO</h1></header>
       <h2 class="sub">METTI L'APP NELLA HOME ${ios ? '(IPHONE)' : '(ANDROID)'}</h2>
       <ol class="help">${one.map(x => '<li>' + x + '</li>').join('')}</ol>
       <p class="ver">${other[0].toUpperCase()}</p>
