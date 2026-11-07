@@ -727,6 +727,12 @@
     // Soglie con isteresi: una direzione già premuta resta attiva finché il pollice non torna quasi al centro.
     const onH = padOn.has('left') || padOn.has('right'), onV = padOn.has('up') || padOn.has('down');
     const want = new Set();
+    // Nei giochi su pavimenti e scale il pollice sceglie un solo asse, con margine contro i cambi involontari.
+    if (cur?.cardinalPad) {
+      const vertical = ay > ax * (onH ? 1.2 : onV ? 1 / 1.2 : 1), value = vertical ? ny : nx;
+      if (Math.abs(value) > (onH || onV ? .12 : .2)) want.add(vertical ? (ny < 0 ? 'up' : 'down') : (nx < 0 ? 'left' : 'right'));
+      setDirs(want); return;
+    }
     if (ax > (onH ? .12 : .2) && ax > ay * (onH ? .4 : .55)) want.add(nx < 0 ? 'left' : 'right');
     if (ay > (onV ? .12 : .2) && ay > ax * (onV ? .4 : .55)) want.add(ny < 0 ? 'up' : 'down');
     setDirs(want);

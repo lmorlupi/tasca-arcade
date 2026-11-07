@@ -4,6 +4,7 @@ registerGame({
   color: '#e5a13b',
   blurb: 'Cammina sopra pane, insalata e polpetta per farli cadere di piano in piano fino ai piatti. Pomodoro, fungo e peperoncino ti inseguono: schiacciali sotto gli strati o fermali con il pepe.',
   inputs: ['D-PAD', 'A/B PEPE'],
+  cardinalPad: true,
   size: [352, 576],
   bg: '#141a2e',
   create(api) {
@@ -137,7 +138,8 @@ registerGame({
     // Per il cuoco: se si chiede di salire o scendere vicino a una scala, ci si aggancia da soli.
     const snapLadder = (o, dir) => {
       if (o.lad) return true;
-      const l = ladders.find(l => Math.abs(l.x - o.x) < 10 && (dir < 0 ? l.top < o.f && l.bot >= o.f : l.bot > o.f && l.top <= o.f));
+      const l = ladders.filter(l => Math.abs(l.x - o.x) <= 24 && covers(o.f, Math.min(o.x, l.x), Math.max(o.x, l.x)) && (dir < 0 ? l.top < o.f && l.bot >= o.f : l.bot > o.f && l.top <= o.f))
+        .sort((a, b) => Math.abs(a.x - o.x) - Math.abs(b.x - o.x))[0];
       if (l) { o.x = l.x; return true; }
       return false;
     };
@@ -155,9 +157,9 @@ registerGame({
       P.walk += dt * 10;
       let d = sp * dt;
       for (let k = 0; k < 3 && d > 0.01; k++) {
-        if (dx && P.lad) {
+        if (P.lad) {
           const f = floorOnLadder(P.lad, P.y);
-          if (f >= 0) { P.y = Y(f); want = dx < 0 ? 'l' : 'r'; }
+          if (f >= 0) { P.y = Y(f); P.f = f; if (dx) want = dx < 0 ? 'l' : 'r'; }
         }
         if (!options(P).includes(want)) break;
         if (want === 'l' || want === 'r') P.face = want === 'l' ? -1 : 1; else P.vdir = want === 'u' ? -1 : 1;
