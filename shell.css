@@ -158,6 +158,15 @@ canvas.off { display: none; }
   background: #151c34; color: var(--ink); font-family: inherit; touch-action: manipulation;
 }
 .cart.sel { border-color: var(--c); background: #1b2444; }
+.cart-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 6px; margin-bottom: 8px; align-items: start; }
+.cart-row .cart { min-width: 0; margin-bottom: 0; }
+.favorite {
+  display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;
+  border: 1px solid #3a466a; border-radius: 9px; background: #151c34; color: var(--muted);
+  font-size: 26px; line-height: 1; touch-action: manipulation;
+}
+.favorite[aria-pressed="true"] { color: #ffe27a; border-color: #ffe27a; background: #302b20; }
+.favorite:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .cart .tab { grid-row: 1 / 4; background: var(--c); border-radius: 8px 0 0 8px; margin: -10px 0 -10px 0; }
 .cart .title { font-size: 14px; font-weight: 800; letter-spacing: .08em; }
 .cart .rec { font-size: 11px; color: var(--muted); align-self: center; }

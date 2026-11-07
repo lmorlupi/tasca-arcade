@@ -451,6 +451,10 @@
   };
 
   // Catalogo
+  const savedFavorites = ls.get('favorites', []);
+  const favorites = new Set(Array.isArray(savedFavorites) ? savedFavorites.filter(id => typeof id === 'string') : []);
+  const menuOrder = () => games.map((_, i) => i).sort((a, b) =>
+    Number(favorites.has(games[b].id)) - Number(favorites.has(games[a].id)) || a - b);
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = () => navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
   const HOT = { INCLINA: 1, SWIPE: 1, FLICK: 1 };
@@ -495,18 +499,23 @@
   const avatarUrl = () => avatarData || (avatarData = window.Art.portrait(160, 'calm').toDataURL('image/png'));
   const renderMenu = () => {
     pinned = false;
+    const order = menuOrder(), favoriteCount = order.filter(i => favorites.has(games[i].id)).length;
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
     menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}
       <div class="support"><a id="support" href="https://buymeacoffee.com/pu3ilqqnqd" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè su Buy Me a Coffee (si apre in una nuova scheda)"><span aria-hidden="true">☕</span> Offrimi un caffè <span aria-hidden="true">↗</span></a><p>Aiutami a creare nuovi giochi.</p></div>` +
-      games.map((d, i) => {
+      order.map((i, position) => {
+        const d = games[i], favorite = favorites.has(d.id);
+        const heading = favoriteCount && position === 0 ? '<h2 class="sub">PREFERITI</h2>'
+          : favoriteCount && position === favoriteCount ? '<h2 class="sub">ALTRI GIOCHI</h2>' : '';
         const rec = d.community ? (cmStore(d.id).hi || 0) : ls.get(d.id + ':hi', 0);
         const gav = d.art !== 'margot' && window.GameAvatars ? GameAvatars.get(d.id) : null;
         const avatar = d.art === 'margot' && window.Art ? `<img class="avatar" alt="Margot" src="art/margot-avatar.jpg">` : gav ? `<img class="avatar" alt="" src="${gav}">` : '';
-        return `<button class="cart${i === sel ? ' sel' : ''}${avatar ? ' art' : ''}" data-i="${i}" style="--c:${/^#[0-9a-fA-F]{3,8}$/.test(d.color) ? d.color : '#25c4f0'}">
+        return `${heading}<div class="cart-row"><button class="cart${i === sel ? ' sel' : ''}${avatar ? ' art' : ''}" data-i="${i}" style="--c:${/^#[0-9a-fA-F]{3,8}$/.test(d.color) ? d.color : '#25c4f0'}">
           <span class="tab"></span>${avatar}<span class="title">${esc(d.title)}</span><span class="rec">${rec ? 'RECORD ' + rec : ''}</span>
           <span class="desc">${esc(d.blurb)}${d.author ? ' <em>di ' + esc(d.author) + '</em>' : ''}</span>
-          <span class="chips">${d.community ? '<i class="ext">DI TERZI</i>' : ''}${d.inputs.map(t => `<i${HOT[t] ? ' class="hot"' : ''}>${esc(t)}</i>`).join('')}</span></button>`;
+          <span class="chips">${d.community ? '<i class="ext">DI TERZI</i>' : ''}${d.inputs.map(t => `<i${HOT[t] ? ' class="hot"' : ''}>${esc(t)}</i>`).join('')}</span></button>
+          <button class="favorite" type="button" data-id="${esc(d.id)}" aria-pressed="${favorite}" aria-label="${favorite ? 'Rimuovi' : 'Aggiungi'} ${esc(d.title)} ${favorite ? 'dai' : 'ai'} preferiti" title="${favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}"><span aria-hidden="true">${favorite ? '★' : '☆'}</span></button></div>`;
       }).join('') + '<button class="act imp" id="imp">+ IMPORTA UN GIOCO</button><p class="legal">Progetto indipendente, non affiliato né approvato da produttori di console o di videogiochi. I marchi citati appartengono ai rispettivi proprietari. Giochi, grafica e suoni sono originali.</p>';
     showVersion();
   };
@@ -514,6 +523,16 @@
     if (e.target.id === 'impOk') { const b = document.getElementById('impAdd'); if (b) b.disabled = !e.target.checked; }
   });
   menuEl.addEventListener('click', async e => {
+    const star = e.target.closest('.favorite');
+    if (star) {
+      const id = star.dataset.id, focused = document.activeElement === star;
+      if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
+      ls.set('favorites', [...favorites]);
+      sel = Math.max(0, games.findIndex(d => d.id === id));
+      haptic(8); renderMenu(); markSel();
+      if (focused) [...menuEl.querySelectorAll('.favorite')].find(b => b.dataset.id === id)?.focus();
+      return;
+    }
     if (colorsClick(e)) return;
     if (await importClick(e)) return;
     if (e.target.closest('#brand')) {
@@ -528,7 +547,7 @@
     if (c) { sel = +c.dataset.i; launch(games[sel]); }
   });
   const markSel = () => {
-    menuEl.querySelectorAll('.cart').forEach((c, i) => c.classList.toggle('sel', i === sel));
+    menuEl.querySelectorAll('.cart').forEach(c => c.classList.toggle('sel', +c.dataset.i === sel));
     const c = menuEl.querySelector('.cart.sel'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'nearest' });
   };
 
@@ -584,8 +603,10 @@
     lite(k, true); feel(k, true);
     if (mode === 'boot') { endBoot(); return; }
     if (mode === 'menu') {
-      if (k === 'up' || k === 'left') { sel = (sel + games.length - 1) % games.length; markSel(); }
-      else if (k === 'down' || k === 'right') { sel = (sel + 1) % games.length; markSel(); }
+      const order = menuOrder(), current = order.indexOf(sel);
+      if (!order.length) return;
+      if (k === 'up' || k === 'left') { sel = order[(current + order.length - 1) % order.length]; markSel(); }
+      else if (k === 'down' || k === 'right') { sel = order[(current + 1) % order.length]; markSel(); }
       else if (k === 'a' || k === 'start') launch(games[sel]);
     } else if (mode === 'game' && inst && inst.onPress) inst.onPress(k);
   };
@@ -600,7 +621,7 @@
     ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'up',
     ' ': 'a', x: 'a', X: 'a', z: 'b', Z: 'b', Enter: 'start', p: 'start', P: 'start', Escape: 'select', r: 'select', R: 'select',
   };
-  const nativeKeys = e => e.target && e.target.closest && e.target.closest('input, textarea, a[href]');
+  const nativeKeys = e => e.target && e.target.closest && e.target.closest('input, textarea, a[href], .favorite');
   addEventListener('keydown', e => {
     if (nativeKeys(e)) return;
     if (e.key === 'm' || e.key === 'M' || e.key === 'Backspace') { e.preventDefault(); if (mode === 'game') toMenu(); return; }
@@ -921,6 +942,7 @@
       await loadCatalog();
       games.forEach(x => BUILTIN_IDS.add(x.id));
       syncCommunityGames();
+      sel = menuOrder()[0] || 0;
       setShell(ls.get('shell', 'grape'));
       setBtn(ls.get('btn', 'graphite'));
       buildLogo();
