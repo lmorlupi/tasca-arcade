@@ -13,7 +13,7 @@ Dall’icona installata sulla schermata Home l’app richiede la modalità fulls
 
 Negli 11 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Tutti gli arcade con movimento e tiro/colpo simultanei, compresi Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike, Vortex Orbit, Sfere Ribelli, Brick Rush e Spike Arena, e 500 Run con freno/turbo, mantengono la pulsantiera per la precisione dei comandi, insieme ai platform e agli altri giochi con azioni dedicate. La fascia comandi è più compatta; in orizzontale la croce resta a sinistra e A/B a destra.
 
-**Super Mario Kart, Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
+**Super Mario Kart, Mouse Castle, Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
 
 ## Preferiti e nuovi giochi
 
@@ -29,7 +29,7 @@ Negli 11 giochi giocabili col tocco la pulsantiera scompare per lasciare più sp
 
 
 - **Sfere Ribelli:** dividi le sfere rimbalzanti con l’arpione, fino a farle sparire. Trascina sullo schermo o usa la croce per muoverti: il fuoco è automatico (B lo attiva/disattiva, A spara). Quattro ambienti, bonus scudo e rallentamento, primi quadri permissivi. START mette in pausa; il quadro raggiunto e il record restano salvati. SELECT sulla schermata iniziale ricomincia dal primo quadro conservando il record.
-- **Mouse Castle:** sedici quadri disegnati a mano, poi castelli generati; quattro atmosfere, piccoli dettagli animati e melodie originali. I primi otto quadri conservano i loro percorsi.
+- **Mouse Castle:** rifatto seguendo il [video di riferimento di Mickey Mouse](https://www.youtube.com/watch?v=KPFP6yc3U_o): sprite e caratteri a pixel monocromatici, castelli e caverne a scorrimento, mappa di 28 quadri, otto chiavi per quadro e stanze segrete. A e B usano la stessa arma; si sale con la croce e **non si salta**. Su entra nelle porte; tubi e passaggi collegano i piani, W teletrasporta, UP lancia verso l’alto e le corde si attraversano camminando. Arco con munizioni, bombe, martello, piccone, casse e pesi, scudo, pozione, orologio e fulmine. Cinque vite iniziali e una in più a ogni quadro superato; alla morte il quadro ricomincia. Partita, munizioni e progressi si salvano anche offline. Giocabile anche in orizzontale, con croce/A/B visibili. Disegni, percorsi e arrangiamenti musicali sono ricostruiti: non sono una copia identica dei 28 tracciati o dell’audio della cartuccia.
 - **Brick Rush:** ventiquattro schemi originali, quattro fondali e timbri distinti per mattoni e metalli. I primi dodici schemi e gli aiuti iniziali sono conservati.
 
 

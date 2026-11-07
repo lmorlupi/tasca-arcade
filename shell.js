@@ -15,7 +15,7 @@
   let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0, fullRequest = null;
   const held = {};
   const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','briscola','scopa','tresette','dama','scacchi','flick-hoops','tetris-classico']);
-  const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo','mario-kart']);
+  const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo','mario-kart','mouse-castle']);
   const gameSize = def => {
     let w = def.size[0], h = def.size[1];
     if (WIDE_GAMES.has(def.id) && screenEl.clientWidth > screenEl.clientHeight) {

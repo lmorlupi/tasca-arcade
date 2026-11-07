@@ -1,7 +1,7 @@
 registerGame({
   id: 'sfere-ribelli', title: 'SFERE RIBELLI', license: 'MIT', color: '#f39a70',
-  blurb: 'Sfere rimbalzanti invadono piazze, spiagge e luna park! Muoviti con un dito: l’arpione parte da solo e divide le sfere fino a farle sparire. Raccogli scudo e clessidra. A spara, B cambia il fuoco automatico. Quadri e record si salvano.',
-  inputs: ['TRASCINA', 'AUTO FUOCO', 'A ARPIONE'], size: [360, 640], flexH: true, bg: '#192944',
+  blurb: 'Sfere rimbalzanti invadono piazze, spiagge e luna park! Croce per muoverti, A per l’arpione, B per cambiare il fuoco automatico. Dividi le sfere fino a farle sparire e raccogli scudo e clessidra. Resta anche il trascinamento. Quadri e record si salvano.',
+  inputs: ['CROCE + A/B', 'AUTO FUOCO', 'A ARPIONE'], size: [360, 640], flexH: true, bg: '#192944',
   create(api) {
     const { cv, g, held } = api, TOP = 60, LEFT = 16, TAU = Math.PI * 2;
     let W = cv.width, H = cv.height, FLOOR = H - 78, RIGHT = W - 16;
