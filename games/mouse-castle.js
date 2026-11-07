@@ -18,7 +18,15 @@ registerGame({
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, lives = 3, level = 1, stateT = 0, msg = '', msgT = 0, time = 0;
-    let parts = [];
+    let parts = [], musicAt = 0, musicStep = 0;
+    const THEMES = [
+      { name: 'TORRI DI LUNA', bg: '#19162e', stone: '#7d86b8', light: '#b7bde5', shade: '#44476e', window: '#51467c', accent: '#f4cc83', notes: [72, 76, 79, 0, 76, 74, 71, 0, 69, 72, 76, 74, 71, 67, 0, 0] },
+      { name: 'BIBLIOTECA DORATA', bg: '#251b25', stone: '#a18a78', light: '#d3b893', shade: '#635147', window: '#745537', accent: '#ffd77f', notes: [67, 71, 74, 76, 74, 71, 69, 0, 72, 76, 79, 76, 74, 71, 67, 0] },
+      { name: 'GIARDINO SEGRETO', bg: '#10272b', stone: '#6b9a91', light: '#b3d5b9', shade: '#3d645e', window: '#305f68', accent: '#b5eaaa', notes: [76, 79, 81, 79, 76, 74, 72, 0, 74, 76, 79, 76, 74, 72, 69, 0] },
+      { name: 'TORRE DELLE STELLE', bg: '#16233c', stone: '#7796bb', light: '#bad8e9', shade: '#415d82', window: '#34567c', accent: '#b8e9ff', notes: [74, 78, 81, 0, 78, 76, 74, 71, 73, 76, 78, 81, 78, 74, 71, 0] },
+    ];
+    const theme = () => THEMES[Math.floor((level - 1) / 4) % THEMES.length];
+    const music = dt => { musicAt -= dt; if (musicAt <= 0) { musicAt = .32; const t = theme(), n = t.notes[musicStep++ % t.notes.length]; if (n && api.sound) api.sound('music', { frequency: 440 * 2 ** ((n - 69) / 12), gain: .012, duration: .22 }); } };
     const burst = (x, y, c, n) => { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 90; parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, t: 0.5 + Math.random() * 0.4, c }); } };
     let stairs, pipes, doors, walls, keys, items, crates, foes, arrows, bombs, exit, start, need, got, P, hint = '', freeze = 0;
 
@@ -63,6 +71,14 @@ registerGame({
         stairs: [[5, 14, -1], [3, 2, 1], [1, 8, 1]], pipes: [[4, 19, 3, 5], [2, 18, 1, 2]], doors: [[3, 16, 4, 3], [1, 17, 2, 15]],
         items: [['crate', 5, 8], ['bow', 2, 10]],
         keys: [[5, 11], [5, 20], [4, 14], [3, 10], [3, 19], [2, 3], [1, 11], [0, 5]], foes: [['g', 5, 17], ['c', 3, 12], ['g', 2, 5], ['c', 1, 5], ['g', 0, 9]] },
+      {"hint":"LA PORTA BLU COLLEGA LE DUE TORRI","start":[5,2],"exit":[0,18],"stairs":[[5,6,1],[4,18,-1],[2,4,1],[1,16,-1]],"doors":[[3,3,2,18]],"keys":[[5,18],[4,2],[3,18],[2,3],[1,19],[0,4]],"items":[["crate",4,10],["bow",2,12]],"foes":[["g",4,15],["c",1,7],["g",0,12]]},
+      {"hint":"IL TUBO PORTA AL GIARDINO ALTO","start":[5,18],"exit":[0,3],"stairs":[[5,14,-1],[4,4,1],[2,17,-1],[1,6,1]],"pipes":[[3,18,2,3]],"doors":[[4,18,5,3]],"keys":[[5,3],[4,16],[3,3],[2,19],[1,2],[0,18]],"items":[["potion",3,10],["crate",1,15]],"foes":[["g",3,7],["c",2,12],["g",0,7]]},
+      {"hint":"SCEGLI LE SCALE, TROVA OGNI CHIAVE","start":[5,10],"exit":[0,10],"stairs":[[5,3,1],[5,19,-1],[4,7,1],[3,17,-1],[2,3,1],[1,18,-1]],"pipes":[[2,19,4,2]],"keys":[[5,1],[5,20],[4,18],[3,3],[2,14],[1,2],[0,3],[0,19]],"items":[["bow",4,4],["crate",2,10]],"foes":[["g",4,13],["c",3,10],["g",1,13],["g",0,6]]},
+      {"hint":"DUE PORTE, UN PERCORSO TRA LE TORRI","start":[5,2],"exit":[0,19],"stairs":[[5,8,1],[3,4,1],[1,15,-1]],"doors":[[4,3,3,18],[2,18,1,3]],"keys":[[5,19],[4,17],[3,2],[3,10],[2,3],[1,18],[0,2],[0,11]],"items":[["crate",4,9],["potion",2,8]],"foes":[["g",4,14],["c",3,7],["g",1,10],["g",0,15]]},
+      {"hint":"IL TUBO NASCOSTO SALE IN BIBLIOTECA","start":[5,3],"exit":[0,3],"stairs":[[5,10,1],[4,7,-1],[2,14,-1],[1,5,1]],"pipes":[[3,19,2,3],[1,18,3,3]],"keys":[[5,19],[4,3],[3,9],[2,19],[1,3],[0,19]],"items":[["bow",5,6],["crate",2,8]],"foes":[["g",4,15],["c",2,11],["g",0,14]]},
+      {"hint":"LE PORTE SONO ANCHE UNA SCORCIATOIA","start":[5,19],"exit":[0,2],"stairs":[[5,4,1],[4,18,-1],[3,6,1],[2,18,-1],[1,3,1]],"doors":[[5,10,2,3],[3,18,0,19]],"keys":[[5,2],[4,3],[4,19],[3,2],[2,19],[1,2],[0,11]],"items":[["potion",4,10],["crate",1,13]],"foes":[["g",4,15],["g",3,13],["c",1,7],["g",0,16]]},
+      {"hint":"SALI, ATTRAVERSA, POI TORNA IN ALTO","start":[5,2],"exit":[0,18],"stairs":[[5,15,-1],[3,17,-1],[2,4,1],[1,16,-1]],"doors":[[4,3,3,3]],"pipes":[[1,3,4,18]],"keys":[[5,19],[4,10],[3,19],[2,2],[2,18],[1,19],[0,3]],"items":[["bow",4,6],["crate",2,11],["potion",1,7]],"foes":[["g",4,14],["c",3,12],["g",2,7],["c",0,12]]},
+      {"hint":"ULTIMA TORRE: USA TUBI E PORTE","start":[5,10],"exit":[0,10],"stairs":[[5,3,1],[5,19,-1],[3,14,-1],[1,7,1]],"doors":[[4,19,3,3]],"pipes":[[2,18,1,3]],"keys":[[5,1],[5,20],[4,3],[3,19],[2,3],[2,10],[1,19],[0,3],[0,19]],"items":[["potion",4,10],["crate",3,7],["bow",1,8]],"foes":[["g",4,15],["c",3,11],["g",2,7],["c",1,14],["g",0,7]]},
     ];
 
     const build = d => {
@@ -114,7 +130,7 @@ registerGame({
     let introT = 0;
     const saved = () => { const stage = api.store.get('stage', 1); return Number.isInteger(stage) && stage >= 1 && stage <= 1000000 ? stage : 1; };
     const intro = () => { state = 'intro'; introT = 1.8; };
-    const newGame = (from = 1) => { score = 0; lives = 3; level = from; gen(level); resetPlayer(); intro(); };
+    const newGame = (from = 1) => { musicAt = 0; musicStep = 0; score = 0; lives = 3; level = from; gen(level); resetPlayer(); intro(); };
     const restartStage = () => { gen(level); resetPlayer(); intro(); };
     const nextLevel = () => { level++; if (level > saved()) api.store.set('stage', level); gen(level); resetPlayer(); intro(); };
     const endGame = () => {
@@ -269,6 +285,7 @@ registerGame({
       parts = parts.filter(p => p.t > 0);
       if (state === 'intro') { introT -= dt; if (introT <= 0) state = 'play'; return; }
       if (state === 'play') {
+        music(dt);
         P.inv = Math.max(0, P.inv - dt); P.star = Math.max(0, P.star - dt); freeze = Math.max(0, freeze - dt);
         movePlayer(dt);
         const pp = pos(P), pf = floorOf(P), hidden = !!P.anim;
@@ -276,7 +293,7 @@ registerGame({
         if (!hidden && pf >= 0) {
           for (const k of keys) {
             if (k.got || k.f !== pf || Math.abs(k.x - pp.x) > 11) continue;
-            k.got = true; got++; score += 50; api.haptic(10); api.beep(900 + got * 60, 0.08, 'square', 0.05);
+            k.got = true; got++; score += 50; api.haptic(10); api.sound ? api.sound('key', { gain: .035 }) : api.beep(900 + got * 60, .08);
             burst(k.x, Y(k.f) - 16, '#f5d31c', 10);
             if (got === need) flash('PORTA APERTA!');
           }
@@ -362,7 +379,7 @@ registerGame({
 
     const stoneRow = (y, h) => {
       for (let x = 0; x < W; x += 32) {
-        R(x, y, 32, h, '#7d86b8'); R(x, y, 32, 2, '#a9b2dc'); R(x, y + h - 2, 32, 2, '#4d5688'); R(x + 31, y, 1, h, '#4d5688');
+        R(x, y, 32, h, theme().stone); R(x, y, 32, 2, theme().light); R(x, y + h - 2, 32, 2, theme().shade); R(x + 31, y, 1, h, theme().shade);
       }
     };
     const drawMouse = (x, y, face, walk, climb, air) => Art.drawMouseHD(g, x, y, face, walk, !!air, climb);
@@ -418,7 +435,8 @@ registerGame({
     };
 
     const render = () => {
-      g.fillStyle = '#1a1633'; g.fillRect(0, 0, W, H);
+      const th = theme();
+      g.fillStyle = th.bg; g.fillRect(0, 0, W, H);
 
       if (state === 'title') {
         stoneRow(0, 32); stoneRow(H - 32, 32);
@@ -436,7 +454,22 @@ registerGame({
       for (let f = 0; f < FLOORS; f++) for (const c of [4, 11, 17]) {
         const x = c * C, y = Y(f) - 58;
         R(x, y + 8, 18, 22, '#2a2352'); g.fillStyle = '#2a2352'; g.beginPath(); g.arc(x + 9, y + 8, 9, Math.PI, 0); g.fill();
-        R(x + 3, y + 10, 12, 18, '#3b3370'); R(x + 8, y + 2, 2, 26, '#1a1633');
+        R(x + 3, y + 10, 12, 18, th.window); R(x + 8, y + 2, 2, 26, th.bg);
+        R(x + 4, y + 12, 2, 2, th.accent);
+        if (f % 2 === 0) {
+          // Piccole fiammelle; i dettagli restano dietro ai percorsi e agli oggetti.
+          const tx = x + 27, ty = y + 28;
+          R(tx - 2, ty - 6, 4, 12, th.shade);
+          g.fillStyle = th.accent; g.beginPath(); g.ellipse(tx, ty - 10, 2.5 + Math.sin(time * 7 + f + c) * .4, 5, 0, 0, 7); g.fill();
+        }
+        if (Math.floor((level - 1) / 4) % 4 === 1) {
+          for (let b = 0; b < 4; b++) R(x - 25 + b * 4, y + 20 - b % 2 * 3, 3, 12 + b % 2 * 3, ['#97676b', '#8c9b7a', '#bba273', '#7a91b3'][b]);
+          R(x - 27, y + 32, 20, 3, th.shade);
+        }
+        if (Math.floor((level - 1) / 4) % 4 === 2) {
+          g.strokeStyle = '#467d68'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 8, y - 5); g.quadraticCurveTo(x - 18, y + 12, x - 8, y + 28); g.stroke();
+          for (let l = 0; l < 3; l++) { g.fillStyle = '#659c79'; g.beginPath(); g.ellipse(x - 12 + l % 2 * 5, y + l * 9, 4, 2, -.6, 0, 7); g.fill(); }
+        }
       }
       stoneRow(32, 8);
       for (let f = 0; f < FLOORS; f++) stoneRow(Y(f), f === FLOORS - 1 ? H - Y(f) : 8);
@@ -508,12 +541,13 @@ registerGame({
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
       if (state === 'win') banner(['BRAVO!', 'QUADRO ' + (level + 1)]);
       if (state === 'intro') {
-        const w = 316, h = hint ? 92 : 62, x = (W - w) / 2, y = (H - h) / 2;
+        const w = 316, h = hint ? 112 : 82, x = (W - w) / 2, y = (H - h) / 2;
         g.fillStyle = '#eef1ff'; g.fillRect(x, y, w, h);
         g.fillStyle = '#141a2e'; g.fillRect(x + 2, y + 2, w - 4, h - 4);
         text('QUADRO ' + level, W / 2, y + 12, 22, 'center');
-        if (hint) text(hint, W / 2, y + 52, 11, 'center', '#f5d31c');
-        text(need + ' CHIAVI', W / 2, y + (hint ? 70 : 42), 11, 'center', '#aab3d8');
+        text(th.name, W / 2, y + 39, 12, 'center', th.accent);
+        if (hint) text(hint, W / 2, y + 65, 11, 'center', '#f5d31c');
+        text(need + ' CHIAVI', W / 2, y + (hint ? 88 : 61), 11, 'center', '#aab3d8');
       }
     };
 
@@ -524,7 +558,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, gen, build, get level() { return level; }, get state() { return state; }, get P() { return P; }, get keys() { return keys; }, get foes() { return foes; }, get stairs() { return stairs; }, get pipes() { return pipes; }, get doors() { return doors; }, get walls() { return walls; }, get items() { return items; }, get crates() { return crates; }, get exit() { return exit; }, get need() { return need; }, get got() { return got; }, LEVELS, Y, X, pos },
+      debug: { newGame, gen, build, get theme() { return theme().name; }, get level() { return level; }, get state() { return state; }, get P() { return P; }, get keys() { return keys; }, get foes() { return foes; }, get stairs() { return stairs; }, get pipes() { return pipes; }, get doors() { return doors; }, get walls() { return walls; }, get items() { return items; }, get crates() { return crates; }, get exit() { return exit; }, get need() { return need; }, get got() { return got; }, LEVELS, Y, X, pos },
     };
   },
 });

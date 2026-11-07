@@ -15,6 +15,11 @@
     c.restore();
   };
   const DRAW = {
+    'sfere-ribelli': c => { bg(c, '#687eac', '#f4cda8'); rect(c, 0, 87, 112, 25, '#796d83');
+      [[28, 32, 22, '#ed9cae'], [83, 58, 16, '#8bd9e2'], [39, 75, 9, '#ffe193']].forEach(([x, y, r, color]) => { const a = c.createRadialGradient(x-r*.35,y-r*.4,1,x,y,r); a.addColorStop(0,'#fff5df'); a.addColorStop(.4,color); a.addColorStop(1,'#77688d'); circ(c,x,y,r,a); });
+      c.strokeStyle='#fff4ce'; c.lineWidth=3; c.beginPath(); c.moveTo(63,97); c.lineTo(63,20); c.stroke(); c.fillStyle='#fff4ce'; c.beginPath(); c.moveTo(63,13); c.lineTo(57,24); c.lineTo(69,24); c.fill();
+      rect(c,51,90,24,16,'#edab78',5); circ(c,63,84,8,'#f4ccb0'); rect(c,54,75,18,6,'#de827d',3);
+    },
     'isola-felice': c => { bg(c, '#b6e1d7', '#79beb9'); circ(c, 78, 23, 13, '#faedc4'); c.fillStyle = '#ecd7a8'; c.beginPath(); c.ellipse(56, 81, 48, 19, 0, 0, TAU); c.fill(); c.fillStyle = '#93c58a'; c.beginPath(); c.ellipse(56, 74, 42, 17, 0, 0, TAU); c.fill(); rect(c, 40, 43, 37, 35, '#f4e5bf', 4); c.fillStyle = '#d59687'; c.beginPath(); c.moveTo(33, 46); c.lineTo(57, 22); c.lineTo(84, 46); c.closePath(); c.fill(); rect(c, 52, 57, 11, 21, '#b4966b', 5); rect(c, 67, 51, 7, 9, '#9dc8c3', 2); rect(c, 22, 49, 7, 29, '#ae9062', 2); circ(c, 26, 42, 17, '#74a97a'); circ(c, 20, 36, 12, '#97c48a'); circ(c, 32, 43, 4, '#e2a38a'); circ(c, 28, 87, 3, '#f5e2a6'); circ(c, 83, 82, 3, '#e4b5bf'); },
     'biliardo': c => { bg(c, '#354f43', '#102820'); rect(c, 15, 7, 82, 98, '#805537', 12); rect(c, 23, 15, 66, 82, '#28715c', 6); [[24,16],[88,16],[24,56],[88,56],[24,96],[88,96]].forEach(p => circ(c,p[0],p[1],6,'#050c13')); circ(c, 57, 37, 11, '#202936'); circ(c,57,37,6,'#fff6de'); c.fillStyle='#18232c';c.font='bold 9px monospace';c.textAlign='center';c.fillText('8',57,40);circ(c,43,58,10,'#e7b944');circ(c,72,69,10,'#e8f3ed');c.strokeStyle='#d5b57d';c.lineWidth=3;c.beginPath();c.moveTo(27,97);c.lineTo(63,77);c.stroke(); },
     'spaccaquindici': c => { bg(c,'#3e315c','#18112c'); const values=[1,2,3,4,5,6,7,8];values.forEach((v,i)=>{const x=10+i%3*31,y=11+Math.floor(i/3)*31;rect(c,x,y+2,28,28,'#0c0819',5);rect(c,x,y,28,28,i<5?'#f2cd8c':'#b5a0e4',5);c.fillStyle='#31233f';c.font='bold 17px monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(v,x+14,y+14);});rect(c,72,73,28,28,'#211831',5); },

@@ -7,6 +7,11 @@ inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **
 
 ## Preferiti e nuovi giochi
 
+- **Sfere Ribelli:** dividi le sfere rimbalzanti con l’arpione, fino a farle sparire. Trascina sullo schermo o usa la croce per muoverti: il fuoco è automatico (B lo attiva/disattiva, A spara). Quattro ambienti, bonus scudo e rallentamento, primi quadri permissivi. START mette in pausa; il quadro raggiunto e il record restano salvati. SELECT sulla schermata iniziale ricomincia dal primo quadro conservando il record.
+- **Mouse Castle:** sedici quadri disegnati a mano, poi castelli generati; quattro atmosfere, piccoli dettagli animati e melodie originali. I primi otto quadri conservano i loro percorsi.
+- **Brick Rush:** ventiquattro schemi originali, quattro fondali e timbri distinti per mattoni e metalli. I primi dodici schemi e gli aiuti iniziali sono conservati.
+
+
 Tocca **☆** accanto a un gioco per metterlo tra i **Preferiti**, in alto nel catalogo.
 Tocca **★** per rimuoverlo. La scelta resta su quel browser o telefono, anche offline.
 

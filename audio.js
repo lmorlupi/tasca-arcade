@@ -87,7 +87,13 @@ function arcadeAudioFactory(options = {}) {
     if (!playable()) return;
     const gain = clamp(finite(o.gain, .03), .001, .12);
     const arp = (notes, step = .075, length = .22) => notes.forEach((f, i) => note(f, length, gain, 'sine', i * step));
-    if (name === 'music') { note(o.frequency || 523, o.bass ? .65 : .48, gain, o.bass ? 'triangle' : 'sine'); if (!o.bass) note((o.frequency || 523) * 2, .24, gain * .13, 'sine'); }
+    if (name === 'music') { note(o.frequency || 523, finite(o.duration, o.bass ? .65 : .48), gain, o.bass ? 'triangle' : 'sine'); if (!o.bass) note((o.frequency || 523) * 2, .24, gain * .13, 'sine'); }
+    else if (name === 'brick') { note(o.frequency || 640, .075, gain, 'triangle', 0, 320); noise(.035, gain * .22, 1600); }
+    else if (name === 'metal') { note(o.frequency || 1200, .16, gain * .7, 'sine'); note((o.frequency || 1200) * 1.48, .09, gain * .25, 'sine'); }
+    else if (name === 'key') arp([1175, 1568, 1760], .035, .12);
+    else if (name === 'harpoon') { noise(.055, gain * .4, 1500, 'highpass'); note(420, .08, gain * .6, 'triangle', 0, 900); }
+    else if (name === 'pop') { note(o.frequency || 660, .09, gain, 'sine', 0, 180); noise(.045, gain * .25, 1100); }
+    else if (name === 'bounce') note(180, .04, gain * .3, 'triangle', 0, 120);
     else if (name === 'step') noise(.035, gain, o.sand ? 650 : 240, 'lowpass');
     else if (name === 'ui') note(660, .06, gain * .65, 'triangle');
     else if (name === 'collect') arp([784, 1046], .055, .16);

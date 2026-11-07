@@ -18,7 +18,7 @@ registerGame({
       w: ['#eef1ff', 50], o: ['#f58a25', 60], c: ['#25c4f0', 70], g: ['#4cc24a', 80], r: ['#e5413b', 90],
       b: ['#3d5fe0', 100], m: ['#e050c8', 110], y: ['#f5d31c', 120], s: ['#aab4c4', 50], G: ['#d8a82a', 0],
     };
-    // 12 quadri, disegnati apposta per questo gioco; poi si ricomincia più difficili
+    // 24 quadri originali: i primi dodici conservati, dodici nuove figure; poi si ricomincia.
     const LV = [
       ['sssssssssssss', 'rrrrrrrrrrrrr', 'yyyyyyyyyyyyy', 'bbbbbbbbbbbbb', 'mmmmmmmmmmmmm', 'ggggggggggggg'],
       ['......G......', '.....ooo.....', '....ccccc....', '...ggggggg...', '..rrrrrrrrr..', '.bbbbbbbbbbb.', 'mmmmmmmmmmmmm'],
@@ -32,6 +32,18 @@ registerGame({
       ['GGGGGGGGGGGGG', 'GsssssssssssG', 'GsrrrrrrrrrsG', 'GsrbbbbbbbrsG', 'GsrbmmmmmbrsG', 'GsrbmyyymbrsG'],
       ['sssssssssssss', 'ogogogogogogo', 'gogogogogogog', 'rbrbrbrbrbrbr', 'brbrbrbrbrbrb', 'mymymymymymym', 'ymymymymymymy'],
       ['GG...........', 'sGG..........', 'osGG.........', 'cosGG........', 'gcosGG.......', 'rgcosGG......', 'brgcosGG.....'],
+      ["......y......", ".....yyy.....", "....yyyyy....", "...oo.oo.oo..", "..cc.....cc..", ".gg.......gg.", "rrrrrrrrrrrrr"],
+      ["..rrr...rrr..", ".rooor.rooor.", "rocccccccccor", "rgcccccccccgr", ".rgggggggggr.", "..rgggggggr..", "...rrrrrrr..."],
+      ["..ccc...ccc..", ".ccbcc.ccbcc.", "ccbbbcccbbbcc", ".ccbcc.ccbcc.", "..ccc...ccc..", ".....sss.....", "......s......"],
+      ["y...y...y...y", ".y.y.y.y.y.y.", "..y...y...y..", ".o.o.o.o.o.o.", "ccccccccccccc", "..g..g..g..g.", "rr..rr.rr..rr"],
+      ["..mmm...mmm..", ".m...m.m...m.", "m..s..m..s..m", ".m...m.m...m.", "..mmm...mmm..", "....ccccc....", "...ggggggg..."],
+      ["......r......", ".....ror.....", "....rcccr....", "...rgggggr...", "..rbbbbbbbr..", ".rmmmmmmmmmr.", "rrrrrr.rrrrrr"],
+      ["...sss.sss...", "..sooo.ooos..", ".scccc.ccccs.", "sggggg.gggggs", "..bbbb.bbbb..", "...mmm.mmm..."],
+      ["y.y.y.y.y.y.y", ".o.o.o.o.o.o.", "..c.c.c.c.c..", "...g.g.g.g...", "....r.r.r....", ".....b.b.....", "......m......"],
+      [".sss.....sss.", "s...s...s...s", "s.r.s...s.r.s", "s...s...s...s", ".sss.....sss.", ".....ccc.....", "....ggggg...."],
+      ["rrrr..G..rrrr", ".yyy.....yyy.", "..bbb...bbb..", "...mmm.mmm...", "....ggggg....", ".....ccc.....", "......s......"],
+      ["..y..y.y..y..", ".ooo.ooo.ooo.", "ccccc...ccccc", ".ggg.ggg.ggg.", "..r..r.r..r..", "...bbbbbbb...", "....mmmmm...."],
+      ["......y......", ".s...yyy...s.", "sss.yyyyy.sss", ".s.ccccccccs.", "..ggggggggg..", "...rrrrrrr...", "....bbbbb....", ".....mmm....."],
     ];
     const CAP = { S: ['#f58a25', 'RALLENTA'], C: ['#4cc24a', 'ATTACCA'], E: ['#3d5fe0', 'ALLARGA'], D: ['#25c4f0', 'TRE PALLE'], L: ['#e5413b', 'LASER'], B: ['#e050c8', 'USCITA'], P: ['#aab4c4', 'VITA'] };
     const CAPKEYS = 'SSCCEEDDLLBPP';
@@ -40,6 +52,14 @@ registerGame({
     let state = 'title', score = 0, lives = 3, level = 1, msg = '', msgT = 0, time = 0, hits = 0, nextExtra = 20000, introT = 0;
     let pad = { x: W / 2, w: 64, mode: '' }, balls = [], bricks = [], caps = [], enemies = [], bolts = [], target = null, touching = false;
     let slow = false, exitOpen = false, laserCd = 0, enemyT = 8;
+    const THEMES = [
+      { name: 'NEON BLU', top: '#0b1230', bottom: '#060a1c', glow: 'rgba(70,90,200,.20)', grid: 'rgba(120,140,220,.07)' },
+      { name: 'TRAMONTO', top: '#321c38', bottom: '#160e25', glow: 'rgba(232,124,91,.17)', grid: 'rgba(220,150,180,.07)' },
+      { name: 'ACQUAMARINA', top: '#0b2c36', bottom: '#06181f', glow: 'rgba(58,188,190,.16)', grid: 'rgba(120,220,220,.07)' },
+      { name: 'AURORA', top: '#231c46', bottom: '#100e25', glow: 'rgba(177,115,231,.18)', grid: 'rgba(190,160,235,.07)' },
+    ];
+    const theme = () => THEMES[Math.floor((level - 1) / 6) % THEMES.length];
+    const effect = (name, f = 640) => api.sound ? api.sound(name, { gain: .035, frequency: f }) : api.beep(f, .06);
 
     const baseSpeed = () => Math.min(400, 262 + level * 7) * Math.min(1, 0.88 + (level - 1) * 0.04);
     const ballSpeed = () => Math.min(540, baseSpeed() + Math.min(130, hits * 1.3)) * (slow ? 0.72 : 1);
@@ -58,7 +78,7 @@ registerGame({
     const resetBall = () => { balls = [{ x: pad.x, y: PAD_Y - R - 1, vx: 0, vy: 0, on: true, off: 0 }]; slow = false; };
     const clearPowers = () => { pad.mode = ''; pad.w = 64 + Math.max(0, 4 - level) * 4; slow = false; caps = []; bolts = []; exitOpen = false; };
     const startLevel = () => { build(); clearPowers(); resetBall(); enemies = []; enemyT = 9; introT = 1.8; };
-    const saved = () => api.store.get('stage', 1);
+    const saved = () => { const n = api.store.get('stage', 1); return Number.isInteger(n) && n >= 1 && n <= 1000000 ? n : 1; };
     const newGame = (from = 1) => { score = 0; lives = 3; level = from; hits = 0; nextExtra = 20000; pad.x = W / 2; state = 'play'; startLevel(); };
     const launch = () => {
       let any = false;
@@ -85,13 +105,13 @@ registerGame({
       const minV = s * 0.28; if (Math.abs(b.vy) < minV) { b.vy = (b.vy < 0 ? -1 : 1) * minV; m = Math.hypot(b.vx, b.vy); b.vx *= s / m; b.vy *= s / m; }
     };
     const hitBrick = (b, dmg) => {
-      if (b.gold) { b.flashT = 0.25; api.beep(1500, 0.03, 'square', 0.025); return; }
+      if (b.gold) { b.flashT = 0.25; effect('metal', 1500); return; }
       b.hp -= dmg;
       if (b.hp <= 0) {
         b.dead = true; addScore(b.pts); burst(b.x + b.w / 2, b.y + b.h / 2, b.color, 6); api.haptic(8);
-        api.beep(640 + (b.y % 7) * 40, 0.04, 'square', 0.04);
+        effect('brick', 640 + (b.y % 7) * 40);
         if (caps.length < 2 && Math.random() < 0.15) caps.push({ x: b.x + b.w / 2, y: b.y, k: CAPKEYS[(Math.random() * CAPKEYS.length) | 0], t: 0 });
-      } else { b.flashT = 0.25; api.beep(380, 0.03, 'square', 0.04); }
+      } else { b.flashT = 0.25; effect('metal', 380); }
     };
 
     const stepBall = (b, dt) => {
@@ -224,9 +244,10 @@ registerGame({
     };
     let trail = [];
     const render = () => {
-      const bgG = g.createLinearGradient(0, 0, 0, H); bgG.addColorStop(0, '#0b1230'); bgG.addColorStop(1, '#060a1c'); g.fillStyle = bgG; g.fillRect(0, 0, W, H);
-      const hz = g.createRadialGradient(W / 2, H * 0.35, 10, W / 2, H * 0.35, H * 0.7); hz.addColorStop(0, 'rgba(70,90,200,.20)'); hz.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = hz; g.fillRect(0, 0, W, H);
-      g.strokeStyle = 'rgba(120,140,220,.06)'; g.lineWidth = 1; for (let x = 0; x < W; x += 30) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y < H; y += 30) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+      const th = theme();
+      const bgG = g.createLinearGradient(0, 0, 0, H); bgG.addColorStop(0, th.top); bgG.addColorStop(1, th.bottom); g.fillStyle = bgG; g.fillRect(0, 0, W, H);
+      const hz = g.createRadialGradient(W / 2, H * 0.35, 10, W / 2, H * 0.35, H * 0.7); hz.addColorStop(0, th.glow); hz.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = hz; g.fillRect(0, 0, W, H);
+      g.strokeStyle = th.grid; g.lineWidth = 1; for (let x = 0; x < W; x += 30) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y < H; y += 30) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
       if (state === 'title') {
         text('BRICK', W / 2, 150, 56, 'center', '#e5413b'); text('RUSH', W / 2, 206, 56, 'center');
         ['w', 'o', 'c', 'g', 'r', 'b', 'm', 'y'].forEach((k, i) => { g.fillStyle = BR[k][0]; g.fillRect(40 + i * 33, 300, 30, 16); });
@@ -270,7 +291,7 @@ registerGame({
       text('PUNTI ' + score, 12, 8, 14); text('QUADRO ' + level, W / 2, 8, 14, 'center'); text('RECORD ' + hi, 12, 28, 10, 'left', '#aab3d8');
       for (let i = 0; i < lives - 1 && i < 6; i++) { g.fillStyle = '#25c4f0'; rr(W - 38 - i * 26 + 14, 12, 22, 7, 3.5); g.fill(); }
       if (balls.some(b => b.on) && state === 'play' && introT <= 0) text(pad.mode === 'catch' ? 'TOCCA PER LANCIARE' : 'TOCCA PER LANCIARE', W / 2, PAD_Y - 60, 13, 'center', '#f5d31c');
-      if (introT > 0) { text('QUADRO ' + level, W / 2, H * 0.55, 24, 'center', '#f5d31c'); text('PRONTO', W / 2, H * 0.55 + 32, 14, 'center'); }
+      if (introT > 0) { text('QUADRO ' + level, W / 2, H * 0.55, 24, 'center', '#f5d31c'); text(th.name, W / 2, H * 0.55 + 32, 13, 'center', '#b7cde7'); }
       if (msgT > 0 && introT <= 0) text(msg, W / 2, H * 0.5, 20, 'center', '#f5d31c');
       if (state === 'pause') banner(['PAUSA', 'START']);
       if (state === 'over') banner(['GAME OVER', 'PUNTI ' + score, 'TOCCA']);
@@ -281,7 +302,7 @@ registerGame({
       onPress: act, onPointer,
       onHide() { if (state === 'play') state = 'pause'; touching = false; },
       update, render,
-      debug: { newGame, get state() { return state; }, get bricks() { return bricks; }, get balls() { return balls; }, get ball() { return balls[0]; }, get pad() { return pad; }, get score() { return score; }, get lives() { return lives; }, get level() { return level; }, get caps() { return caps; }, power, launch, goLevel(n) { level = n; startLevel(); }, get enemies() { return enemies; } },
+      debug: { newGame, get layouts() { return LV; }, get theme() { return theme().name; }, get state() { return state; }, get bricks() { return bricks; }, get balls() { return balls; }, get ball() { return balls[0]; }, get pad() { return pad; }, get score() { return score; }, get lives() { return lives; }, get level() { return level; }, get caps() { return caps; }, power, launch, goLevel(n) { level = n; startLevel(); }, get enemies() { return enemies; } },
     };
   },
 });
