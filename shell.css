@@ -143,6 +143,15 @@ canvas.off { display: none; }
 .menu .ver { margin: -4px 2px 10px; font-size: 11px; line-height: 1.35; color: var(--muted); }
 .menu .snd { border: 0; background: rgba(255,255,255,.1); color: var(--ink); border-radius: 6px; padding: 4px 8px; font-size: 11px; touch-action: manipulation; }
 .menu .tip { margin: 0 2px 10px; padding: 8px 10px; border-radius: 8px; background: rgba(255,226,122,.12); color: #ffe27a; font-size: 11px; line-height: 1.4; }
+.menu .support { margin: 0 0 12px; text-align: center; }
+.menu .support a {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px;
+  padding: 10px; border-radius: 8px; background: #ffe27a; color: #0b1020;
+  font-size: 12px; font-weight: 800; line-height: 1.4; text-decoration: none; touch-action: manipulation;
+}
+.menu .support a:hover { background: #fff0b3; }
+.menu .support a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.menu .support p { margin: 6px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .cart {
   display: grid; grid-template-columns: 8px 1fr auto; column-gap: 10px; row-gap: 3px; width: 100%; text-align: left;
   margin: 0 0 8px; padding: 10px 10px 10px 0; border: 2px solid transparent; border-radius: 10px;

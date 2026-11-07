@@ -497,7 +497,8 @@
     pinned = false;
     const tip = isIOS && !standalone()
       ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}` +
+    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}
+      <div class="support"><a id="support" href="https://buymeacoffee.com/pu3ilqqnqd" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè su Buy Me a Coffee (si apre in una nuova scheda)"><span aria-hidden="true">☕</span> Offrimi un caffè <span aria-hidden="true">↗</span></a><p>Aiutami a creare nuovi giochi.</p></div>` +
       games.map((d, i) => {
         const rec = d.community ? (cmStore(d.id).hi || 0) : ls.get(d.id + ':hi', 0);
         const gav = d.art !== 'margot' && window.GameAvatars ? GameAvatars.get(d.id) : null;
@@ -599,14 +600,14 @@
     ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'up',
     ' ': 'a', x: 'a', X: 'a', z: 'b', Z: 'b', Enter: 'start', p: 'start', P: 'start', Escape: 'select', r: 'select', R: 'select',
   };
-  const typing = e => e.target && e.target.closest && e.target.closest('input, textarea');
+  const nativeKeys = e => e.target && e.target.closest && e.target.closest('input, textarea, a[href]');
   addEventListener('keydown', e => {
-    if (typing(e)) return;
+    if (nativeKeys(e)) return;
     if (e.key === 'm' || e.key === 'M' || e.key === 'Backspace') { e.preventDefault(); if (mode === 'game') toMenu(); return; }
     const k = KEYS[e.key]; if (!k) return;
     e.preventDefault(); if (!e.repeat) press(k);
   });
-  addEventListener('keyup', e => { if (typing(e)) return; const k = KEYS[e.key]; if (k) release(k); });
+  addEventListener('keyup', e => { if (nativeKeys(e)) return; const k = KEYS[e.key]; if (k) release(k); });
   const hide = () => { if (mode === 'game' && inst && inst.onHide) inst.onHide(); };
   addEventListener('blur', () => { for (const k in held) delete held[k]; hide(); });
   document.addEventListener('visibilitychange', () => {
@@ -731,7 +732,8 @@
   ['down', 'move', 'up', 'cancel'].forEach(t => cv.addEventListener('pointer' + t, ptr(t)));
 
   // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").
-  const goFull = () => {
+  const goFull = e => {
+    if (e.target.closest('a[href]')) return;
     if (!matchMedia('(pointer: coarse)').matches || document.fullscreenElement || standalone()) return;
     const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
     if (!req) return;
