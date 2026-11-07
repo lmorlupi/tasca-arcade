@@ -7,7 +7,7 @@ inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **
 
 ## Schermo e comandi
 
-Nei 21 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Mouse Castle e gli altri giochi che richiedono i pulsanti hanno una fascia comandi più compatta.
+Nei 14 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike e Vortex Orbit mantengono la pulsantiera per precisione, tempi e azioni simultanee, insieme ai platform e agli altri giochi con azioni dedicate. La fascia comandi è più compatta.
 
 **Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
 
@@ -142,3 +142,5 @@ o incollando il codice. Il gioco è lo stesso formato descritto sopra.
 Un *service worker* (`sw.js`) salva tutti i file la prima volta. Per pubblicare una novità basta cambiare il numero
 di `VERSION` in `sw.js`: chi apre l'app online riceve la versione nuova (anche con giochi nuovi) e vede il pulsante
 **AGGIORNA** nel catalogo per forzare il controllo.
+
+Tresette mostra le dieci carte su due righe: tutte sono visibili e selezionabili col tocco.

@@ -14,7 +14,7 @@
 
   let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0;
   const held = {};
-  const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','brick-rush','galaxy-strike','space-raiders','vortex-orbit','500run','flipper-del-bar','briscola','scopa','tresette','dama','scacchi','serpent','flick-hoops','road-hop','labirinto-di-margot','spike-arena','sfere-ribelli']);
+  const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','brick-rush','500run','briscola','scopa','tresette','dama','scacchi','flick-hoops','spike-arena','sfere-ribelli']);
   const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo']);
   const gameSize = def => {
     let w = def.size[0], h = def.size[1];
@@ -778,13 +778,15 @@
     HR.setK(pickK(cur, HR.cw, HR.ch));
   };
   addEventListener('resize', () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(resizeGame); });
-  $('padToggle').addEventListener('click', () => {
+  const togglePad = () => {
     if (mode !== 'game') return;
     if (document.body.classList.contains('padless')) document.body.classList.toggle('pad-peek');
     else { document.body.classList.add('padless'); document.body.classList.remove('pad-peek'); }
     for (const k of Object.keys(held)) release(k);
     setPadLabel(); resizeGame();
-  });
+  };
+  $('padToggle').addEventListener('pointerup', e => { e.preventDefault(); togglePad(); });
+  $('padToggle').addEventListener('click', e => { if (e.detail === 0) togglePad(); });
   ['down', 'move', 'up', 'cancel'].forEach(t => cv.addEventListener('pointer' + t, ptr(t)));
 
   // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").

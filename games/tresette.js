@@ -72,7 +72,7 @@ registerGame({
       else if (state === 'show') { wait -= dt; if (wait <= 0) resolve(); }
       else if (state === 'collect') { wait -= dt; if (wait <= 0) after(); }
     };
-    const rect = i => { const n = hand.length, w = n > 4 ? 60 : 72, gap = 6, tot = n * w + (n - 1) * gap, x0 = (VW - tot) / 2; return { x: x0 + i * (w + gap), y: 452 - (i === selI ? 12 : 0), w, h: w * 1.5 }; };
+    const rect = i => { const n=hand.length,w=n>4?60:72,gap=6,two=n>5,row=two?Math.floor(i/5):0,col=two?i%5:i,count=two?Math.min(5,n-row*5):n,tot=count*w+(count-1)*gap;return{x:(VW-tot)/2+col*(w+gap),y:(two?(row?464:358):452)-(i===selI?12:0),w,h:w*1.5}; };
     const tryPlay = i => { const lead = table.length ? table[0].c : null; if (!legal(hand, lead).includes(i)) { flash('DEVI RISPONDERE AL SEME'); api.beep(160, 0.08, 'square', 0.07); return; } selI = -1; play('P', i); };
     const onPointer = e => {
       if (e.type !== 'down') return;
@@ -80,7 +80,7 @@ registerGame({
       if (state === 'title' || state === 'end') { newGame(); return; }
       if (state === 'pause') { state = 'play'; return; }
       if (state === 'play' && turn === 'P' && wait <= 0) {
-        for (let i = 0; i < hand.length; i++) { const r = rect(i); if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h + 24) { if (selI === i) tryPlay(i); else { selI = i; api.beep(900, 0.02, 'triangle', 0.05); } return; } }
+        for (let i = 0; i < hand.length; i++) { const r = rect(i); if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { if (selI === i) tryPlay(i); else { selI = i; api.beep(900, 0.02, 'triangle', 0.05); } return; } }
         selI = -1;
       }
     };
@@ -120,7 +120,7 @@ registerGame({
     return {
       onPress: act, onPointer, onHide() { if (state === 'play') state = 'pause'; },
       update, render,
-      debug: { newGame, get state() { return state; }, get hand() { return hand; }, get turn() { return turn; }, get thP() { return thP; }, get thC() { return thC; }, get wait() { return wait; }, get table() { return table; }, tryPlay, legalIdx() { return legal(hand, table.length ? table[0].c : null); }, playRaw(i) { play('P', i); } },
+      debug: { newGame, get state() { return state; }, get hand() { return hand; }, get cardRects() { return hand.map((_,i)=>rect(i)); }, get turn() { return turn; }, get thP() { return thP; }, get thC() { return thC; }, get wait() { return wait; }, get table() { return table; }, tryPlay, legalIdx() { return legal(hand, table.length ? table[0].c : null); }, playRaw(i) { play('P', i); } },
     };
   },
 });
