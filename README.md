@@ -13,9 +13,13 @@ Dall’icona installata sulla schermata Home l’app richiede la modalità fulls
 
 Negli 11 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Tutti gli arcade con movimento e tiro/colpo simultanei, compresi Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike, Vortex Orbit, Sfere Ribelli, Brick Rush e Spike Arena, e 500 Run con freno/turbo, mantengono la pulsantiera per la precisione dei comandi, insieme ai platform e agli altri giochi con azioni dedicate. La fascia comandi è più compatta; in orizzontale la croce resta a sinistra e A/B a destra.
 
-**Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
+**Super Mario Kart, Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
 
 ## Preferiti e nuovi giochi
+
+- **Super Mario Kart:** omaggio web al gioco SNES del 1992, con otto piloti (anche Donkey Kong Jr), quattro coppe, venti circuiti ricostruiti, sette avversari, cinque giri e qualifica nei primi quattro. Punti GP 9/6/3/1; classi 50/100/150cc, tre tentativi extra e ripresa della coppa tra le gare. Time Trial in solitaria a 100cc, senza oggetti né monete, con i cinque migliori tempi. B accelera, A usa l’oggetto, sinistra/destra sterzano, giù frena e su salta/derapa; START pausa. SELECT passa alla visuale classica con specchietto. Vista ampia con mappa o classica con mappa sotto, anche in orizzontale; croce e A/B sempre visibili. Gusci, banana, fungo, piuma, stella, fulmine e monete. Codice, sprite e musica sono nuovi: geometria dei circuiti, fisica, IA e brani sono ricostruiti; non è un’emulazione identica della cartuccia. Non comprende Battle, due giocatori o replay.
+
+- **Galaxy Strike, nemici avanzati:** dai quadri 4, 8 e 12 compaiono rispettivamente scorpioni, razze e Galboss, poi il ciclo si ripete. Un alieno lampeggia e si divide in tre: 160 punti ciascuno, più 1000/2000/3000 per il terzetto completo. Se qualcuno fugge rientra un solo alieno nella formazione. Nei bonus successivi arrivano anche libellule, zanzare e astronavi blu. Restano il raggio traente, la doppia nave e croce/A/B visibili; i primi due quadri conservano le formazioni precedenti.
 
 - **Tetris Color:** la versione più semplice e a colori, con croce e A/B sempre visibili. Sinistra/destra spostano, giù accelera la caduta, A/B ruotano e su posa subito il pezzo. Partenza tranquilla, ombra di atterraggio, rotazioni permissive vicino alle pareti, tre pezzi in anteprima e riserva con SELECT. START pausa; partita e record si salvano anche offline. Tetris Classico resta disponibile.
 
@@ -95,7 +99,7 @@ direttamente sullo schermo. I giochi migliori usano **tocco diretto** (`onPointe
 
 ### Regole
 
-- Giochi **originali**: niente nomi, personaggi, grafica, musiche o livelli presi da giochi di altri.
+- Per i nuovi contributi preferiamo giochi **originali**. Le ricostruzioni classiche richieste per questo catalogo usano codice, disegni e sintesi audio nuovi: non caricare ROM, codice o risorse estratti da cartucce commerciali.
 - Nessuna rete, nessun tracciamento, nessuna pubblicità; niente `eval()` e niente caricamento di altri script.
 - Un gioco che va in errore viene chiuso e si torna al catalogo, ma si prova comunque prima di proporlo.
 - Vale per tutti i giochi: nessun testo sotto gli 11 px per i comandi, e controlli comodi per il pollice.
@@ -129,7 +133,7 @@ o incollando il codice. Il gioco è lo stesso formato descritto sopra.
   `'MIT'`, `'CC0'`): compare nella scheda. Senza licenza dichiarata il gioco, per legge, non si può riusare o ridistribuire.
 - **Giochi commerciali e copie non autorizzate** (titoli di console o di altri editori) **non si importano**:
   non sono giochi web, richiederebbero un emulatore e copie non autorizzate del gioco, e il progetto non li supporta.
-- Un gioco che usa nomi, personaggi, grafica o musiche di altri non entra nel catalogo principale.
+- Non caricare nel catalogo ROM, registrazioni o risorse estratte da giochi commerciali. Indica le fonti e le differenze di eventuali ricostruzioni classiche.
 
 ## Note legali
 

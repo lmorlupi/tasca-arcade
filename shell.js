@@ -15,7 +15,7 @@
   let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0, fullRequest = null;
   const held = {};
   const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','briscola','scopa','tresette','dama','scacchi','flick-hoops','tetris-classico']);
-  const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo']);
+  const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo','mario-kart']);
   const gameSize = def => {
     let w = def.size[0], h = def.size[1];
     if (WIDE_GAMES.has(def.id) && screenEl.clientWidth > screenEl.clientHeight) {
@@ -35,7 +35,16 @@
     lastHap = now;
     try {
       if (navigator.vibrate) { if (!navigator.userActivation || navigator.userActivation.hasBeenActive) navigator.vibrate(ms); }
-      else hapLabel.click();
+      else {
+        // Il click sull'interruttore aptico può spostare il focus in Safari.
+        // Restituiscilo al controllo precedente per conservare i comandi da tastiera.
+        const focused = document.activeElement;
+        hapLabel.click();
+        if (hapLabel.contains(document.activeElement)) {
+          if (focused && focused !== document.body && !hapLabel.contains(focused) && focused.focus) focused.focus({ preventScroll: true });
+          else document.activeElement.blur();
+        }
+      }
     } catch (e) {}
   };
 
@@ -643,7 +652,7 @@
     ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'up',
     ' ': 'a', x: 'a', X: 'a', z: 'b', Z: 'b', Enter: 'start', p: 'start', P: 'start', Escape: 'select', r: 'select', R: 'select',
   };
-  const nativeKeys = e => e.target && e.target.closest && e.target.closest('input, textarea, a[href], .favorite');
+  const nativeKeys = e => e.target && e.target.closest && !hapLabel.contains(e.target) && e.target.closest('input, textarea, a[href], .favorite');
   addEventListener('keydown', e => {
     if (nativeKeys(e)) return;
     if (e.key === 'm' || e.key === 'M' || e.key === 'Backspace') { e.preventDefault(); if (mode === 'game') toMenu(); return; }

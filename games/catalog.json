@@ -1,5 +1,6 @@
 {
   "games": [
+    "mario-kart.js",
     "tetris-color.js",
     "tetris-classico.js",
     "sfere-ribelli.js",

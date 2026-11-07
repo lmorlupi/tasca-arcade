@@ -2,8 +2,8 @@ registerGame({
   id: 'galaxy-strike',
   title: 'GALAXY STRIKE',
   color: '#3d5fe0',
-  blurb: 'Gli alieni entrano a ondate, si mettono in formazione e si buttano in picchiata. I Boss verdi ti catturano la nave col raggio traente: abbattili mentre scendono per riaverla e avere due navi affiancate. Ogni tanto c\'è un quadro bonus senza spari nemici. Trascina il dito: spara da sola.',
-  inputs: ['TRASCINA', 'AUTO-FUOCO', 'VIBRAZIONE'],
+  blurb: 'Formazioni, picchiate e raggio traente: libera la nave catturata per avere il doppio fuoco. Nei quadri avanzati arrivano scorpioni, razze e Galboss in terzetti; nei bonus anche libellule, zanzare e astronavi blu. Croce per muoverti, A o B per sparare; resta anche il trascinamento con fuoco automatico.',
+  inputs: ['CROCE + A/B', '9 NEMICI', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#070b18',
   flexH: true,
@@ -16,7 +16,8 @@ registerGame({
     const TAU = Math.PI * 2, HP = Math.PI / 2;
     const PAL = ['#070b18', '#1f2744', '#5a6aa0', '#eef1ff'];
 
-    // Sprite 8x8 a due fotogrammi (disegno originale): 0 ape, 1 farfalla, 2 boss.
+    // Sprite nuovi a due fotogrammi: ape, farfalla, boss, scorpione, razza,
+    // Galboss, libellula, zanzara e astronave blu.
     const SPR = [
       [['..#..#..', '.#.##.#.', '########', '#.####.#', '########', '.#.##.#.', '#..##..#', '...##...'],
        ['..#..#..', '.#.##.#.', '########', '#.####.#', '########', '..#..#..', '.#.##.#.', '#..##..#']],
@@ -24,11 +25,23 @@ registerGame({
        ['#..##..#', '##.##.##', '########', '.######.', '..####..', '..#..#..', '.#....#.', '#......#']],
       [['.######.', '########', '##.##.##', '########', '.##..##.', '#.####.#', '#......#', '.#....#.'],
        ['.######.', '########', '##.##.##', '########', '.##..##.', '#.####.#', '.#....#.', '#......#']],
+      [['##....##','#.#..#.#','..####..','###..###','..####..','.#.##.#.','...#....','..##....'],
+       ['#......#','##.##.##','..####..','###..###','..####..','#..##..#','....#...','....##..']],
+      [['...##...','..####..','.######.','########','###..###','#..##..#','...##...','....#...'],
+       ['...##...','..####..','########','########','.######.','..####..','...##...','...#....']],
+      [['...##...','#..##..#','########','########','.#.##.#.','##.##.##','#..##..#','...##...'],
+       ['...##...','...##...','##.##.##','########','########','#.####.#','.#.##.#.','#......#']],
+      [['...##...','##.##.##','########','...##...','########','##.##.##','...##...','...##...'],
+       ['#..##..#','.######.','..####..','...##...','..####..','.######.','#..##..#','...##...']],
+      [['.##..##.','#..##..#','##.##.##','..####..','########','..####..','.#.##.#.','#..##..#'],
+       ['#......#','.##..##.','##.##.##','..####..','.######.','########','#..##..#','.#.##.#.']],
+      [['..####..','...##...','#..##..#','########','########','..####..','.#....#.','#......#'],
+       ['..####..','...##...','...##...','########','########','#.####.#','..#..#..','.#....#.']],
     ];
-    const COLOR = [['#f5d31c'], ['#e5413b'], ['#4cc24a', '#a655b8']];
-    const MAXHP = [1, 1, 2];
+    const COLOR = [['#f5d31c'], ['#e5413b'], ['#4cc24a', '#a655b8'], ['#f7b84b'], ['#63d68d'], ['#a5b5ff'], ['#64d7ee'], ['#f58ba3'], ['#68a8ff']];
+    const MAXHP = [1, 1, 2, 1, 1, 1, 1, 1, 1];
     const bmp = (rows, x, y, px, color) => Art.bmpGlow(g, rows, x, y, px, color);
-    const ATT = new Set(['dive', 'escort', 'beamIn', 'beam', 'back']);
+    const ATT = new Set(['dive', 'escort', 'beamIn', 'beam', 'back', 'mutant']);
 
     let hi = api.store.get('hi', 0);
     let state = 'title', score = 0, reserve = 2, stage = 1, time = 0, nextExtra = 20000;
@@ -36,6 +49,9 @@ registerGame({
     let phase = 'intro', phaseT = 0, et = 0, attackT = 1, challenge = false, chHits = 0, chTotal = 0;
     let deadT = 0, finalDeath = false, touch = null, cd = 0, flashMsg = '', flashT = 0, beamSnd = 0, resultLines = [];
     let fired = 0, hitsTotal = 0, sway = 0, breath = 0;
+    let mutationT = 3.5, mutations = 0, groups = [];
+    const SPECIAL = ['SCORPIONI', 'RAZZE', 'GALBOSS'];
+    const mutationType = () => 3 + Math.floor((stage - 4) / 4) % 3;
     const stars = Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: Math.random() * 1.8 + .4 }));
 
     const angDiff = (a, b) => { let d = (a - b) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
@@ -96,9 +112,11 @@ registerGame({
       t => ({ x: W / 2 + W * 0.30 * Math.sin(2.6 * t), y: -20 + 110 * t + H * 0.10 * (1 - Math.cos(2.6 * t)) }),
     ];
     const buildChallenge = () => {
-      const types = [0, 1, 0, 1, 0];
+      const cycle = Math.floor((stage - 3) / 4) % 8;
+      const special = [0, 6, 7, 3, 4, 5, 2, 8][cycle];
+      const types = cycle === 0 ? [0, 1, 0, 1, 0] : [special, special, special, special, special];
       for (let gi = 0; gi < 5; gi++) for (let i = 0; i < 8; i++) {
-        const e = mk(types[gi], 0, 0, gi, i); e.delay = 0.2 + gi * 2.6 + i * 0.2; e.t = 0; enemies.push(e);
+        const e = mk(types[gi], 0, 0, gi, i); e.hp = 1; e.delay = 0.2 + gi * 2.6 + i * 0.2; e.t = 0; enemies.push(e);
       }
       chTotal = 40;
     };
@@ -106,6 +124,7 @@ registerGame({
     const spawnStage = () => {
       enemies = []; ebullets = []; shots = []; rescue = null; capt = null;
       challenge = stage % 4 === 3; chHits = 0; chTotal = 0; resultLines = [];
+      mutationT = 3.5; mutations = 0; groups = [];
       phase = 'intro'; phaseT = 2.2; et = 0;
       if (challenge) buildChallenge(); else buildFormation();
       arp([523, 659, 784, 1047], 0.1, 'square', 0.03);
@@ -217,12 +236,38 @@ registerGame({
       }
     };
 
+    const startMutation = e => {
+      if (!e || e.dead || e.state !== 'form' || e.type > 1 || stage < 4 || challenge) return false;
+      e.state = 'morph'; e.morphT = 0; mutations++; flash(SPECIAL[mutationType() - 3]);
+      api.beep(460, .15, 'triangle', .025); return true;
+    };
+    const splitMutation = e => {
+      const group = { type: mutationType(), base: { type: e.type, col: e.col, row: e.row, gi: e.gi }, x: e.x, y: e.y, killed: 0, resolved: false, members: [] };
+      e.dead = true; groups.push(group);
+      for (let i = 0; i < 3; i++) {
+        const n = mk(group.type, e.col, e.row, e.gi, i);
+        Object.assign(n, { state: 'mutant', x: e.x, y: e.y, th: HP, t: -i * .18, group, member: i, shotsLeft: 0 });
+        group.members.push(n); enemies.push(n);
+      }
+      boom(e.x, e.y, COLOR[group.type][0], 8);
+    };
+    const resolveGroups = () => {
+      for (const group of groups) if (!group.resolved && group.members.every(e => e.dead)) {
+        group.resolved = true;
+        if (group.killed < 3) {
+          const b = group.base, e = mk(b.type, b.col, b.row, b.gi, 0);
+          e.state = 'back'; e.x = slotOf(e).x; e.y = -24; e.v = vDive(); enemies.push(e);
+        }
+      }
+    };
+
     const kill = e => {
       if (e.dead) return;
       e.dead = true;
       const diving = ATT.has(e.state);
       let pts;
       if (challenge) pts = 100;
+      else if (e.group) pts = 160;
       else if (e.type === 0) pts = diving ? 100 : 50;
       else if (e.type === 1) pts = diving ? 160 : 80;
       else if (!diving) pts = 150;
@@ -232,6 +277,11 @@ registerGame({
       boom(e.x, e.y, COLOR[e.type][0], 14); api.haptic(14); sfx.boom();
       if (pts >= 800) api.fx.shake(3, 0.2);
       if (challenge) chHits++;
+      if (e.group && ++e.group.killed === 3) {
+        const bonus = (e.group.type - 2) * 1000;
+        addScore(bonus); addText(e.x, e.y - 37, '+' + bonus); flash('TERZETTO! +' + bonus);
+        arp([659, 784, 1047], .065, 'triangle', .025);
+      }
       if (e.holding) {
         if (e.state === 'form' || e.state === 'enter') { boom(e.x, e.y - 24, '#ff6b5e', 16); addText(e.x, e.y - 30, 'NAVE PERSA'); }
         else { rescue = { x: e.x, y: e.y - 24, t: 0 }; arp([392, 523, 659], 0.08, 'triangle', 0.05); }
@@ -277,6 +327,13 @@ registerGame({
           }
         } else if (enemies.every(e => e.state === 'form')) { phase = 'fight'; attackT = 1.0; }
       } else if (phase === 'fight') {
+        if (stage >= 4 && mutations === 0) {
+          mutationT -= dt;
+          if (mutationT <= 0) {
+            const candidate = enemies.find(e => e.type === 0 && e.state === 'form') || enemies.find(e => e.type === 1 && e.state === 'form');
+            if (candidate) startMutation(candidate);
+          }
+        }
         attackT -= dt;
         if (attackT <= 0 && deadT <= 0 && !capt) {
           const att = enemies.filter(e => ATT.has(e.state)).length, form = enemies.filter(e => e.state === 'form');
@@ -311,7 +368,22 @@ registerGame({
           if (e.t > 0.6 && (e.y > H + 30 || e.y < -60 || e.x < -50 || e.x > W + 50)) e.dead = true;
           continue;
         }
-        if (e.state === 'enter') {
+        if (e.state === 'morph') {
+          const s = slotOf(e); e.x = s.x; e.y = s.y; e.morphT += dt;
+          if (e.morphT >= .9) splitMutation(e);
+          continue;
+        }
+        if (e.state === 'mutant') {
+          e.t += dt; const t = Math.max(0, e.t), b = e.group, k = b.x < W / 2 ? 1 : -1, speed = Math.min(245, 138 + stage * 3);
+          const path = u => {
+            if (e.type === 3) return [b.x + k * (Math.sin(u * 2) * 58 + u * 15), b.y + u * speed * .78];
+            if (e.type === 4) return [b.x + (e.member - 1) * (14 + 34 * Math.sin(Math.min(1, u) * HP)) + Math.sin(u * 2.7) * 42, b.y + u * speed * .8];
+            return [b.x + Math.sin(u * 3.8 + e.member * .4) * 72, b.y + u * speed * .9];
+          };
+          const p = path(t), q = path(t + .025); e.x = p[0]; e.y = p[1]; e.th = Math.atan2(q[1] - p[1], q[0] - p[0]);
+          if (e.y > H + 38 || e.x < -70 || e.x > W + 70) e.dead = true;
+        }
+        else if (e.state === 'enter') {
           turtle(e, dt);
           if (e.si >= e.sc.length) startHome(e);
         } else if (e.state === 'home') {
@@ -414,6 +486,7 @@ registerGame({
       updatePhase(dt);
       updateEnemies(dt);
       updateShots(dt);
+      resolveGroups();
       updateBullets(dt);
       updateRescue(dt);
     };
@@ -449,7 +522,7 @@ registerGame({
     const drawEnemy = e => {
       const f = ((time * 4) | 0) & 1, col = COLOR[e.type][e.hp < MAXHP[e.type] ? 1 : 0];
       g.save(); g.translate(e.x, e.y); g.rotate(e.th - HP);
-      bmp(SPR[e.type][f], -12, -12, 3, col);
+      bmp(SPR[e.type][f], -12, -12, 3, e.state === 'morph' && Math.floor(e.morphT * 12) % 2 ? '#eef1ff' : col);
       if (e.holding) drawShip(0, -26, 0.7, '#ff7a6e', '#ffd0cb');
       g.restore();
     };
@@ -536,7 +609,7 @@ registerGame({
       update,
       render,
       debug: {
-        newGame, spawnStage, attack(e) { pickAttack([e]); },
+        newGame, spawnStage, attack(e) { pickAttack([e]); }, startMutation, kill,
         goStage(n) { stage = n; spawnStage(); phase = 'enter'; },
         get state() { return state; }, get enemies() { return enemies; }, get ship() { return ship; },
         get score() { return score; }, get stage() { return stage; }, get phase() { return phase; },
@@ -544,6 +617,7 @@ registerGame({
         get challenge() { return challenge; }, get chHits() { return chHits; },
         get shots() { return shots; },
         get enemyShots() { return ebullets; },
+        get groups() { return groups; }, get types() { return ['Ape','Farfalla','Boss','Scorpione','Razza','Galboss','Libellula','Zanzara','Astronave blu']; },
       },
     };
   },
