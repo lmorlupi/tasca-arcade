@@ -65,7 +65,7 @@ registerGame({
     }
     function onPress(k){if(k==='start'){if(state==='title')begin();else if(state==='over')newGame();else pause();}
       else if(k==='a'){if(state==='title')begin();else if(state==='over')newGame();else rotate(1);}
-      else if(k==='b')rotate(-1);else if(k==='up')drop();else if(k==='select')hold();
+      else if(k==='b')rotate(-1);else if(k==='select')hold();
       else if(k==='left'||k==='right'){side=k==='left'?-1:1;das=repeat=0;shift(side);}
       else if(k==='down'){down(true);fall=0;}
     }
@@ -80,7 +80,7 @@ registerGame({
         [0,2,1,5].forEach((n,i)=>mini(n,38+i*76,130,14));
         text('Semplice. A colori. Con tutti i tasti.',W/2,196,15,'center');
         const y=Math.max(230,H*.41);button('slow',slow?'VELOCITÀ: TRANQUILLA':'VELOCITÀ: NORMALE',22,y,W-44,48,()=>{slow=!slow;api.store.set('slow',slow);});
-        text('← → sposta     ↓ scendi',W/2,y+77,16,'center');text('A ↻ ruota     B ↺ ruota',W/2,y+106,16,'center');text('↑ posa subito · SELECT riserva',W/2,y+135,13,'center','#acbed8');
+        text('← → sposta     ↓ scendi',W/2,y+77,16,'center');text('A ↻ ruota     B ↺ ruota',W/2,y+106,16,'center');text('SELECT riserva · START pausa',W/2,y+135,13,'center','#acbed8');
         button('begin',api.store.get('save',null)?'CONTINUA':'GIOCA',22,H-121,W-44,52,begin,'#247d86');
         button('new','NUOVA PARTITA',22,H-59,(W-54)*.68,43,newGame);button('music',music?'♫ ON':'♫ OFF',32+(W-54)*.68,H-59,(W-54)*.32,43,()=>{music=!music;api.store.set('music',music);});return;
       }
@@ -90,7 +90,7 @@ registerGame({
       if(state==='play'||state==='pause'&&!clearRows.length){for(const{x,y}of cells(ghost()))if(y>=0)block(bx+x*cell,by+y*cell,piece.type+1,cell,true);for(const{x,y}of cells())if(y>=0)block(bx+x*cell,by+y*cell,piece.type+1);}
       for(const y of clearRows)rect(bx,by+y*cell,C*cell,cell,`rgba(255,255,255,${.3+.5*Math.sin(clearAt*30)**2})`);
       text('RISERVA',7,69,10);if(reserve!==null)mini(reserve,7,by+4,6);text('DOPO',W-7,69,10,'right');queue.slice(0,3).forEach((n,i)=>mini(n,W-30,by+4+i*39,6));
-      text('← → SPOSTA     A ↻   B ↺',W/2,H-37,14,'center');text('↓ scendi · ↑ posa · START pausa',W/2,H-15,12,'center','#b3c6de');
+      text('← → SPOSTA     A ↻   B ↺',W/2,H-37,14,'center');text('↓ scendi · START pausa',W/2,H-15,12,'center','#b3c6de');
       if(state==='pause'||state==='over'){const y=by+R*cell*.32;rect(14,y,W-28,173,'#0e1a32ed',12);text(state==='pause'?'PAUSA':'PARTITA FINITA',W/2,y+30,24,'center');text('Punti '+score+' · Record '+best,W/2,y+66,14,'center');button('resume',state==='pause'?'CONTINUA':'RIPROVA',34,y+96,W-68,49,()=>state==='pause'?pause():newGame(),'#247d86');}
     }
     function onPointer(e){if(e.type==='down'){const b=buttons.find(b=>e.x>=b.x&&e.x<b.x+b.w&&e.y>=b.y&&e.y<b.y+b.h);if(b){b.action();return;}if(state==='play')gesture={id:e.id,x:e.x,y:e.y,moved:false};}
