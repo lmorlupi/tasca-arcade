@@ -453,7 +453,11 @@
   // Catalogo
   const savedFavorites = ls.get('favorites', []);
   const favorites = new Set(Array.isArray(savedFavorites) ? savedFavorites.filter(id => typeof id === 'string') : []);
-  const menuOrder = () => games.map((_, i) => i).sort((a, b) =>
+  let menuSearch = '';
+  const plain = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const aliases = { 'galaxy-strike': 'galaxi galaxian galaga', 'space-raiders': 'space invaders', 'brick-rush': 'breakout arkanoid', serpent: 'snake', 'road-hop': 'frogger', 'flipper-del-bar': 'pinball', 'bolle-pop': 'bubble shooter' };
+  const matchesSearch = d => { const text = plain(d.title + ' ' + d.id + ' ' + (aliases[d.id] || '')); return plain(menuSearch).trim().split(/\s+/).every(word => text.includes(word)); };
+  const menuOrder = () => games.map((_, i) => i).filter(i => matchesSearch(games[i])).sort((a, b) =>
     Number(favorites.has(games[b].id)) - Number(favorites.has(games[a].id)) || a - b);
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = () => navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
@@ -497,14 +501,10 @@
   const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   let avatarData = '';
   const avatarUrl = () => avatarData || (avatarData = window.Art.portrait(160, 'calm').toDataURL('image/png'));
-  const renderMenu = () => {
-    pinned = false;
+  const cardsHtml = () => {
     const order = menuOrder(), favoriteCount = order.filter(i => favorites.has(games[i].id)).length;
-    const tip = isIOS && !standalone()
-      ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button></span></header><p class="ver" id="ver"></p>${tip}
-      <div class="support"><a id="support" href="https://buymeacoffee.com/pu3ilqqnqd" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè su Buy Me a Coffee (si apre in una nuova scheda)"><span aria-hidden="true">☕</span> Offrimi un caffè <span aria-hidden="true">↗</span></a><p>Aiutami a creare nuovi giochi.</p></div>` +
-      order.map((i, position) => {
+    if (!order.length) return '<p class="search-empty">Nessun gioco trovato. Prova un altro nome.</p>';
+    return order.map((i, position) => {
         const d = games[i], favorite = favorites.has(d.id);
         const heading = favoriteCount && position === 0 ? '<h2 class="sub">PREFERITI</h2>'
           : favoriteCount && position === favoriteCount ? '<h2 class="sub">ALTRI GIOCHI</h2>' : '';
@@ -516,13 +516,32 @@
           <span class="desc">${esc(d.blurb)}${d.author ? ' <em>di ' + esc(d.author) + '</em>' : ''}</span>
           <span class="chips">${d.community ? '<i class="ext">DI TERZI</i>' : ''}${d.inputs.map(t => `<i${HOT[t] ? ' class="hot"' : ''}>${esc(t)}</i>`).join('')}</span></button>
           <button class="favorite" type="button" data-id="${esc(d.id)}" aria-pressed="${favorite}" aria-label="${favorite ? 'Rimuovi' : 'Aggiungi'} ${esc(d.title)} ${favorite ? 'dai' : 'ai'} preferiti" title="${favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}"><span aria-hidden="true">${favorite ? '★' : '☆'}</span></button></div>`;
-      }).join('') + '<button class="act imp" id="imp">+ IMPORTA UN GIOCO</button><p class="legal">Progetto indipendente, non affiliato né approvato da produttori di console o di videogiochi. I marchi citati appartengono ai rispettivi proprietari. Giochi, grafica e suoni sono originali.</p>';
-    showVersion();
+      }).join('');
   };
+  const filterMenu = () => {
+    const order = menuOrder();
+    if (!order.includes(sel) && order.length) sel = order[0];
+    const list = $('game-list'); if (list) list.innerHTML = cardsHtml();
+    const count = $('search-count'); if (count) count.textContent = menuSearch.trim() ? order.length + (order.length === 1 ? ' GIOCO TROVATO' : ' GIOCHI TROVATI') : '';
+    const clear = $('search-clear'); if (clear) clear.hidden = !menuSearch;
+  };
+  const renderMenu = () => {
+    pinned = false;
+    const tip = isIOS && !standalone()
+      ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
+    menuEl.innerHTML = `<header class="catalog-header"><div class="catalog-top"><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button></div><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button><a class="coffee-link" id="support" href="https://buymeacoffee.com/pu3ilqqnqd" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè su Buy Me a Coffee (si apre in una nuova scheda)" title="Offrimi un caffè"><span class="coffee-icon" aria-hidden="true">☕</span></a></span><div class="game-search"><input id="game-search" type="search" placeholder="Cerca un gioco…" aria-label="Cerca un gioco" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" value="${esc(menuSearch)}"><button class="search-clear" id="search-clear" aria-label="Cancella la ricerca"${menuSearch ? '' : ' hidden'}>×</button></div></header><p class="ver" id="ver"></p>${tip}<p class="search-count" id="search-count" aria-live="polite"></p><div id="game-list">${cardsHtml()}</div><button class="act imp" id="imp">+ IMPORTA UN GIOCO</button><p class="legal">Progetto indipendente, non affiliato né approvato da produttori di console o di videogiochi. I marchi citati appartengono ai rispettivi proprietari. Giochi, grafica e suoni sono originali.</p>`;
+    filterMenu(); showVersion();
+  };
+  menuEl.addEventListener('input', e => { if (e.target.id === 'game-search') { menuSearch = e.target.value; filterMenu(); } });
+  menuEl.addEventListener('search', e => { if (e.target.id === 'game-search') { menuSearch = e.target.value; filterMenu(); } }, true);
+  const clearSearchKey = e => { if (e.target.id === 'game-search' && (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27)) { e.preventDefault(); menuSearch = ''; e.target.value = ''; filterMenu(); } };
+  menuEl.addEventListener('keydown', clearSearchKey, true);
+  menuEl.addEventListener('keyup', clearSearchKey, true);
   menuEl.addEventListener('change', e => {
     if (e.target.id === 'impOk') { const b = document.getElementById('impAdd'); if (b) b.disabled = !e.target.checked; }
   });
   menuEl.addEventListener('click', async e => {
+    if (e.target.closest('#search-clear')) { menuSearch = ''; const input = $('game-search'); if (input) input.value = ''; filterMenu(); if (input) input.focus(); return; }
     const star = e.target.closest('.favorite');
     if (star) {
       const id = star.dataset.id, focused = document.activeElement === star;
@@ -754,7 +773,7 @@
 
   // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").
   const goFull = e => {
-    if (e.target.closest('a[href]')) return;
+    if (e.target.closest('a[href], input, textarea')) return;
     if (!matchMedia('(pointer: coarse)').matches || document.fullscreenElement || standalone()) return;
     const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
     if (!req) return;
