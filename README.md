@@ -10,11 +10,15 @@ inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **
 Tocca **☆** accanto a un gioco per metterlo tra i **Preferiti**, in alto nel catalogo.
 Tocca **★** per rimuoverlo. La scelta resta su quel browser o telefono, anche offline.
 
+- **Isola Felice:** avventura tranquilla in quattro ambienti originali, con otto vicini animali, pesca, orto, album delle scoperte, emporio e casa arredabile. Tocca il mondo per camminare o interagire; A agisce, B apre lo zaino, START il diario. Strumenti automatici, risorse che ricrescono e salvataggio locale automatico, anche offline.
+
 - **Biliardo:** tocca o trascina sul tavolo per mirare, regola la barra POTENZA e premi TIRA. Rimangono il tiro trascinando indietro dalla bianca e i comandi croce/A (tieni e rilascia). Allenamento o Palla 8 arcade a due giocatori sullo stesso telefono. Nei duelli un fallo passa il turno e permette di riposizionare la bianca; la 8 chiude la partita dopo la propria serie. La 8 imbucata in spaccata viene riposizionata. Non sono richiesti tiri dichiarati.
 - **Spaccaquindici:** puzzle risolvibili 4×4 e 3×3, numeri o foto di Margot, annulla con B e salvataggio della partita.
 - **Bolle Pop:** mira e rilascia per unire almeno tre bolle uguali; i gruppi sospesi cadono. B scambia le due bolle disponibili.
 
 I primi livelli degli arcade offrono più margine; velocità e pressione crescono gradualmente.
+
+**Suono:** il comando **SUONO ON/OFF** vale per tutti i giochi. Gli effetti mantengono i timbri arcade, con attacchi più morbidi e volumi bilanciati. Isola Felice ha anche musica ed effetti originali: dal diario apri **OPZIONI** per spegnere la musica o cambiare personaggio.
 
 ## Aggiungere un gioco
 

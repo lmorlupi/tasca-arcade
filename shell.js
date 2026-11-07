@@ -12,7 +12,7 @@
     set(k, v) { try { localStorage.setItem('pc:' + k, JSON.stringify(v)); } catch (e) {} },
   };
 
-  let mode = 'boot', inst = null, cur = null, sel = 0, launching = false;
+  let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0;
   const held = {};
 
   // Vibrazione: navigator.vibrate dove c'è, altrimenti l'interruttore nascosto (iPhone, iOS 17.4+).
@@ -28,29 +28,13 @@
     } catch (e) {}
   };
 
-  // Suono
-  let ac = null, muted = ls.get('mute', false);
-  // Su iPhone l'interruttore "silenzioso" azzera il Web Audio: si passa alla categoria "riproduzione" e si tiene
-  // acceso un breve file muto in loop, cosi' i suoni dei giochi si sentono anche a telefono silenzioso.
-  let keepAlive = null;
-  const audioUnlock = () => {
-    try {
-      if (navigator.audioSession) navigator.audioSession.type = 'playback';
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-      if (ac.state === 'suspended') ac.resume();
-      if (!keepAlive) { keepAlive = new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='); keepAlive.loop = true; keepAlive.volume = 0.01; keepAlive.setAttribute('playsinline', ''); }
-      if (keepAlive.paused) { const pr = keepAlive.play(); if (pr && pr.catch) pr.catch(() => {}); }
-    } catch (e) {}
-  };
-  const beep = (f = 440, d = 0.06, type = 'square', v = 0.04) => {
-    if (muted || !ac) return;
-    try {
-      const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime;
-      o.type = type; o.frequency.value = f;
-      gn.gain.setValueAtTime(Math.min(0.6, v * 1.7), t); gn.gain.exponentialRampToValueAtTime(0.0001, t + d);
-      o.connect(gn); gn.connect(ac.destination); o.start(t); o.stop(t + d);
-    } catch (e) {}
-  };
+  // Audio condiviso: timbri retro, inviluppi morbidi e gestione delle interruzioni mobili.
+  let muted = ls.get('mute', false);
+  const audio = arcadeAudioFactory({ muted });
+  const audioUnlock = () => audio.unlock();
+  const beep = (...args) => audio.beep(...args);
+  const sound = (name, options) => audio.sound(name, options);
+  addEventListener('pointerdown', e => { if (!e.target.closest('input, textarea, a[href]')) audioUnlock(); }, { capture: true, passive: true });
 
   // Riscontro dei tasti simulati: si abbassano, la croce si inclina, vibrazione come su quelli veri.
   const dpadEl = $('dpad');
@@ -152,10 +136,13 @@
     if (def.pixel) k = Math.floor(k + 0.02);          // pixel art: multipli interi, bordi netti
     return Math.max(1, Math.min(k, Math.sqrt(4.6e6 / (cw * ch)), 4));
   };
-  const apiFor = def => ({
-    cv: HR.cvP, g: HR.gP, w: HR.cw, h: HR.ch, held, tilt, haptic, beep, fx: FX.api, goMenu: () => toMenu(),
+  const apiFor = def => { const generation = audioGeneration; return ({
+    cv: HR.cvP, g: HR.gP, w: HR.cw, h: HR.ch, held, tilt, haptic,
+    beep: (...args) => { if (mode === 'game' && generation === audioGeneration) beep(...args); },
+    sound: (...args) => { if (mode === 'game' && generation === audioGeneration) sound(...args); },
+    fx: FX.api, goMenu: () => toMenu(),
     store: { get: (k, d) => ls.get(def.id + ':' + k, d), set: (k, v) => ls.set(def.id + ':' + k, v) },
-  });
+  }); };
 
 
   // ======================================================================================================
@@ -561,7 +548,7 @@
     }
     if (e.target.closest('#upd')) { checkUpdate(true); return; }
     const snd = e.target.closest('#snd');
-    if (snd) { muted = !muted; ls.set('mute', muted); audioUnlock(); snd.textContent = muted ? 'SUONO OFF' : 'SUONO ON'; beep(660, 0.05); return; }
+    if (snd) { muted = !muted; ls.set('mute', muted); audio.setMuted(muted); audioUnlock(); snd.textContent = muted ? 'SUONO OFF' : 'SUONO ON'; beep(660, 0.05); return; }
     const c = e.target.closest('.cart');
     if (c) { sel = +c.dataset.i; launch(games[sel]); }
   });
@@ -572,6 +559,7 @@
 
   const toMenu = () => {
     if (window.Shell && window.Shell.reloadOnMenu) { location.reload(); return; }
+    audioGeneration++; audio.stop();
     if (inst && inst.destroy) inst.destroy();
     inst = null; cur = null; mode = 'menu';
     if (FX) FX.api.clear();
@@ -604,7 +592,7 @@
       screenEl.style.background = def.bg || '';
       dpadEl.classList.toggle('compact', !!def.compactPad);
       cv.classList.remove('off'); menuEl.classList.add('off');
-      cur = def; mode = 'game';
+      cur = def; mode = 'game'; audioGeneration++;
       for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
       tilt.calibrate();
       if (def.community) { cv.classList.add('off'); }
@@ -648,7 +636,7 @@
     e.preventDefault(); if (!e.repeat) press(k);
   });
   addEventListener('keyup', e => { if (nativeKeys(e)) return; const k = KEYS[e.key]; if (k) release(k); });
-  const hide = () => { if (mode === 'game' && inst && inst.onHide) inst.onHide(); };
+  const hide = () => { audio.sleep(); if (mode === 'game' && inst && inst.onHide) inst.onHide(); };
   addEventListener('blur', () => { for (const k in held) delete held[k]; hide(); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) hide();
@@ -674,6 +662,8 @@
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault()));
   let lastTouchEnd = 0;
   document.addEventListener('touchend', e => {
+    // Il catalogo usa click nativi: non scartare un secondo tap rapido su ricerca, giochi o comandi.
+    if (e.target.closest('.menu button, .menu a, .menu input, .menu textarea')) { lastTouchEnd = 0; return; }
     const now = Date.now();
     if (now - lastTouchEnd < 400) e.preventDefault();
     lastTouchEnd = now;
@@ -973,6 +963,6 @@
       requestAnimationFrame(frame);
     },
     // Aggancio per le prove automatiche.
-    press, release, launch, toMenu, games, get mode() { return mode; }, get inst() { return inst; },
+    press, release, launch, toMenu, games, get audio() { return audio.debug; }, get mode() { return mode; }, get inst() { return inst; },
   };
 })();

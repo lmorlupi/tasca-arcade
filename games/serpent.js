@@ -26,7 +26,8 @@ registerGame({
       return { x: 0, y: 0 };
     };
     const newGame = () => {
-      const cx = (COLS / 2) | 0, cy = (ROWS / 2) | 0;
+      // Più spazio davanti alla testa per prendere confidenza con il primo giro.
+      const cx = Math.max(3, Math.floor(COLS * .28)), cy = (ROWS / 2) | 0;
       snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
       dir = { x: 1, y: 0 }; queue = []; apple = null; apple = freeCell(); gold = null;
       score = 0; eaten = 0; tick = 0; api.fx.clear(); state = 'play';
@@ -82,7 +83,7 @@ registerGame({
     // Swipe: gira appena il dito si è mosso abbastanza, senza aspettare che lo si sollevi.
     const onPointer = e => {
       if (e.type === 'down') {
-        if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'title' || state === 'over') { newGame(); sw = { id: e.id, x: e.x, y: e.y }; return; }
         if (state === 'pause') { state = 'play'; return; }
         sw = { id: e.id, x: e.x, y: e.y };
       } else if (e.type === 'move' && sw && e.id === sw.id) {
