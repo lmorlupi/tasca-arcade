@@ -327,5 +327,5 @@ ol.help b { color: #ffe27a; }
   .playing.landscape-ok:not(.padless) .bezel { grid-column: 2; grid-row: 2; height: 100%; }
   .playing.landscape-ok:not(.padless) .pad { display: contents; }
   .playing.landscape-ok:not(.padless) .dpad { grid-column: 1; grid-row: 2; align-self: center; justify-self: center; }
-  .playing.landscape-ok:not(.padless) .ab { grid-column: 3; grid-row: 2; align-self: center; justify-self: center; }
+  .playing.landscape-ok:not(.padless) .ab { grid-column: 3; grid-row: 2; align-self: center; justify-self: center; transform: translateX(-6px) rotate(-12deg) scale(.9); }
 }
