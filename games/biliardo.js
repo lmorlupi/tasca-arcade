@@ -1,17 +1,19 @@
 registerGame({
   id: 'biliardo', title: 'BILIARDO', license: 'MIT', color: '#59c48f',
-  blurb: 'Trascina dalla bianca e rilascia per tirare. Allenamento oppure Palla 8 arcade a turni sullo stesso telefono. Croce per mirare, tieni A e rilascia; B cambia modalità.',
-  inputs: ['TRASCINA', '2 GIOCATORI', 'A POTENZA'], size: [360, 640], flexH: true, flexMin: 1.5, bg: '#0b1b20',
+  blurb: 'Tocca o trascina sul tavolo per mirare, regola POTENZA e tocca TIRA. Puoi anche tirare indietro dalla bianca. Allenamento o Palla 8 arcade a due giocatori. Croce per mirare, tieni A e rilascia; B cambia modalità.',
+  inputs: ['TOCCA E MIRA', 'TIRA', '2 GIOCATORI'], size: [360, 640], flexH: true, flexMin: 1.5, bg: '#0b1b20',
   create(api) {
     const { cv, g, held } = api, W = cv.width, H = cv.height;
-    const FH = Math.min(H - 192, (W - 76) * 2), FW = FH / 2, FX = (W - FW) / 2, FY = 96;
+    const FH = Math.min(H - 210, (W - 76) * 2), FW = FH / 2, FX = (W - FW) / 2, FY = 96;
     const R = FW / 21, PR = R * 1.62, TAU = Math.PI * 2;
     const pockets = [[FX, FY], [FX + FW, FY], [FX, FY + FH / 2], [FX + FW, FY + FH / 2], [FX, FY + FH], [FX + FW, FY + FH]];
     const colors = ['#fff8df', '#efc34a', '#4c8edc', '#dc665c', '#aa7ac8', '#ea944b', '#53a67f', '#a9536c', '#232b37'];
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const controls = { power: { x: 12, y: H - 84, w: W - 126, h: 68 }, fire: { x: W - 104, y: H - 84, w: 92, h: 68 } };
+    const inside = (e, box) => e.x >= box.x && e.x <= box.x + box.w && e.y >= box.y && e.y <= box.y + box.h;
     let balls = [], mode = 'practice', state = 'setup', resume = 'aim', player = 0, groups = [null, null];
-    let angle = -Math.PI / 2, power = 0.55, charging = false, chargeTime = 0, drag = null, elapsed = 0, shots = 0, points = 0;
-    let shot = null, message = '', messageTime = 0, winner = null, hi = api.store.get('hi', 0);
+    let angle = -Math.PI / 2, power = 0.55, charging = false, chargeTime = 0, turnTime = 0, drag = null, elapsed = 0, shots = 0, points = 0;
+    let shot = null, message = '', messageTime = 0, winner = null, pauseTouch = null, hi = api.store.get('hi', 0);
     const white = () => balls[0];
     const groupOf = id => id > 0 && id < 8 ? 'piene' : id > 8 ? 'rigate' : null;
     const remaining = group => balls.filter(b => b.active && groupOf(b.id) === group).length;
@@ -39,7 +41,7 @@ registerGame({
     const newGame = nextMode => {
       mode = nextMode || mode; rack(); state = 'aim'; player = 0; groups = [null, null]; angle = -Math.PI / 2;
       shots = 0; points = 0; shot = null; elapsed = 0; winner = null; drag = null; charging = false; power = 0.65;
-      notice('TRASCINA DALLA BIANCA E RILASCIA', 5);
+      notice('1 MIRA · 2 POTENZA · 3 TIRA', 5);
     };
     const finish = won => {
       state = 'over'; winner = won; drag = null; charging = false;
@@ -69,7 +71,7 @@ registerGame({
         if (foul) { respot(0); state = 'place'; notice('FALLO · G' + (player + 1) + ': POSIZIONA LA BIANCA', 5); }
         else { state = 'aim'; notice('GIOCATORE ' + (player + 1) + (groups[player] ? ' · ' + groups[player].toUpperCase() : ' · TAVOLO APERTO')); }
       }
-      shot = null; power = 0.55; angle = -Math.PI / 2;
+      shot = null; power = 0.55;
     };
     const fire = strength => {
       if (state !== 'aim' || !white().active) return;
@@ -117,22 +119,44 @@ registerGame({
       white().x = x; white().y = y;
       if (commit) { state = 'aim'; notice('BIANCA POSIZIONATA · ORA MIRA'); api.haptic(6); }
     };
-    const pause = () => { if (state === 'pause') state = resume; else if (['aim', 'rolling', 'place'].includes(state)) { resume = state; state = 'pause'; } charging = false; drag = null; };
+    const cancelGesture = () => {
+      if (drag) { angle = drag.angle; power = drag.power; }
+      drag = null; charging = false;
+    };
+    const pause = () => { if (state === 'pause') state = resume; else if (['aim', 'rolling', 'place'].includes(state)) { resume = state; state = 'pause'; } pauseTouch = null; cancelGesture(); };
+    const aimAt = e => {
+      const dx = e.x - white().x, dy = e.y - white().y;
+      if (Math.hypot(dx, dy) > R * 2 + 8) angle = Math.atan2(dy, dx);
+    };
+    const setPower = x => { power = clamp((x - controls.power.x - 16) / (controls.power.w - 32), 0.1, 1); };
     const onPointer = e => {
       if (state === 'setup') { if (e.type === 'up' && !e.cancelled) { if (e.y >= H / 2 - 8 && e.y < H / 2 + 45) newGame('practice'); else if (e.y >= H / 2 + 62 && e.y < H / 2 + 115) newGame('duel'); } return; }
       if (state === 'over') { if (e.type === 'up' && !e.cancelled) newGame(mode); return; }
-      if (state === 'pause') { if (e.type === 'up' && !e.cancelled) pause(); return; }
-      if (state === 'rolling') return;
+      if (state === 'pause') { if (e.type === 'down') pauseTouch = e.id; else if (e.type === 'up' && e.id === pauseTouch) { pauseTouch = null; if (!e.cancelled) pause(); } return; }
+      if (state === 'rolling' || charging || (drag && drag.id !== e.id)) return;
       if (e.type === 'down') {
-        if (state === 'place') { drag = { id: e.id, kind: 'place' }; place(e.x, e.y, false); return; }
-        if (e.y < FY || e.y > FY + FH || e.x < FX || e.x > FX + FW) return;
-        if (Math.hypot(e.x - white().x, e.y - white().y) < R * 3 + 12) drag = { id: e.id, kind: 'pull', startX: e.x, startY: e.y, length: 0 };
-        else { angle = Math.atan2(e.y - white().y, e.x - white().x); notice('ORA TRASCINA DALLA BIANCA'); }
+        const begin = kind => { drag = { id: e.id, kind, startX: e.x, startY: e.y, angle, power, length: 0 }; };
+        if (inside(e, controls.fire)) { begin('fire'); return; }
+        if (state === 'aim' && inside(e, controls.power)) { begin('power'); setPower(e.x); return; }
+        if (e.y < FY - 16 || e.y > FY + FH + 22 || e.x < 0 || e.x > W) return;
+        if (state === 'place') { begin('place'); place(e.x, e.y, false); return; }
+        if (Math.hypot(e.x - white().x, e.y - white().y) < R * 3 + 12) begin('pull');
+        else { begin('aim'); aimAt(e); }
       } else if (drag && drag.id === e.id) {
+        if (e.cancelled) { cancelGesture(); return; }
+        if (drag.kind === 'fire') {
+          if (e.type === 'up') { drag = null; if (inside(e, controls.fire)) { if (state === 'place') place(white().x, white().y, true); else fire(power); } }
+          return;
+        }
+        if (drag.kind === 'power' || drag.kind === 'aim') {
+          if (drag.kind === 'power') setPower(e.x); else aimAt(e);
+          if (e.type === 'up') drag = null;
+          return;
+        }
         if (drag.kind === 'place') { place(e.x, e.y, e.type === 'up' && !e.cancelled); if (e.type === 'up') drag = null; return; }
         const dx = e.x - drag.startX, dy = e.y - drag.startY, length = Math.hypot(dx, dy); drag.length = length;
         if (length > 6) { angle = Math.atan2(-dy, -dx); power = clamp(length / 105, 0.1, 1); }
-        if (e.type === 'up') { const good = !e.cancelled && length > 10; drag = null; if (good) fire(power); }
+        if (e.type === 'up') { if (length > 18) { drag = null; fire(power); } else cancelGesture(); }
       }
     };
     const text = (s, x, y, size = 13, color = '#e7f7ef', align = 'left') => { g.font = `bold ${size}px ui-monospace, monospace`; g.fillStyle = color; g.textAlign = align; g.textBaseline = 'middle'; g.fillText(s, x, y); };
@@ -179,7 +203,7 @@ registerGame({
       text('BILIARDO', 16, 25, 25, '#83ddb1'); text(mode === 'practice' ? 'ALLENAMENTO' : 'PALLA 8 ARCADE', W - 16, 25, 11, '#d8e6de', 'right');
       if (mode === 'practice') { text('COLPI ' + shots + ' · BUCHE ' + balls.filter(b => b.id && !b.active).length + '/15', 16, 49, 12); text('PUNTI ' + points, W - 16, 49, 12, '#ffe27a', 'right'); }
       else { text('G1 ' + (groups[0] ? groups[0].toUpperCase() + ' ' + remaining(groups[0]) : 'APERTO'), 16, 49, 12, player === 0 ? '#ffe27a' : '#91ada3'); text('G2 ' + (groups[1] ? groups[1].toUpperCase() + ' ' + remaining(groups[1]) : 'APERTO'), W - 16, 49, 12, player === 1 ? '#ffe27a' : '#91ada3', 'right'); }
-      const status = messageTime > 0 ? message : state === 'rolling' ? 'ASPETTA CHE LE PALLE SI FERMINO' : state === 'place' ? 'TOCCA IL TAVOLO PER LA BIANCA' : 'TRASCINA DALLA BIANCA E RILASCIA';
+      const status = state === 'rolling' ? 'ASPETTA CHE LE PALLE SI FERMINO' : messageTime > 0 ? message : state === 'place' ? 'TOCCA IL TAVOLO PER LA BIANCA' : 'MIRA SUL TAVOLO · POTENZA · TIRA';
       text(status, W / 2, 68, 11, '#bdd3cb', 'center');
       const wood = g.createLinearGradient(FX - 20, 0, FX + FW + 20, 0); wood.addColorStop(0, '#533728'); wood.addColorStop(0.35, '#9f7147'); wood.addColorStop(1, '#4b3028');
       round(FX - 22, FY - 20, FW + 44, FH + 44, 18, '#050c12'); round(FX - 20, FY - 22, FW + 40, FH + 44, 17, wood);
@@ -196,13 +220,23 @@ registerGame({
       }
       balls.filter(b => b.active).forEach(drawBall);
       if (state === 'place') { g.strokeStyle = '#ffe27a'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.arc(white().x, white().y, R + 7, 0, TAU); g.stroke(); g.setLineDash([]); }
-      text('POTENZA', 18, H - 50, 11, '#bdd3cb'); round(90, H - 55, W - 108, 10, 5, '#28453f');
-      if (state === 'aim') round(90, H - 55, (W - 108) * power, 10, 5, power > 0.8 ? '#e5bd64' : '#83ddb1');
-      text('CROCE MIRA · TIENI A E RILASCIA', W / 2, H - 29, 11, '#bdd3cb', 'center'); text('START PAUSA · B MODALITÀ', W / 2, H - 12, 11, '#bdd3cb', 'center');
+      const pc = controls.power, fc = controls.fire, ready = state === 'aim';
+      round(pc.x, pc.y, pc.w, pc.h, 10, '#102e31');
+      text('POTENZA', pc.x + 16, pc.y + 17, 12, '#bdd3cb');
+      text(ready ? Math.round(power * 100) + '%' : '—', pc.x + pc.w - 16, pc.y + 17, 12, '#ffe27a', 'right');
+      round(pc.x + 16, pc.y + 41, pc.w - 32, 8, 4, '#284b47');
+      if (ready) {
+        round(pc.x + 16, pc.y + 41, (pc.w - 32) * power, 8, 4, power > 0.8 ? '#e5bd64' : '#83ddb1');
+        circle(pc.x + 16 + (pc.w - 32) * power, pc.y + 45, 10, '#e4f5dc');
+      }
+      const canFire = ready || state === 'place';
+      round(fc.x, fc.y, fc.w, fc.h, 10, canFire ? drag?.kind === 'fire' ? '#afc76f' : '#e8d187' : '#243e40');
+      text(state === 'place' ? 'POSA' : 'TIRA', fc.x + fc.w / 2, fc.y + fc.h / 2, 22, canFire ? '#152b2c' : '#708d86', 'center');
+      text('CROCE: MIRA FINE · A: TIENI/RILASCIA', W / 2, H - 6, 10, '#bdd3cb', 'center');
       if (state === 'setup') {
         round(12, FY + 18, W - 24, FH - 36, 14, '#071a23ee');
         text('UNA PARTITA AL BAR', W / 2, H / 2 - 84, 21, '#ffe27a', 'center');
-        text('MIRA COL DITO, TIRA DALLA BIANCA', W / 2, H / 2 - 51, 12, '#bdd3cb', 'center');
+        text('MIRA · REGOLA POTENZA · TOCCA TIRA', W / 2, H / 2 - 51, 12, '#bdd3cb', 'center');
         round(38, H / 2 - 8, W - 76, 53, 10, '#39765f'); text('ALLENAMENTO', W / 2, H / 2 + 10, 18, '#fff', 'center'); text('IMBUCA LE COLORATE, POI LA 8', W / 2, H / 2 + 30, 11, '#dcf5e7', 'center');
         round(38, H / 2 + 62, W - 76, 53, 10, '#4d5274'); text('2 GIOCATORI', W / 2, H / 2 + 80, 18, '#fff', 'center'); text('PIENE CONTRO RIGATE · A TURNI', W / 2, H / 2 + 100, 11, '#e9eaff', 'center');
       } else if (state === 'pause' || state === 'over') {
@@ -223,7 +257,9 @@ registerGame({
           elapsed += dt; physics(dt / 2); physics(dt / 2);
           if (elapsed > 12 || balls.every(b => !b.active || Math.hypot(b.vx, b.vy) < 2.5)) { balls.forEach(b => { b.vx = b.vy = 0; }); finishShot(); }
         } else if (state === 'aim') {
-          angle += ((held.right ? 1 : 0) - (held.left ? 1 : 0)) * dt * 1.7;
+          const turn = (held.right ? 1 : 0) - (held.left ? 1 : 0);
+          turnTime = turn && !drag ? turnTime + dt : 0;
+          if (!drag) angle += turn * dt * (0.35 + Math.min(1, turnTime / 0.8) * 1.35);
           if (charging) { chargeTime += dt; power = 0.35 + 0.65 * Math.abs(Math.sin(chargeTime * 1.5)); }
           else if (!drag) power = clamp(power + ((held.up ? 1 : 0) - (held.down ? 1 : 0)) * dt * 0.5, 0.1, 1);
         } else if (state === 'place') place(white().x + ((held.right ? 1 : 0) - (held.left ? 1 : 0)) * dt * 130, white().y + ((held.down ? 1 : 0) - (held.up ? 1 : 0)) * dt * 130, false);
@@ -232,11 +268,11 @@ registerGame({
         if (k === 'start') { if (state === 'setup') newGame('practice'); else pause(); }
         else if (k === 'select') newGame(mode);
         else if (k === 'b') { state = 'setup'; charging = false; drag = null; }
-        else if (k === 'a') { if (state === 'setup') newGame('practice'); else if (state === 'over') newGame(mode); else if (state === 'place') place(white().x, white().y, true); else if (state === 'aim') { charging = true; chargeTime = 0; power = 0.35; } }
+        else if (k === 'a' && !drag) { if (state === 'setup') newGame('practice'); else if (state === 'over') newGame(mode); else if (state === 'place') place(white().x, white().y, true); else if (state === 'aim') { charging = true; chargeTime = 0; power = 0.35; } }
       },
       onRelease(k) { if (k === 'a' && charging) { charging = false; fire(power); } },
       onHide() { if (['aim', 'rolling', 'place'].includes(state)) pause(); },
-      debug: { get balls() { return balls.map(b => ({ ...b })); }, get state() { return state; }, get mode() { return mode; }, get player() { return player; }, get groups() { return groups.slice(); }, get shot() { return shot && { ...shot, potted: shot.potted.slice() }; }, get shots() { return shots; }, get score() { return points; }, get winner() { return winner; }, get layout() { return { width: W, height: H, x: FX, y: FY, w: FW, h: FH, radius: R, pockets }; } },
+      debug: { get balls() { return balls.map(b => ({ ...b })); }, get state() { return state; }, get mode() { return mode; }, get player() { return player; }, get groups() { return groups.slice(); }, get shot() { return shot && { ...shot, potted: shot.potted.slice() }; }, get shots() { return shots; }, get score() { return points; }, get winner() { return winner; }, get aim() { return { angle, power, charging, gesture: drag?.kind || null }; }, get layout() { return { width: W, height: H, x: FX, y: FY, w: FW, h: FH, radius: R, pockets, controls: { power: { ...controls.power }, fire: { ...controls.fire } } }; } },
     };
   },
 });
