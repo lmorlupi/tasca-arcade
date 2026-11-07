@@ -42,6 +42,8 @@ canvas.off { display: none; }
   position: relative; display: flex; justify-content: space-between; align-items: center;
   margin-top: 8px; padding: 0 calc(var(--e) * 2) 0 calc(var(--e) * 1); touch-action: none; --e: min(10px, 2.63vw);
 }
+/* La Home si naviga dal catalogo: croce e A/B compaiono soltanto nelle partite. */
+body:not(.playing) .pad { display: none; }
 
 /* Croce a sinistra: grande, perché ci sta sopra il pollice */
 .dpad { position: relative; width: calc(var(--e) * 16); height: calc(var(--e) * 16); touch-action: none; isolation: isolate; }

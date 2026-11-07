@@ -11,6 +11,8 @@ Dall’icona installata sulla schermata Home l’app richiede la modalità fulls
 
 ## Schermo e comandi
 
+La Home del catalogo non mostra la croce direzionale né i pulsanti A/B: scegli il gioco toccando la sua scheda. I comandi di gioco compaiono solo nelle partite che li usano.
+
 Nei 12 giochi giocabili col tocco, incluso Brick Rush, la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Tutti gli arcade con movimento e tiro/colpo simultanei, compresi Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike, Vortex Orbit, Sfere Ribelli e Spike Arena, e 500 Run con freno/turbo, mantengono la pulsantiera per la precisione dei comandi, insieme ai platform e agli altri giochi con azioni dedicate. I quattro tasti direzionali e le aree di tocco sono più grandi del **30%**; Mouse Castle conserva la croce già ingrandita. In orizzontale la croce resta a sinistra e A/B a destra, con spazio dedicato ai comandi.
 
 **Super Mario Kart, Mouse Castle, Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
