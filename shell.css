@@ -287,8 +287,9 @@ ol.help b { color: #ffe27a; }
 .playing .meta { flex: 0 0 auto; gap: 4px; }
 .playing .meta .pill { display: none; }
 .playing .meta button { min-height: 30px; }
-.playing .pad { flex: 0 0 auto; height: calc(var(--e) * 12.4); margin-top: 6px; margin-bottom: 0; }
-.playing .dpad { transform-origin: center; }
+.playing .pad { flex: 0 0 auto; height: calc(var(--e) * 16.2); margin-top: 6px; margin-bottom: 0; }
+/* In partita la croce cresce del 30% rispetto alla scala compatta .74. */
+.playing .dpad { transform: scale(.962); transform-origin: center; flex-shrink: 0; }
 /* Mouse Castle: frecce e superficie touch più grandi per camminare e salire. */
 .playing.large-pad .dpad { transform: scale(1); flex-shrink: 0; }
 .playing.large-pad .pad { height: calc(var(--e) * 16.8); }
@@ -325,7 +326,7 @@ ol.help b { color: #ffe27a; }
 
 /* In orizzontale i giochi con azioni simultanee mantengono croce a sinistra e A/B a destra. */
 @media (orientation: landscape) {
-  .playing.landscape-ok:not(.padless) .gbc { display: grid; grid-template-columns: 128px minmax(0, 1fr) 128px; grid-template-rows: 32px minmax(0, 1fr); gap: 0 4px; }
+  .playing.landscape-ok:not(.padless) .gbc { display: grid; grid-template-columns: 162px minmax(0, 1fr) 128px; grid-template-rows: 32px minmax(0, 1fr); gap: 0 4px; }
   .playing.landscape-ok:not(.padless) .meta { grid-column: 1 / -1; grid-row: 1; margin: 0; }
   .playing.landscape-ok:not(.padless) .bezel { grid-column: 2; grid-row: 2; height: 100%; }
   .playing.landscape-ok:not(.padless) .pad { display: contents; }
