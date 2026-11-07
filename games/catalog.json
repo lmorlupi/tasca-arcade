@@ -1,5 +1,6 @@
 {
   "games": [
+    "tetris-classico.js",
     "sfere-ribelli.js",
     "isola-felice.js",
     "biliardo.js",

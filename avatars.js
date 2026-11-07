@@ -15,6 +15,7 @@
     c.restore();
   };
   const DRAW = {
+    'tetris-classico': c => { bg(c,'#c5d29b','#9eae79');rect(c,12,9,64,95,'#263b2c');rect(c,15,12,58,89,'#c5d29b');[[0,5],[1,5],[0,4],[1,4],[2,5],[3,5],[3,4],[3,3],[2,3],[4,5],[5,5],[5,4],[5,3],[3,1],[3,0],[4,1],[5,1]].forEach(([x,y])=>{rect(c,18+x*9,42+y*9,8,8,'#263b2c');rect(c,20+x*9,44+y*9,4,4,'#9eae79');});[[0,0],[1,0],[1,1],[2,1]].forEach(([x,y])=>rect(c,81+x*7,27+y*7,6,6,'#263b2c')); },
     'sfere-ribelli': c => { bg(c, '#687eac', '#f4cda8'); rect(c, 0, 87, 112, 25, '#796d83');
       [[28, 32, 22, '#ed9cae'], [83, 58, 16, '#8bd9e2'], [39, 75, 9, '#ffe193']].forEach(([x, y, r, color]) => { const a = c.createRadialGradient(x-r*.35,y-r*.4,1,x,y,r); a.addColorStop(0,'#fff5df'); a.addColorStop(.4,color); a.addColorStop(1,'#77688d'); circ(c,x,y,r,a); });
       c.strokeStyle='#fff4ce'; c.lineWidth=3; c.beginPath(); c.moveTo(63,97); c.lineTo(63,20); c.stroke(); c.fillStyle='#fff4ce'; c.beginPath(); c.moveTo(63,13); c.lineTo(57,24); c.lineTo(69,24); c.fill();

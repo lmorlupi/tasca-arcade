@@ -5,13 +5,20 @@ inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **
 
 **Gioca:** <https://lmorlupi.github.io/tasca-arcade/> · su iPhone: Condividi → *Aggiungi alla schermata Home*.
 
+## Schermo intero
+
+Dall’icona installata sulla schermata Home l’app richiede la modalità fullscreen. Nel browser la attiva al primo tocco o tasto consentito: i browser richiedono un gesto dell’utente. Su iPhone apri dall’icona Home per eliminare le barre di Safari. I giochi compatibili possono ruotare anche nell’app installata.
+
 ## Schermo e comandi
 
-Nei 14 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike e Vortex Orbit mantengono la pulsantiera per precisione, tempi e azioni simultanee, insieme ai platform e agli altri giochi con azioni dedicate. La fascia comandi è più compatta.
+Negli 11 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Tutti gli arcade con movimento e tiro/colpo simultanei, compresi Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike, Vortex Orbit, Sfere Ribelli, Brick Rush e Spike Arena, e 500 Run con freno/turbo, mantengono la pulsantiera per la precisione dei comandi, insieme ai platform e agli altri giochi con azioni dedicate. La fascia comandi è più compatta; in orizzontale la croce resta a sinistra e A/B a destra.
 
 **Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
 
 ## Preferiti e nuovi giochi
+
+- **Tetris Classico:** ricostruzione web delle regole del classico portatile del 1989: campo10×18, sette pezzi, A-TYPE e B-TYPE (25 linee), livelli0–20, punteggi40/100/300/1200×(livello+1), velocità classiche, anteprima disattivabile con SELECT e pausa START. A ruota a destra, B a sinistra; croce o comandi sul canvas per muovere/scendere. Trascina i pezzi o tocca per ruotare. Musica: melodia tradizionale Korobeiniki con accompagnamento e sintesi nuovi. Partita e record locali, anche offline. Il layout LCD è adattato al telefono; non è un’emulazione della cartuccia originale.
+
 
 - **Sfere Ribelli:** dividi le sfere rimbalzanti con l’arpione, fino a farle sparire. Trascina sullo schermo o usa la croce per muoverti: il fuoco è automatico (B lo attiva/disattiva, A spara). Quattro ambienti, bonus scudo e rallentamento, primi quadri permissivi. START mette in pausa; il quadro raggiunto e il record restano salvati. SELECT sulla schermata iniziale ricomincia dal primo quadro conservando il record.
 - **Mouse Castle:** sedici quadri disegnati a mano, poi castelli generati; quattro atmosfere, piccoli dettagli animati e melodie originali. I primi otto quadri conservano i loro percorsi.
@@ -142,5 +149,3 @@ o incollando il codice. Il gioco è lo stesso formato descritto sopra.
 Un *service worker* (`sw.js`) salva tutti i file la prima volta. Per pubblicare una novità basta cambiare il numero
 di `VERSION` in `sw.js`: chi apre l'app online riceve la versione nuova (anche con giochi nuovi) e vede il pulsante
 **AGGIORNA** nel catalogo per forzare il controllo.
-
-Tresette mostra le dieci carte su due righe: tutte sono visibili e selezionabili col tocco.

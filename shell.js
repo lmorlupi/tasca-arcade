@@ -12,9 +12,9 @@
     set(k, v) { try { localStorage.setItem('pc:' + k, JSON.stringify(v)); } catch (e) {} },
   };
 
-  let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0;
+  let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0, fullRequest = null;
   const held = {};
-  const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','brick-rush','500run','briscola','scopa','tresette','dama','scacchi','flick-hoops','spike-arena','sfere-ribelli']);
+  const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','briscola','scopa','tresette','dama','scacchi','flick-hoops','tetris-classico']);
   const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo']);
   const gameSize = def => {
     let w = def.size[0], h = def.size[1];
@@ -592,6 +592,7 @@
     audioUnlock();
     try {
       if (def.tilt) await enableMotion();
+      if (fullRequest) await fullRequest;
       // I giochi "flexH" prendono l'altezza che serve a riempire lo schermo senza fasce ai lati.
       document.body.classList.add('playing');
       document.body.classList.toggle('padless', TOUCH_ONLY.has(def.id));
@@ -791,17 +792,18 @@
 
   // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").
   const goFull = e => {
-    if (e.target.closest('a[href], input, textarea')) return;
-    if (!matchMedia('(pointer: coarse)').matches || document.fullscreenElement || standalone()) return;
-    const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (e?.target?.closest?.('a[href], input, textarea')) return;
+    if (document.fullscreenElement || document.webkitFullscreenElement || standalone() || fullRequest) return;
+    if (navigator.userActivation && !navigator.userActivation.isActive) return;
+    if (document.fullscreenEnabled === false && !document.webkitFullscreenEnabled) return;
+    const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen;
     if (!req) return;
-    try {
-      Promise.resolve(req.call(el, { navigationUI: 'hide' }))
-        .then(orientGame)
-        .catch(() => {});
-    } catch (e) {}
+    try { fullRequest = Promise.resolve(req.call(el, { navigationUI: 'hide' })).then(orientGame).catch(() => {}).finally(() => { fullRequest = null; }); } catch (_) { fullRequest = null; }
   };
-  document.addEventListener('pointerup', goFull);
+  // Il primo gesto valido attiva il fullscreen; la PWA lo usa già all'apertura dall'icona.
+  document.addEventListener('pointerdown', goFull, { capture: true });
+  document.addEventListener('pointerup', goFull, { capture: true });
+  document.addEventListener('keydown', goFull, { capture: true });
 
   // Colori della console: scocca e tasti A/B, scelti dal catalogo (COLORI) e salvati sul telefono.
   const SHELL_COLORS = [

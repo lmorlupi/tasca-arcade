@@ -319,3 +319,13 @@ ol.help b { color: #ffe27a; }
   body:not(.playing) .screen { flex: 1 1 auto; min-height: 0; height: auto; }
   body:not(.playing) .meta, body:not(.playing) .pad { display: none; }
 }
+
+/* In orizzontale i giochi con azioni simultanee mantengono croce a sinistra e A/B a destra. */
+@media (orientation: landscape) {
+  .playing.landscape-ok:not(.padless) .gbc { display: grid; grid-template-columns: 128px minmax(0, 1fr) 128px; grid-template-rows: 32px minmax(0, 1fr); gap: 0 4px; }
+  .playing.landscape-ok:not(.padless) .meta { grid-column: 1 / -1; grid-row: 1; margin: 0; }
+  .playing.landscape-ok:not(.padless) .bezel { grid-column: 2; grid-row: 2; height: 100%; }
+  .playing.landscape-ok:not(.padless) .pad { display: contents; }
+  .playing.landscape-ok:not(.padless) .dpad { grid-column: 1; grid-row: 2; align-self: center; justify-self: center; }
+  .playing.landscape-ok:not(.padless) .ab { grid-column: 3; grid-row: 2; align-self: center; justify-self: center; }
+}
