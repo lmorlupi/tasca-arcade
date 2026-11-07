@@ -9,9 +9,9 @@ registerGame({
   flexH: true,
   create(api) {
     const { cv, g, held } = api;
-    const W = cv.width, H = cv.height;
-    const PAD_Y = H - 78, PAD_H = 12, R = 5.5, COLS = 13, BH = 13, TOP = 78, WALL_T = 56, SIDE = 10;
-    const BW = (W - SIDE * 2) / COLS;
+    let W = cv.width, H = cv.height;
+    const PAD_H = 12, R = 5.5, COLS = 13, BH = 13, TOP = 78, WALL_T = 56, SIDE = 10;
+    let PAD_Y = H - 78, BW = (W - SIDE * 2) / COLS;
 
     // Colori e punteggi (w bianco, o arancio, c azzurro, g verde, r rosso, b blu, m viola, y giallo, s argento, G oro)
     const BR = {
@@ -300,6 +300,11 @@ registerGame({
     bricks = []; resetBall();
     return {
       onPress: act, onPointer,
+      onResize(w,h) { const sx=(w-SIDE*2)/(W-SIDE*2),sy=(h-78-WALL_T)/(PAD_Y-WALL_T),oldBW=BW;W=w;H=h;PAD_Y=H-78;BW=(W-SIDE*2)/COLS;pad.x=SIDE+(pad.x-SIDE)*sx;
+        bricks.forEach(b=>{b.x=SIDE+(b.x-SIDE)/oldBW*BW;b.w=BW-1.5;});
+        for(const list of [balls,caps,enemies,bolts]) for(const b of list){b.x=SIDE+(b.x-SIDE)*sx;b.y=WALL_T+(b.y-WALL_T)*sy;if('vx'in b){b.vx*=sx;b.vy*=sy;}}
+        target=null;touching=false;
+      },
       onHide() { if (state === 'play') state = 'pause'; touching = false; },
       update, render,
       debug: { newGame, get layouts() { return LV; }, get theme() { return theme().name; }, get state() { return state; }, get bricks() { return bricks; }, get balls() { return balls; }, get ball() { return balls[0]; }, get pad() { return pad; }, get score() { return score; }, get lives() { return lives; }, get level() { return level; }, get caps() { return caps; }, power, launch, goLevel(n) { level = n; startLevel(); }, get enemies() { return enemies; } },

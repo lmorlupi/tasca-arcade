@@ -14,6 +14,17 @@
 
   let mode = 'boot', inst = null, cur = null, sel = 0, launching = false, audioGeneration = 0;
   const held = {};
+  const TOUCH_ONLY = new Set(['isola-felice','biliardo','spaccaquindici','bolle-pop','brick-rush','galaxy-strike','space-raiders','vortex-orbit','500run','flipper-del-bar','briscola','scopa','tresette','dama','scacchi','serpent','flick-hoops','road-hop','labirinto-di-margot','spike-arena','sfere-ribelli']);
+  const WIDE_GAMES = new Set(['sfere-ribelli','brick-rush','500run','biliardo']);
+  const gameSize = def => {
+    let w = def.size[0], h = def.size[1];
+    if (WIDE_GAMES.has(def.id) && screenEl.clientWidth > screenEl.clientHeight) {
+      h = Math.max(400, screenEl.clientHeight); w = Math.round(h * screenEl.clientWidth / screenEl.clientHeight);
+    } else if (def.flexH && screenEl.clientWidth > 0 && screenEl.clientHeight > 0) h = Math.round(clamp(w * screenEl.clientHeight / screenEl.clientWidth, w * (def.flexMin || 1), w * (TOUCH_ONLY.has(def.id) ? 3 : 2.1)));
+    return [w, h];
+  };
+  const orientGame = () => { try { if (cur && !WIDE_GAMES.has(cur.id)) screen.orientation?.lock?.('portrait').catch(() => {}); else screen.orientation?.unlock?.(); } catch (_) {} };
+  const setPadLabel = () => { const shown = !document.body.classList.contains('padless') || document.body.classList.contains('pad-peek'), b = $('padToggle'); b.setAttribute('aria-pressed', String(shown)); b.setAttribute('aria-label', shown ? 'Nascondi i tasti' : 'Mostra i tasti'); };
 
   // Vibrazione: navigator.vibrate dove c'è, altrimenti l'interruttore nascosto (iPhone, iOS 17.4+).
   const hapLabel = $('hapLabel');
@@ -117,7 +128,8 @@
       set: function (t, p, v) { t[p] = v; return true; },
     });
     return {
-      cvP: cvP, gP: gP, cw: cw, ch: ch,
+      cvP: cvP, gP: gP, get cw() { return cw; }, get ch() { return ch; },
+      setSize: function (w, h) { cw = w; ch = h; this.setK(k); },
       get k() { return k; },
       setK: function (nk) {
         k = nk; cv.width = Math.max(1, Math.round(cw * k)); cv.height = Math.max(1, Math.round(ch * k));
@@ -562,6 +574,7 @@
     audioGeneration++; audio.stop();
     if (inst && inst.destroy) inst.destroy();
     inst = null; cur = null; mode = 'menu';
+    document.body.classList.remove('playing','padless','pad-peek','landscape-ok'); orientGame();
     if (FX) FX.api.clear();
     cv.style.transform = ''; shook = false;
     letSleep();
@@ -580,10 +593,11 @@
     try {
       if (def.tilt) await enableMotion();
       // I giochi "flexH" prendono l'altezza che serve a riempire lo schermo senza fasce ai lati.
-      let cw = def.size[0], ch = def.size[1];
-      if (def.flexH && screenEl.clientWidth > 0 && screenEl.clientHeight > 0) {
-        ch = Math.round(clamp(cw * screenEl.clientHeight / screenEl.clientWidth, cw * (def.flexMin || 1), cw * 2.1));
-      }
+      document.body.classList.add('playing');
+      document.body.classList.toggle('padless', TOUCH_ONLY.has(def.id));
+      document.body.classList.toggle('landscape-ok', WIDE_GAMES.has(def.id));
+      document.body.classList.remove('pad-peek'); setPadLabel();
+      let [cw, ch] = gameSize(def);
       HR = hiResFactory(cv, cw, ch);
       FX = fxFactory(); cv.style.transform = ''; shook = false;
       if (!def.community) HR.setK(pickK(def, cw, ch));
@@ -592,7 +606,7 @@
       screenEl.style.background = def.bg || '';
       dpadEl.classList.toggle('compact', !!def.compactPad);
       cv.classList.remove('off'); menuEl.classList.add('off');
-      cur = def; mode = 'game'; audioGeneration++;
+      cur = def; mode = 'game'; audioGeneration++; orientGame();
       for (const k in held) if (k !== 'a' && k !== 'start') { delete held[k]; lite(k, false); }
       tilt.calibrate();
       if (def.community) { cv.classList.add('off'); }
@@ -758,7 +772,19 @@
     const subs = type === 'move' && e.getCoalescedEvents ? e.getCoalescedEvents() : [];
     if (subs.length > 1) subs.forEach(p => send(p, 'move')); else send(e, type);
   };
-  addEventListener('resize', () => { ptrBox = null; });
+  let resizeFrame = 0;
+  const resizeGame = () => { ptrBox = null; if (!cur || !inst || !HR || cur.community) return;
+    if (WIDE_GAMES.has(cur.id) && inst.onResize) { const [w,h] = gameSize(cur); if (w !== HR.cw || h !== HR.ch) { HR.setSize(w,h); cv.style.aspectRatio = w + ' / ' + h; inst.onResize(w,h); } }
+    HR.setK(pickK(cur, HR.cw, HR.ch));
+  };
+  addEventListener('resize', () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(resizeGame); });
+  $('padToggle').addEventListener('click', () => {
+    if (mode !== 'game') return;
+    if (document.body.classList.contains('padless')) document.body.classList.toggle('pad-peek');
+    else { document.body.classList.add('padless'); document.body.classList.remove('pad-peek'); }
+    for (const k of Object.keys(held)) release(k);
+    setPadLabel(); resizeGame();
+  });
   ['down', 'move', 'up', 'cancel'].forEach(t => cv.addEventListener('pointer' + t, ptr(t)));
 
   // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").
@@ -769,7 +795,7 @@
     if (!req) return;
     try {
       Promise.resolve(req.call(el, { navigationUI: 'hide' }))
-        .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait'))
+        .then(orientGame)
         .catch(() => {});
     } catch (e) {}
   };
@@ -861,10 +887,10 @@
     return false;
   };
   // Solo verticale: dove il browser lo consente blocca lo schermo; altrimenti basta la copertura in CSS e il gioco va in pausa.
-  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(() => {}); } catch (e) {}
+  // L’orientamento viene scelto dalla cartuccia all’avvio.
   try {
     const land = matchMedia('(orientation: landscape) and (max-height: 520px)');
-    const onLand = e => { if (e.matches && mode === 'game' && inst && inst.onHide) { try { inst.onHide(); } catch (err) {} } };
+    const onLand = e => { if (e.matches && mode === 'game' && inst && !WIDE_GAMES.has(cur?.id) && inst.onHide) { try { inst.onHide(); } catch (err) {} } };
     if (land.addEventListener) land.addEventListener('change', onLand); else if (land.addListener) land.addListener(onLand);
   } catch (e) {}
   // Avvio
@@ -963,6 +989,6 @@
       requestAnimationFrame(frame);
     },
     // Aggancio per le prove automatiche.
-    press, release, launch, toMenu, games, get audio() { return audio.debug; }, get mode() { return mode; }, get inst() { return inst; },
+    press, release, launch, toMenu, games, get audio() { return audio.debug; }, get mode() { return mode; }, get inst() { return inst; }, get layout() { return { touchOnly: cur ? TOUCH_ONLY.has(cur.id) : false, landscape: cur ? WIDE_GAMES.has(cur.id) : false, width: HR?.cw, height: HR?.ch }; },
   };
 })();

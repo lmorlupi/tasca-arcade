@@ -3,7 +3,8 @@ registerGame({
   blurb: 'Sfere rimbalzanti invadono piazze, spiagge e luna park! Muoviti con un dito: l’arpione parte da solo e divide le sfere fino a farle sparire. Raccogli scudo e clessidra. A spara, B cambia il fuoco automatico. Quadri e record si salvano.',
   inputs: ['TRASCINA', 'AUTO FUOCO', 'A ARPIONE'], size: [360, 640], flexH: true, bg: '#192944',
   create(api) {
-    const { cv, g, held } = api, W = cv.width, H = cv.height, FLOOR = H - 78, TOP = 60, LEFT = 16, RIGHT = W - 16, TAU = Math.PI * 2;
+    const { cv, g, held } = api, TOP = 60, LEFT = 16, TAU = Math.PI * 2;
+    let W = cv.width, H = cv.height, FLOOR = H - 78, RIGHT = W - 16;
     const RADII = [11, 20, 32, 43], JUMP = [185, 245, 300, 335];
     const THEMES = [
       { name: 'PIAZZA DEI GELSOMINI', sky: ['#6a7eae', '#f8d8b2'], building: '#b8897d', trim: '#f4d7ad', ground: '#7d7484', notes: [72, 76, 79, 76, 74, 72, 69, 0, 71, 74, 79, 74, 72, 0, 67, 0] },
@@ -108,6 +109,7 @@ registerGame({
     function onPointer(e) {
       if (e.type === 'down') {
         if (state === 'title' || state === 'over') { newGame(); return; }
+        if (state === 'play' && e.y >= H - 52) { if (e.x < W / 2) onPress('b'); else shoot(); return; }
         if (state !== 'play' || pointer !== null) return;
         pointer = e.id; target = e.x;
       } else if (e.id === pointer) { if (e.type === 'move' && state === 'play') target = e.x; else if (e.type === 'up' || e.type === 'cancel') { target = null; pointer = null; } }
@@ -144,7 +146,7 @@ registerGame({
       rect(0, FLOOR, W, H - FLOOR, th.ground); rect(0, FLOOR, W, 5, th.trim);
       for (let x = 0; x < W; x += 30) { rect(x, FLOOR + 8, 1, 18, '#ffffff18'); rect(x + 10, FLOOR + 28, 1, 15, '#00000012'); }
       // La fascia inferiore scura lascia leggibili comandi e bonus.
-      rect(0, H - 40, W, 40, '#192944');
+      rect(0, H - 52, W, 52, '#192944');
     }
     function drawBall(b) {
       circle(b.x + 4, FLOOR - 1, b.r * .65, '#14203515');
@@ -182,15 +184,17 @@ registerGame({
       for (const p of particles) { g.globalAlpha = p.life / .45; circle(p.x, p.y, 2.5, p.color); } g.globalAlpha = 1;
       rect(0, 0, W, 56, '#192944'); text('PUNTI ' + score, 12, 16, 13, '#fff2dc', 'left'); text('Q' + level, W / 2, 16, 13); text(Math.ceil(remaining) + 's', W - 12, 16, 13, remaining < 15 ? '#ffb4a5' : '#fff2dc', 'right');
       text('VITE ' + lives, 12, 39, 11, '#c5dbe5', 'left'); text('RECORD ' + hi, W - 12, 39, 11, '#c5dbe5', 'right');
-      text(slow > 0 ? 'SFERE LENTE ' + Math.ceil(slow) + 's' : player.shield > 0 ? 'SCUDO ' + Math.ceil(player.shield) + 's' : 'B: AUTO ' + (auto ? 'ON' : 'OFF') + ' · A: SPARA', W / 2, H - 20, 11);
+      rect(5, H - 49, W / 2 - 8, 46, '#263d55', 6); rect(W / 2 + 3, H - 49, W / 2 - 8, 46, '#263d55', 6);
+      text(slow > 0 ? 'SFERE LENTE ' + Math.ceil(slow) + 's' : player.shield > 0 ? 'SCUDO ' + Math.ceil(player.shield) + 's' : 'AUTO ' + (auto ? 'ON' : 'OFF'), W / 4, H - 26, 11); text('SPARA', W * .75, H - 26, 12);
       if (state === 'intro') panel(['QUADRO ' + level, theme().name, auto ? 'MUOVITI, L’ARPIONE SPARA DA SOLO' : 'MUOVITI E PREMI A PER SPARARE']);
       if (state === 'pause') panel(['PAUSA', 'START PER CONTINUARE']);
       if (state === 'win') panel(['BRAVISSIMO!', 'QUADRO COMPLETATO']);
       if (state === 'hurt') panel(['RIPROVIAMO!', 'VITE ' + lives]);
       if (state === 'over') panel(['PARTITA FINITA', 'PUNTI ' + score, 'TOCCA PER RIPROVARE']);
     }
-    return { update, render, onPress, onPointer, onHide() { if (state === 'play') state = 'pause'; target = null; pointer = null; },
-      debug: { newGame, get state() { return state; }, get level() { return level; }, get score() { return score; }, get lives() { return lives; }, get balls() { return balls; }, get ropes() { return ropes; }, get drops() { return drops; }, get player() { return player; }, get auto() { return auto; }, get remaining() { return remaining; }, get theme() { return theme().name; }, layout: { width: W, height: H, floor: FLOOR, top: TOP, left: LEFT, right: RIGHT } },
+    return { update, render, onPress, onPointer,
+      onResize(w,h) { const sx=(w-LEFT*2)/(W-LEFT*2), sy=(h-78-TOP)/(FLOOR-TOP); player.x=LEFT+(player.x-LEFT)*sx; for(const b of balls){b.x=LEFT+(b.x-LEFT)*sx;b.y=TOP+(b.y-TOP)*sy;b.vy*=Math.sqrt(sy);} for(const d of drops){d.x=LEFT+(d.x-LEFT)*sx;d.y=TOP+(d.y-TOP)*sy;} W=w;H=h;FLOOR=H-78;RIGHT=W-16;for(const b of balls){b.x=Math.max(LEFT+b.r,Math.min(RIGHT-b.r,b.x));b.y=Math.max(TOP+b.r,Math.min(FLOOR-b.r,b.y));}ropes=[];target=null;pointer=null; }, onHide() { if (state === 'play') state = 'pause'; target = null; pointer = null; },
+      debug: { newGame, get state() { return state; }, get level() { return level; }, get score() { return score; }, get lives() { return lives; }, get balls() { return balls; }, get ropes() { return ropes; }, get drops() { return drops; }, get player() { return player; }, get auto() { return auto; }, get remaining() { return remaining; }, get theme() { return theme().name; }, get layout() { return { width: W, height: H, floor: FLOOR, top: TOP, left: LEFT, right: RIGHT }; } },
     };
   },
 });

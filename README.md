@@ -5,6 +5,12 @@ inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **
 
 **Gioca:** <https://lmorlupi.github.io/tasca-arcade/> · su iPhone: Condividi → *Aggiungi alla schermata Home*.
 
+## Schermo e comandi
+
+Nei 21 giochi giocabili col tocco la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Mouse Castle e gli altri giochi che richiedono i pulsanti hanno una fascia comandi più compatta.
+
+**Sfere Ribelli, Brick Rush, 500 Run e Biliardo** si adattano anche all’orizzontale: ruota il telefono durante la partita. Il tavolo di Biliardo diventa orizzontale e i comandi POTENZA/TIRA si spostano a lato. Partita, punteggio e progressi vengono conservati. Negli altri giochi resta l’orientamento verticale.
+
 ## Preferiti e nuovi giochi
 
 - **Sfere Ribelli:** dividi le sfere rimbalzanti con l’arpione, fino a farle sparire. Trascina sullo schermo o usa la croce per muoverti: il fuoco è automatico (B lo attiva/disattiva, A spara). Quattro ambienti, bonus scudo e rallentamento, primi quadri permissivi. START mette in pausa; il quadro raggiunto e il record restano salvati. SELECT sulla schermata iniziale ricomincia dal primo quadro conservando il record.

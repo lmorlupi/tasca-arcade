@@ -10,11 +10,11 @@ registerGame({
   flexMin: 1.15,
   create(api) {
     const { cv, g, held } = api;
-    const W = cv.width, H = cv.height;
-    const TOPH = 44, CY = Math.round(H * 0.40);
+    let W = cv.width, H = cv.height, CY = Math.round(H * 0.40), HALF = W / 2;
+    const TOPH = 44;
     const SEGL = 200, RUMBLE = 3, ROADW = 1700, CAMH = 2000, CAMD = 1.664, DRAW = 140, LANES = 3;
     const MAXS = 12000, ACCEL = MAXS / 5, BRAKE = -MAXS, DECEL = -MAXS / 5, OFFDECEL = -MAXS / 2, OFFLIMIT = MAXS / 4, CENTRI = 0.3;
-    const PLAYERZ = CAMH * CAMD, HALF = W / 2, S_LEN = 1100, NST = 5;
+    const PLAYERZ = CAMH * CAMD, S_LEN = 1100, NST = 5;
     const TAU = Math.PI * 2;
 
     const STAGES = [
@@ -496,6 +496,7 @@ registerGame({
     buildTrack();
     return {
       onPress: act, onPointer,
+      onResize(w,h) { W=w;H=h;CY=Math.round(H*.4);HALF=W/2;steerT=brakeBtn=turboBtn=null; },
       onHide() { if (state === 'play') state = 'pause'; steerT = brakeBtn = turboBtn = null; },
       update, render,
       debug: { newGame, get state() { return state; }, get speed() { return speed; }, get position() { return position; }, get time() { return time; }, set time(v) { time = v; }, set position(v) { position = v; }, get score() { return score; }, get stage() { return stageIdx; }, get playerX() { return playerX; }, get cars() { return cars; }, get segs() { return segments.length; } },

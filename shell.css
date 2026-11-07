@@ -280,3 +280,42 @@ ol.help b { color: #ffe27a; }
 #rotate svg { animation: rot 2.4s ease-in-out infinite; }
 @keyframes rot { 0%, 30% { transform: rotate(90deg); } 70%, 100% { transform: rotate(0deg); } }
 @media (orientation: landscape) and (max-height: 520px) { #rotate { display: flex; } }
+
+/* In partita il campo usa lo spazio disponibile; i comandi touch sostituiscono la pulsantiera. */
+.pad-toggle { display: none !important; }
+.playing .pad-toggle { display: flex !important; }
+.playing .meta { flex: 0 0 auto; gap: 4px; }
+.playing .meta .pill { display: none; }
+.playing .meta button { min-height: 30px; }
+.playing .pad { flex: 0 0 auto; height: calc(var(--e) * 12.4); margin-top: 6px; margin-bottom: 0; }
+.playing .dpad { transform-origin: center; }
+.playing .dpad::before, .playing .ab::before { inset: 0; }
+.playing .ab { transform: rotate(-12deg) scale(.9); }
+.playing .bezel { padding: 2px; border-radius: 5px; }
+.playing .gbc { position: relative; display: flex; flex-direction: column; height: 100dvh; max-height: 100dvh; padding: max(2px, env(safe-area-inset-top)) max(2px, env(safe-area-inset-right)) max(2px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left)); }
+.playing .bezel, .playing .screen { flex: 1 1 auto; min-height: 0; height: auto; }
+.playing .gbc { width: min(100vw, max(400px, calc((100dvh - 176px) * .75 + 8px))); }
+@media (max-width: 520px) { .playing .gbc { width: 100%; } }
+.playing.padless .pad { display: none; }
+/* Il richiamo dei tasti è temporaneo e sovrapposto: la partita non viene ricreata. */
+.playing.padless.pad-peek .pad { display: flex; position: absolute; z-index: 30; left: 0; right: 0; bottom: max(4px, env(safe-area-inset-bottom)); padding: 6px 12px; margin: 0; background: color-mix(in srgb, var(--shell) 88%, transparent); border-radius: 16px 16px 0 0; }
+@media (orientation: landscape) {
+  .playing.landscape-ok .gbc { position: fixed; inset: 0; width: 100%; border-radius: 0; box-shadow: none; }
+  .playing.landscape-ok .meta { justify-content: flex-end; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #rotate { display: none; }
+  .playing:not(.landscape-ok) #rotate { display: flex; }
+}
+.playing .bezel { display: flex; flex-direction: column; }
+.playing .screen { display: flex; align-items: center; justify-content: center; }
+.playing .gbc { position: fixed; top: 0; left: 50%; transform: translateX(-50%); }
+@media (orientation: landscape) {
+  .playing.landscape-ok .gbc { left: 0; transform: none; }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  body:not(.playing) .gbc { height: 100dvh; max-height: 100dvh; width: min(100vw, 640px); display: flex; flex-direction: column; padding: 2px; }
+  body:not(.playing) .bezel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  body:not(.playing) .screen { flex: 1 1 auto; min-height: 0; height: auto; }
+  body:not(.playing) .meta, body:not(.playing) .pad { display: none; }
+}

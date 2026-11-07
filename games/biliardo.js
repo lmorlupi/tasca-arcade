@@ -3,14 +3,17 @@ registerGame({
   blurb: 'Tocca o trascina sul tavolo per mirare, regola POTENZA e tocca TIRA. Puoi anche tirare indietro dalla bianca. Allenamento o Palla 8 arcade a due giocatori. Croce per mirare, tieni A e rilascia; B cambia modalità.',
   inputs: ['TOCCA E MIRA', 'TIRA', '2 GIOCATORI'], size: [360, 640], flexH: true, flexMin: 1.5, bg: '#0b1b20',
   create(api) {
-    const { cv, g, held } = api, W = cv.width, H = cv.height;
-    const FH = Math.min(H - 210, (W - 76) * 2), FW = FH / 2, FX = (W - FW) / 2, FY = 96;
-    const R = FW / 21, PR = R * 1.62, TAU = Math.PI * 2;
-    const pockets = [[FX, FY], [FX + FW, FY], [FX, FY + FH / 2], [FX + FW, FY + FH / 2], [FX, FY + FH], [FX + FW, FY + FH]];
+    const { cv, g, held } = api, TAU = Math.PI * 2;
+    let W=cv.width,H=cv.height,wide=false,FH,FW,FX,FY,R,PR,pockets,controls;
     const colors = ['#fff8df', '#efc34a', '#4c8edc', '#dc665c', '#aa7ac8', '#ea944b', '#53a67f', '#a9536c', '#232b37'];
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-    const controls = { power: { x: 12, y: H - 84, w: W - 126, h: 68 }, fire: { x: W - 104, y: H - 84, w: 92, h: 68 } };
+    function geometry(){wide=W>H;FH=wide?Math.min(H-48,(W-220)/2):Math.min(H-210,(W-76)*2);FW=wide?FH*2:FH/2;FX=wide?24:(W-FW)/2;FY=wide?(H-FH)/2:96;R=Math.min(FW,FH)/21;PR=R*1.62;
+      pockets=wide?[[FX,FY],[FX+FW/2,FY],[FX+FW,FY],[FX,FY+FH],[FX+FW/2,FY+FH],[FX+FW,FY+FH]]:[[FX,FY],[FX+FW,FY],[FX,FY+FH/2],[FX+FW,FY+FH/2],[FX,FY+FH],[FX+FW,FY+FH]];
+      controls=wide?{power:{x:W-174,y:H-164,w:162,h:68},fire:{x:W-174,y:H-84,w:162,h:68}}:{power:{x:12,y:H-84,w:W-126,h:68},fire:{x:W-104,y:H-84,w:92,h:68}};
+    }
+    geometry();
     const inside = (e, box) => e.x >= box.x && e.x <= box.x + box.w && e.y >= box.y && e.y <= box.y + box.h;
+    const spot=(along,across=.5)=>wide?{x:FX+FW*along,y:FY+FH*across}:{x:FX+FW*across,y:FY+FH*along};
     let balls = [], mode = 'practice', state = 'setup', resume = 'aim', player = 0, groups = [null, null];
     let angle = -Math.PI / 2, power = 0.55, charging = false, chargeTime = 0, turnTime = 0, drag = null, elapsed = 0, shots = 0, points = 0;
     let shot = null, message = '', messageTime = 0, winner = null, pauseTouch = null, hi = api.store.get('hi', 0);
@@ -27,19 +30,19 @@ registerGame({
         const a = i * TAU / 24, px = x + Math.cos(a) * radius, py = y + Math.sin(a) * radius;
         if (validSpot(px, py, ignore)) return { x: px, y: py };
       }
-      return { x: FX + FW / 2, y: FY + FH * 0.8 };
+      return spot(.8);
     };
     const respot = id => {
-      const b = balls.find(b => b.id === id), p = findSpot(FX + FW / 2, FY + FH * (id ? 0.35 : 0.76), id);
+      const b = balls.find(b => b.id === id), at=spot(id?.35:.76), p = findSpot(at.x,at.y,id);
       Object.assign(b, p, { vx: 0, vy: 0, active: true });
     };
     const rack = () => {
-      balls = [{ id: 0, x: FX + FW / 2, y: FY + FH * 0.76, vx: 0, vy: 0, active: true }];
+      balls = [{ id: 0, ...spot(.76), vx: 0, vy: 0, active: true }];
       const ids = [1, 9, 2, 10, 8, 3, 11, 4, 12, 5, 6, 13, 7, 14, 15]; let at = 0;
-      for (let row = 0; row < 5; row++) for (let col = 0; col <= row; col++) balls.push({ id: ids[at++], x: FX + FW / 2 + (col - row / 2) * (R * 2 + 0.3), y: FY + FH * 0.37 - row * (R * Math.sqrt(3) + 0.3), vx: 0, vy: 0, active: true });
+      for (let row = 0; row < 5; row++) for (let col = 0; col <= row; col++) balls.push({ id: ids[at++], ...spot(.37-row*(R*Math.sqrt(3)+.3)/(wide?FW:FH),.5+(col-row/2)*(R*2+.3)/(wide?FH:FW)), vx: 0, vy: 0, active: true });
     };
     const newGame = nextMode => {
-      mode = nextMode || mode; rack(); state = 'aim'; player = 0; groups = [null, null]; angle = -Math.PI / 2;
+      mode = nextMode || mode; rack(); state = 'aim'; player = 0; groups = [null, null]; angle = wide ? Math.PI : -Math.PI / 2;
       shots = 0; points = 0; shot = null; elapsed = 0; winner = null; drag = null; charging = false; power = 0.65;
       notice('1 MIRA · 2 POTENZA · 3 TIRA', 5);
     };
@@ -200,11 +203,14 @@ registerGame({
     };
     const render = () => {
       const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#17352f'); bg.addColorStop(1, '#07131b'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+      if(wide){const x=W-174;text('BILIARDO',x,25,22,'#83ddb1');text(mode==='practice'?'ALLENAMENTO':'PALLA 8',x,52,12);text('COLPI '+shots,x,80,12);text('PUNTI '+points,x,105,12,'#ffe27a');if(mode==='duel')text('TURNO G'+(player+1),x,132,12,'#ffe27a');}
+      else {
       text('BILIARDO', 16, 25, 25, '#83ddb1'); text(mode === 'practice' ? 'ALLENAMENTO' : 'PALLA 8 ARCADE', W - 16, 25, 11, '#d8e6de', 'right');
       if (mode === 'practice') { text('COLPI ' + shots + ' · BUCHE ' + balls.filter(b => b.id && !b.active).length + '/15', 16, 49, 12); text('PUNTI ' + points, W - 16, 49, 12, '#ffe27a', 'right'); }
       else { text('G1 ' + (groups[0] ? groups[0].toUpperCase() + ' ' + remaining(groups[0]) : 'APERTO'), 16, 49, 12, player === 0 ? '#ffe27a' : '#91ada3'); text('G2 ' + (groups[1] ? groups[1].toUpperCase() + ' ' + remaining(groups[1]) : 'APERTO'), W - 16, 49, 12, player === 1 ? '#ffe27a' : '#91ada3', 'right'); }
       const status = state === 'rolling' ? 'ASPETTA CHE LE PALLE SI FERMINO' : messageTime > 0 ? message : state === 'place' ? 'TOCCA IL TAVOLO PER LA BIANCA' : 'MIRA SUL TAVOLO · POTENZA · TIRA';
       text(status, W / 2, 68, 11, '#bdd3cb', 'center');
+      }
       const wood = g.createLinearGradient(FX - 20, 0, FX + FW + 20, 0); wood.addColorStop(0, '#533728'); wood.addColorStop(0.35, '#9f7147'); wood.addColorStop(1, '#4b3028');
       round(FX - 22, FY - 20, FW + 44, FH + 44, 18, '#050c12'); round(FX - 20, FY - 22, FW + 40, FH + 44, 17, wood);
       round(FX - 9, FY - 9, FW + 18, FH + 18, 9, '#0c443e');
@@ -232,7 +238,7 @@ registerGame({
       const canFire = ready || state === 'place';
       round(fc.x, fc.y, fc.w, fc.h, 10, canFire ? drag?.kind === 'fire' ? '#afc76f' : '#e8d187' : '#243e40');
       text(state === 'place' ? 'POSA' : 'TIRA', fc.x + fc.w / 2, fc.y + fc.h / 2, 22, canFire ? '#152b2c' : '#708d86', 'center');
-      text('CROCE: MIRA FINE · A: TIENI/RILASCIA', W / 2, H - 6, 10, '#bdd3cb', 'center');
+      if(!wide)text('MIRA SUL TAVOLO · POTENZA · TIRA', W/2,H-6,10,'#bdd3cb','center');
       if (state === 'setup') {
         round(12, FY + 18, W - 24, FH - 36, 14, '#071a23ee');
         text('UNA PARTITA AL BAR', W / 2, H / 2 - 84, 21, '#ffe27a', 'center');
@@ -250,6 +256,10 @@ registerGame({
     rack();
     return {
       render, onPointer,
+      onResize(w,h){const old={wide,FX,FY,FW,FH,R},aimX=Math.cos(angle),aimY=Math.sin(angle);W=w;H=h;geometry();
+        for(const b of balls){let x=(b.x-old.FX)/old.FW,y=(b.y-old.FY)/old.FH,vx=b.vx/old.FW,vy=b.vy/old.FH;if(old.wide!==wide){[x,y]=wide?[y,1-x]:[1-y,x];[vx,vy]=wide?[vy,-vx]:[-vy,vx];}b.x=FX+x*FW;b.y=FY+y*FH;b.vx=vx*FW;b.vy=vy*FH;}
+        if(old.wide!==wide)angle=Math.atan2(wide?-aimX:aimX,wide?aimY:-aimY);drag=null;charging=false;pauseTouch=null;
+      },
       update(dt) {
         if (state === 'pause' || state === 'setup' || state === 'over') return;
         messageTime = Math.max(0, messageTime - dt);
@@ -272,7 +282,7 @@ registerGame({
       },
       onRelease(k) { if (k === 'a' && charging) { charging = false; fire(power); } },
       onHide() { if (['aim', 'rolling', 'place'].includes(state)) pause(); },
-      debug: { get balls() { return balls.map(b => ({ ...b })); }, get state() { return state; }, get mode() { return mode; }, get player() { return player; }, get groups() { return groups.slice(); }, get shot() { return shot && { ...shot, potted: shot.potted.slice() }; }, get shots() { return shots; }, get score() { return points; }, get winner() { return winner; }, get aim() { return { angle, power, charging, gesture: drag?.kind || null }; }, get layout() { return { width: W, height: H, x: FX, y: FY, w: FW, h: FH, radius: R, pockets, controls: { power: { ...controls.power }, fire: { ...controls.fire } } }; } },
+      debug: { get balls() { return balls.map(b => ({ ...b })); }, get state() { return state; }, get mode() { return mode; }, get player() { return player; }, get groups() { return groups.slice(); }, get shot() { return shot && { ...shot, potted: shot.potted.slice() }; }, get shots() { return shots; }, get score() { return points; }, get winner() { return winner; }, get aim() { return { angle, power, charging, gesture: drag?.kind || null }; }, get layout() { return { width: W, height: H, landscape:wide, x: FX, y: FY, w: FW, h: FH, radius: R, pockets, controls: { power: { ...controls.power }, fire: { ...controls.fire } } }; } },
     };
   },
 });
