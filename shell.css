@@ -289,6 +289,9 @@ ol.help b { color: #ffe27a; }
 .playing .meta button { min-height: 30px; }
 .playing .pad { flex: 0 0 auto; height: calc(var(--e) * 12.4); margin-top: 6px; margin-bottom: 0; }
 .playing .dpad { transform-origin: center; }
+/* Mouse Castle: frecce e superficie touch più grandi per camminare e salire. */
+.playing.large-pad .dpad { transform: scale(1); flex-shrink: 0; }
+.playing.large-pad .pad { height: calc(var(--e) * 16.8); }
 .playing .dpad::before, .playing .ab::before { inset: 0; }
 .playing .ab { transform: rotate(-12deg) scale(.9); }
 .playing .bezel { padding: 2px; border-radius: 5px; }
@@ -328,4 +331,5 @@ ol.help b { color: #ffe27a; }
   .playing.landscape-ok:not(.padless) .pad { display: contents; }
   .playing.landscape-ok:not(.padless) .dpad { grid-column: 1; grid-row: 2; align-self: center; justify-self: center; }
   .playing.landscape-ok:not(.padless) .ab { grid-column: 3; grid-row: 2; align-self: center; justify-self: center; transform: translateX(-6px) rotate(-12deg) scale(.9); }
+  .playing.landscape-ok.large-pad:not(.padless) .gbc { grid-template-columns: 168px minmax(0, 1fr) 128px; }
 }

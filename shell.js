@@ -583,7 +583,7 @@
     audioGeneration++; audio.stop();
     if (inst && inst.destroy) inst.destroy();
     inst = null; cur = null; mode = 'menu';
-    document.body.classList.remove('playing','padless','pad-peek','landscape-ok'); orientGame();
+    document.body.classList.remove('playing','padless','pad-peek','landscape-ok','large-pad'); orientGame();
     if (FX) FX.api.clear();
     cv.style.transform = ''; shook = false;
     letSleep();
@@ -606,6 +606,7 @@
       document.body.classList.add('playing');
       document.body.classList.toggle('padless', TOUCH_ONLY.has(def.id));
       document.body.classList.toggle('landscape-ok', WIDE_GAMES.has(def.id));
+      document.body.classList.toggle('large-pad', !!def.largePad);
       document.body.classList.remove('pad-peek'); setPadLabel();
       let [cw, ch] = gameSize(def);
       HR = hiResFactory(cv, cw, ch);
