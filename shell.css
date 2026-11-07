@@ -316,7 +316,7 @@ ol.help b { color: #ffe27a; }
 .playing .bezel { display: flex; flex-direction: column; }
 .playing .screen { display: flex; align-items: center; justify-content: center; }
 .playing .gbc { position: fixed; top: 0; left: 50%; transform: translateX(-50%); }
-/* Il puzzle segue i bordi della finestra anche quando Safari ricalcola l'altezza dinamica. */
+/* I giochi a tutta altezza seguono i bordi anche quando Safari ricalcola il viewport. */
 .playing.fill-height .gbc { bottom: 0; height: auto; max-height: none; }
 @media (orientation: landscape) {
   .playing.landscape-ok .gbc { left: 0; transform: none; }
