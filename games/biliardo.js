@@ -1,13 +1,13 @@
 registerGame({
   id: 'biliardo', title: 'BILIARDO', license: 'MIT', color: '#59c48f',
-  blurb: "Mira assistita e buche più grandi: fare centro è più facile.",
+  blurb: "Mira, dosa la forza e imbuca con un leggero aiuto alla direzione.",
   inputs: ['MIRA ASSISTITA', 'TIRA', '2 GIOCATORI'], size: [360, 640], flexH: true, flexMin: 1.5, fillHeight: true, bg: '#0b1b20',
   create(api) {
     const { cv, g, held } = api, TAU = Math.PI * 2;
     let W=cv.width,H=cv.height,wide=false,FH,FW,FX,FY,R,PR,pockets,controls;
     const colors = ['#fff8df', '#efc34a', '#4c8edc', '#dc665c', '#aa7ac8', '#ea944b', '#53a67f', '#a9536c', '#232b37'];
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-    function geometry(){wide=W>H;FH=wide?Math.min(H-48,(W-220)/2):Math.min(H-170,(W-64)*2);FW=wide?FH*2:FH/2;FX=wide?24:(W-FW)/2;FY=wide?(H-FH)/2:76;R=Math.min(FW,FH)/21;PR=R*2.05;
+    function geometry(){wide=W>H;FH=wide?Math.min(H-48,(W-220)/2):Math.min(H-170,(W-64)*2);FW=wide?FH*2:FH/2;FX=wide?24:(W-FW)/2;FY=wide?(H-FH)/2:76;R=Math.min(FW,FH)/21;PR=R*1.62;
       pockets=wide?[[FX,FY],[FX+FW/2,FY],[FX+FW,FY],[FX,FY+FH],[FX+FW/2,FY+FH],[FX+FW,FY+FH]]:[[FX,FY],[FX+FW,FY],[FX,FY+FH/2],[FX+FW,FY+FH/2],[FX,FY+FH],[FX+FW,FY+FH]];
       controls=wide?{power:{x:W-174,y:H-164,w:162,h:68},fire:{x:W-174,y:H-84,w:162,h:68}}:{power:{x:12,y:H-64,w:W-126,h:52},fire:{x:W-104,y:H-64,w:92,h:52}};
     }
@@ -44,7 +44,7 @@ registerGame({
           const dx = ghost.x - cue.x, dy = ghost.y - cue.y, travel = Math.hypot(dx, dy);
           if (travel < R || (dx * ux + dy * uy) / travel < .28) continue;
           const direction = Math.atan2(dy, dx), error = Math.abs(Math.atan2(Math.sin(direction - raw), Math.cos(direction - raw)));
-          if (error > 8 * Math.PI / 180 || !clearPath(cue, ghost, [0, b.id]) || !clearPath(b, { x: p[0], y: p[1] }, [0, b.id])) continue;
+          if (error > 4 * Math.PI / 180 || !clearPath(cue, ghost, [0, b.id]) || !clearPath(b, { x: p[0], y: p[1] }, [0, b.id])) continue;
           const quality = error + travel * .00002 + distance * .00001;
           if (!best || quality < best.quality) best = { angle: direction, ball: b.id, target: b, pocket: p, ghost, quality };
         }
@@ -284,7 +284,7 @@ registerGame({
       if (state === 'setup') {
         round(12, FY + 18, W - 24, FH - 36, 14, '#071a23ee');
         text('UNA PARTITA AL BAR', W / 2, H / 2 - 84, 21, '#ffe27a', 'center');
-        text('BUCHE AMPIE · MIRA ASSISTITA', W / 2, H / 2 - 51, 12, '#bdd3cb', 'center');
+        text('PRECISIONE · FORZA · MIRA ASSISTITA', W / 2, H / 2 - 51, 11, '#bdd3cb', 'center');
         round(38, H / 2 - 8, W - 76, 53, 10, '#39765f'); text('ALLENAMENTO', W / 2, H / 2 + 10, 18, '#fff', 'center'); text('IMBUCA LE COLORATE, POI LA 8', W / 2, H / 2 + 30, 11, '#dcf5e7', 'center');
         round(38, H / 2 + 62, W - 76, 53, 10, '#4d5274'); text('2 GIOCATORI', W / 2, H / 2 + 80, 18, '#fff', 'center'); text('PIENE CONTRO RIGATE · A TURNI', W / 2, H / 2 + 100, 11, '#e9eaff', 'center');
       } else if (state === 'pause' || state === 'over') {
