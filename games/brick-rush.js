@@ -3,7 +3,7 @@ registerGame({
   title: 'BRICK RUSH',
   color: '#e5413b',
   blurb: 'Rompi tutti i mattoncini con la palla. Dai mattoni cadono capsule: S rallenta, C attacca la palla, E allarga, D fa tre palle, L spara laser, B apre l\'uscita, P una vita. I mattoni d\'argento vogliono più colpi, quelli d\'oro non si rompono. Trascina per muovere, tocca per lanciare.',
-  inputs: ['CROCE + A/B', 'LANCIO / LASER', 'TOCCO'],
+  inputs: ['TRASCINA', 'TOCCO: LANCIO / LASER'],
   size: [360, 640],
   bg: '#0b1020',
   flexH: true,

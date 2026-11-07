@@ -146,18 +146,21 @@ registerGame({
       const sp = 72;
       const dx = (held.right ? 1 : 0) - (held.left ? 1 : 0), dy = (held.down ? 1 : 0) - (held.up ? 1 : 0);
       let want = null;
-      if (dy && (P.lad || snapLadder(P, dy))) want = dy < 0 ? 'u' : 'd';
-      if (dx && (!want || (P.lad && options(P).includes(dx < 0 ? 'l' : 'r')))) want = dx < 0 ? 'l' : 'r';
-      // su una scala, a metà, la croce orizzontale non fa nulla: si continua a salire o scendere se richiesto
-      if (want === 'l' || want === 'r') {
-        if (P.lad && !options(P).includes(want)) want = dy ? (dy < 0 ? 'u' : 'd') : null;
-      }
+      // Sui piani la direzione orizzontale prevale anche se il pollice preme una diagonale.
+      if (dx && (!P.lad || floorOnLadder(P.lad, P.y) >= 0)) want = dx < 0 ? 'l' : 'r';
+      else if (dy && (P.lad || snapLadder(P, dy))) want = dy < 0 ? 'u' : 'd';
+      // Destra/sinistra a metà scala completano il tratto fino al prossimo piano, poi girano.
+      else if (dx && P.lad) want = P.vdir < 0 ? 'u' : 'd';
       if (!want) return;
-      if (want === 'l' || want === 'r') P.face = want === 'l' ? -1 : 1; else P.vdir = want === 'u' ? -1 : 1;
       P.walk += dt * 10;
       let d = sp * dt;
       for (let k = 0; k < 3 && d > 0.01; k++) {
+        if (dx && P.lad) {
+          const f = floorOnLadder(P.lad, P.y);
+          if (f >= 0) { P.y = Y(f); want = dx < 0 ? 'l' : 'r'; }
+        }
         if (!options(P).includes(want)) break;
+        if (want === 'l' || want === 'r') P.face = want === 'l' ? -1 : 1; else P.vdir = want === 'u' ? -1 : 1;
         d = step(P, want, d);
       }
     };
