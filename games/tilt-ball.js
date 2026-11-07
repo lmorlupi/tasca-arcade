@@ -2,7 +2,7 @@ registerGame({
   id: 'tilt-ball',
   title: 'TILT BALL',
   color: '#4cc24a',
-  blurb: 'Inclina l\'iPhone per far rotolare la sfera nel labirinto. Evita i buchi, raccogli le monete, raggiungi l\'uscita. A azzera l\'inclinazione.',
+  blurb: "Inclina il telefono, evita i buchi e guida la sfera fino all’uscita.",
   inputs: ['INCLINA', 'VIBRAZIONE', 'D-PAD'],
   size: [468, 784],
   bg: '#141a2e',

@@ -5,7 +5,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#8a76b8',
-  blurb: 'Scacchi contro il telefono, con arrocco, presa en passant e promozione (la pedina diventa regina). Tocca un pezzo e poi la casella dove vuoi spostarlo; i puntini verdi mostrano le mosse possibili. Tre livelli di difficoltà.',
+  blurb: "Scacchi contro il telefono, con tre livelli di difficoltà.",
   inputs: ['TOCCO', 'SCACCHIERA'],
   size: [360, 600],
   bg: '#1a1228',

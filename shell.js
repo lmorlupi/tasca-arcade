@@ -583,7 +583,7 @@
     audioGeneration++; audio.stop();
     if (inst && inst.destroy) inst.destroy();
     inst = null; cur = null; mode = 'menu';
-    document.body.classList.remove('playing','padless','pad-peek','landscape-ok','large-pad'); orientGame();
+    document.body.classList.remove('playing','padless','pad-peek','landscape-ok','large-pad','fill-height'); orientGame();
     if (FX) FX.api.clear();
     cv.style.transform = ''; shook = false;
     letSleep();
@@ -607,6 +607,7 @@
       document.body.classList.toggle('padless', TOUCH_ONLY.has(def.id));
       document.body.classList.toggle('landscape-ok', WIDE_GAMES.has(def.id));
       document.body.classList.toggle('large-pad', !!def.largePad);
+      document.body.classList.toggle('fill-height', !!def.fillHeight);
       document.body.classList.remove('pad-peek'); setPadLabel();
       let [cw, ch] = gameSize(def);
       HR = hiResFactory(cv, cw, ch);
@@ -791,10 +792,12 @@
   };
   let resizeFrame = 0;
   const resizeGame = () => { ptrBox = null; if (!cur || !inst || !HR || cur.community) return;
-    if (WIDE_GAMES.has(cur.id) && inst.onResize) { const [w,h] = gameSize(cur); if (w !== HR.cw || h !== HR.ch) { HR.setSize(w,h); cv.style.aspectRatio = w + ' / ' + h; inst.onResize(w,h); } }
+    if ((WIDE_GAMES.has(cur.id) || cur.fillHeight) && inst.onResize) { const [w,h] = gameSize(cur); if (w !== HR.cw || h !== HR.ch) { HR.setSize(w,h); cv.style.aspectRatio = w + ' / ' + h; inst.onResize(w,h); } }
     HR.setK(pickK(cur, HR.cw, HR.ch));
   };
-  addEventListener('resize', () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(resizeGame); });
+  const scheduleResize = () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(resizeGame); };
+  addEventListener('resize', scheduleResize);
+  window.visualViewport?.addEventListener('resize', scheduleResize);
   const togglePad = () => {
     if (mode !== 'game') return;
     if (document.body.classList.contains('padless')) document.body.classList.toggle('pad-peek');

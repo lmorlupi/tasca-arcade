@@ -5,7 +5,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#2a6fb3',
-  blurb: 'Scopa a due. Gioca una carta e prendi dal tavolo quelle dello stesso valore, o più carte che sommate fanno quel valore. Svuota il tavolo per fare scopa. Contano: carte, denari, settebello, primiera e scope. Tocca una carta per sceglierla, di nuovo per giocarla.',
+  blurb: "Prendi le carte dal tavolo e fai scopa contro il telefono.",
   inputs: ['TOCCO', 'CARTE'],
   size: [360, 600],
   bg: '#0e2a4a',

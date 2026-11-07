@@ -3,7 +3,7 @@ registerGame({
   title: 'MARGOT ADVENTURES',
   color: '#d98b4a',
   art: 'margot',
-  blurb: 'In ricordo di Margot, gatta affettuosa e curiosa che sapeva aprire tutte le porte. Salta tra i mobili, apri le porte saltando sulla maniglia, caccia i grilli, fai cadere le palline dell\'albero e arriva alla ciotola. A salta, B corre.',
+  blurb: "In ricordo di Margot: salta sui mobili, apri le porte e raggiungi la ciotola.",
   inputs: ['D-PAD', '2 POLLICI', 'SALTO'],
   size: [480, 540],
   flexH: true,

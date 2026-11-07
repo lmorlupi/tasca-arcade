@@ -2,7 +2,7 @@ registerGame({
   id: 'road-hop',
   title: 'ROAD HOP',
   color: '#f5d31c',
-  blurb: 'Porta il pulcino dall\'altra parte: schiva le auto, salta sui tronchi e raggiungi le quattro tane. Usa la croce nelle quattro direzioni. Restano anche swipe e tocco per andare avanti.',
+  blurb: "Schiva le auto, salta sui tronchi e porta il pulcino nelle tane.",
   inputs: ['CROCE DIREZIONALE', 'SWIPE', 'TOCCO'],
   size: [360, 640],
   bg: '#0b1020',

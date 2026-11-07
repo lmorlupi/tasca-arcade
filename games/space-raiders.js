@@ -2,7 +2,7 @@ registerGame({
   id: 'space-raiders',
   title: 'SPACE RAIDERS',
   color: '#4cc24a',
-  blurb: 'Ondate di invasori scendono a gruppi. Croce per guidare la nave, A o B per sparare: puoi muoverti e fare fuoco insieme. Ripara dietro gli scudi. Resta disponibile anche il trascinamento con fuoco automatico.',
+  blurb: "Ferma le ondate di invasori e riparati dietro gli scudi.",
   inputs: ['CROCE + A/B', 'SCUDI', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#0b1020',

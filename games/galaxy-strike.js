@@ -2,7 +2,7 @@ registerGame({
   id: 'galaxy-strike',
   title: 'GALAXY STRIKE',
   color: '#3d5fe0',
-  blurb: 'Formazioni, picchiate e raggio traente: libera la nave catturata per avere il doppio fuoco. Nei quadri avanzati arrivano scorpioni, razze e Galboss in terzetti; nei bonus anche libellule, zanzare e astronavi blu. Croce per muoverti, A o B per sparare; resta anche il trascinamento con fuoco automatico.',
+  blurb: "Abbatti gli alieni e libera la nave catturata per il doppio fuoco.",
   inputs: ['CROCE + A/B', '9 NEMICI', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#070b18',

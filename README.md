@@ -12,6 +12,7 @@ Dall’icona installata sulla schermata Home l’app richiede la modalità fulls
 ## Schermo e comandi
 
 La Home del catalogo non mostra la croce direzionale né i pulsanti A/B: scegli il gioco toccando la sua scheda. I comandi di gioco compaiono solo nelle partite che li usano.
+Ogni gioco ha una descrizione breve, di una sola frase. Spaccaquindici estende il riquadro fino al bordo inferiore e adatta il campo ai cambi di altezza della finestra, conservando la partita.
 
 Nei 12 giochi giocabili col tocco, incluso Brick Rush, la pulsantiera scompare per lasciare più spazio alla partita. **TASTI** la richiama temporaneamente; **MENU**, **SELECT** e **START** restano disponibili. Tutti gli arcade con movimento e tiro/colpo simultanei, compresi Road Hop, Serpent, Labirinto di Margot, Flipper, Space Raiders, Galaxy Strike, Vortex Orbit, Sfere Ribelli e Spike Arena, e 500 Run con freno/turbo, mantengono la pulsantiera per la precisione dei comandi, insieme ai platform e agli altri giochi con azioni dedicate. I quattro tasti direzionali e le aree di tocco sono più grandi del **30%**; Mouse Castle conserva la croce già ingrandita. In orizzontale la croce resta a sinistra e A/B a destra, con spazio dedicato ai comandi.
 

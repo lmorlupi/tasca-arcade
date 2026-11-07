@@ -6,7 +6,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#c98a52',
-  blurb: 'La dama italiana contro il telefono. Muovi in diagonale, la presa è obbligatoria e vale la maggioranza. Le pedine vanno solo avanti e non mangiano la dama; arrivata in fondo diventa dama. Tocca una tua pedina e poi dove vuoi andare.',
+  blurb: "Sfida il telefono a dama italiana, con prese obbligatorie.",
   inputs: ['TOCCO', 'SCACCHIERA'],
   size: [360, 600],
   bg: '#2a1a10',

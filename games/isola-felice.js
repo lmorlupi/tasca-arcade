@@ -1,7 +1,7 @@
 // Un piccolo mondo originale, disegnato interamente a mano sul canvas. Nessuna rete o attesa giornaliera.
 registerGame({
   id: 'isola-felice', title: 'ISOLA FELICE', license: 'MIT', color: '#7ebf9e',
-  blurb: 'La tua piccola vita sull’isola: animali, pesca, orto e una casa da arredare. Quattro luoghi da scoprire, senza fretta. Tocca per camminare e raccogliere; A agisce, B apre lo zaino, START il diario. Salvataggio automatico.',
+  blurb: "Esplora l’isola, pesca, coltiva e arreda la tua casa.",
   inputs: ['TOCCA ED ESPLORA', '4 AMBIENTI', 'SALVATAGGIO'], size: [400, 640], flexH: true, flexMin: 1.1, bg: '#9cdbd5',
   create(api) {
     const { cv, g, held } = api, W = cv.width, H = cv.height, T = 40, N = 26, WORLD = N * T, YS = 0.76, TAU = Math.PI * 2;

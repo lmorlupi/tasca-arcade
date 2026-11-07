@@ -1,7 +1,7 @@
 // Tetris a colori: controlli espliciti, caduta lenta e aiuti moderni.
 registerGame({
   id:'tetris-color',title:'TETRIS COLOR',license:'MIT',color:'#54d5ea',bg:'#111a30',
-  blurb:'Tetris moderno a colori, più facile e con tutti i tasti. Croce sinistra/destra: sposta. Giù: scendi. A e B: ruota. Su: posa subito. Ombra di atterraggio, partenza lenta, riserva con SELECT e salvataggio automatico.',
+  blurb:"Incastra i blocchi a colori e completa le righe, con partenza facile.",
   inputs:['CROCE SPOSTA','A/B RUOTA','PARTENZA LENTA'],size:[360,660],flexH:true,flexMin:1.6,
   create(api){
     const {cv,g,held}=api,W=cv.width,H=cv.height,C=10,R=20;

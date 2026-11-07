@@ -2,7 +2,7 @@ registerGame({
   id: '500run',
   title: '500 RUN',
   color: '#2a9d6f',
-  blurb: 'Corri in una cinquecento lungo l\'Italia: la costiera, Roma, la Toscana. Supera le auto e arriva ai punti di controllo in tempo. Croce per sterzare, A per il turbo, B per frenare; l’acceleratore è automatico. Resta anche lo sterzo col dito.',
+  blurb: "Corri sulle strade italiane, supera le auto e arriva in tempo.",
   inputs: ['CROCE + A/B', 'A TURBO', 'B FRENO'],
   size: [360, 640],
   bg: '#1a1840',

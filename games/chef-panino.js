@@ -2,7 +2,7 @@ registerGame({
   id: 'chef-panino',
   title: 'CHEF PANINO',
   color: '#e5a13b',
-  blurb: 'Cammina sopra pane, insalata e polpetta per farli cadere di piano in piano fino ai piatti. Pomodoro, fungo e peperoncino ti inseguono: schiacciali sotto gli strati o fermali con il pepe.',
+  blurb: "Cammina sugli ingredienti per comporre i panini e ferma i nemici col pepe.",
   inputs: ['D-PAD', 'A/B PEPE'],
   cardinalPad: true,
   size: [352, 576],

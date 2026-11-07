@@ -2,7 +2,7 @@ registerGame({
   id: 'spike-arena',
   title: 'SPIKE ARENA',
   color: '#d94a3a',
-  blurb: 'Pallavolo vista di lato, tre contro tre. Ricevi, alza e schiaccia: tocca al momento giusto quando compare il cerchio sulla palla. Tocca in alto o in basso sul campo avversario per mirare la schiacciata; tocca quando schiaccia l\'avversario per saltare a muro. Si gioca a 15 punti, al meglio dei 3 set.',
+  blurb: "Ricevi, alza e schiaccia in una partita di pallavolo tre contro tre.",
   inputs: ['A/B A TEMPO', 'MIRA COL DITO'],
   size: [360, 640],
   bg: '#10131c',

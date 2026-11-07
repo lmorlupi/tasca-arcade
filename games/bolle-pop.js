@@ -1,6 +1,6 @@
 registerGame({
   id: 'bolle-pop', title: 'BOLLE POP', license: 'MIT', color: '#69d6ef',
-  blurb: 'Mira, rilascia e unisci almeno tre bolle dello stesso colore. Usa le sponde, fai cadere i gruppi sospesi. B scambia la prossima bolla.',
+  blurb: "Unisci tre bolle dello stesso colore e fai cadere i gruppi sospesi.",
   inputs: ['TOCCO', 'D-PAD', 'A SPARA · B SCAMBIA'], size: [360, 620], flexH: true, flexMin: 1.4, bg: '#0c1730',
   create(api) {
     const { cv, g, held } = api, W = cv.width, H = cv.height;

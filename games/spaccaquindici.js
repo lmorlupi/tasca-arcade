@@ -1,10 +1,11 @@
 registerGame({
   id: 'spaccaquindici', title: 'SPACCAQUINDICI', license: 'MIT', color: '#f5b95f',
-  blurb: 'Rimetti in ordine le 15 tessere. Tocca o scorri; prova anche il 3×3 e il puzzle con Margot. B annulla. La partita resta salvata.',
-  inputs: ['TOCCO', 'SWIPE', 'D-PAD'], size: [360, 600], flexH: true, flexMin: 1.35, bg: '#151326',
+  blurb: "Rimetti in ordine le tessere, anche 3×3 o con la foto di Margot.",
+  inputs: ['TOCCO', 'SWIPE', 'D-PAD'], size: [360, 600], flexH: true, flexMin: 1.35, fillHeight: true, bg: '#151326',
   create(api) {
-    const { cv, g } = api, W = cv.width, H = cv.height;
-    const S = Math.min(W - 28, H - 180), X = (W - S) / 2, Y = 90, GAP = 6;
+    const { cv, g } = api;
+    let W = cv.width, H = cv.height, S = Math.min(W - 28, H - 180), X = (W - S) / 2;
+    const Y = 90, GAP = 6;
     const photo = new Image(); photo.src = 'art/margot-face.jpg';
     let n = 4, picture = false, board = [], positions = {}, history = [], moves = 0, elapsed = 0;
     let state = 'play', pointer = null, hint = 0, best = 0, score = 0;
@@ -128,6 +129,10 @@ registerGame({
     let saveClock = 0;
     return {
       render, onPointer,
+      onResize(w, h) {
+        W = w; H = h; S = Math.min(W - 28, H - 180); X = (W - S) / 2; pointer = null;
+        board.forEach((v, i) => { positions[v] = target(i); });
+      },
       update(dt) {
         if (state === 'play') { elapsed += dt; saveClock += dt; if (saveClock > 5) { saveClock = 0; save(); } }
         hint = Math.max(0, hint - dt);

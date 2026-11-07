@@ -6,7 +6,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#f2c94c',
-  blurb: 'Raccogli tutti i bocconcini nel labirinto di casa, senza farti prendere dai quattro robot pulisci casa. Il tonno li manda in tilt: corri a mandarli a ricaricarsi! Il labirinto cambia a ogni quadro. Croce o swipe per girare.',
+  blurb: "Raccogli i bocconcini e sfuggi ai robot pulisci casa.",
   inputs: ['D-PAD', 'SWIPE'],
   size: [360, 600],
   bg: '#1a1228',

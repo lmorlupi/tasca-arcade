@@ -6,7 +6,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#6fd36f',
-  blurb: 'Il tennis a due racchette, in versione moderna. Trascina il dito a destra e a sinistra per muovere la racchetta: colpisci la palla vicino al bordo per angolare il tiro, tieni premuto A per il colpo potente. Si gioca ai 3 game, con punti da tennis.',
+  blurb: "Batti il telefono a tennis con tiri angolati e colpi potenti.",
   inputs: ['TRASCINA', 'D-PAD', 'A POTENZA'],
   size: [360, 600],
   bg: '#0e2a22',

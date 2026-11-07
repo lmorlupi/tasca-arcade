@@ -5,7 +5,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#3f8a3a',
-  blurb: 'Tresette a due. Si parte con cinque carte e si pesca dopo ogni presa; finito il mazzo bisogna rispondere al seme. Valgono: tre, due, re, cavallo e fante un terzo di punto, l\'asso un punto intero, e l\'ultima presa un punto. Ordine: 3, 2, asso, re, cavallo, fante, 7, 6, 5, 4.',
+  blurb: "Gioca a Tresette contro il telefono e conquista le prese.",
   inputs: ['TOCCO', 'CARTE'],
   size: [360, 600],
   bg: '#0e3a28',

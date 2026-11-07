@@ -2,7 +2,7 @@ registerGame({
   id: 'flick-hoops',
   title: 'FLICK HOOPS',
   color: '#f58a25',
-  blurb: 'Scatta col dito verso il canestro: vedi la traiettoria mentre trascini. Ogni tiro parte da un punto diverso, il canestro si muove, il tabellone vale doppio e tre canestri di fila ti mettono IN FIAMME: punti doppi. Ogni canestro regala secondi.',
+  blurb: "Scatta col dito e fai canestro prima che finisca il tempo.",
   inputs: ['FLICK', 'TOCCO DIRETTO'],
   size: [360, 620],
   bg: '#141a2e',

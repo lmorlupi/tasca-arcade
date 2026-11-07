@@ -2,7 +2,7 @@ registerGame({
   id: 'vortex-orbit',
   title: 'VORTEX ORBIT',
   color: '#7a4cff',
-  blurb: 'La nave gira lungo il cerchio e spara verso il centro. Croce per muoverti, A o B per sparare. Gli alieni escono a spirale dal tunnel; abbatti i tre satelliti per il doppio fuoco. Ogni 3 salti c’è un pianeta bonus. Resta anche il trascinamento sul cerchio con fuoco automatico.',
+  blurb: "Muoviti sul cerchio e abbatti gli alieni che escono dal tunnel.",
   inputs: ['CROCE + A/B', 'DOPPIO FUOCO', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#04050f',

@@ -1,6 +1,6 @@
 registerGame({
   id: 'biliardo', title: 'BILIARDO', license: 'MIT', color: '#59c48f',
-  blurb: 'Tocca o trascina sul tavolo per mirare, regola POTENZA e tocca TIRA. Puoi anche tirare indietro dalla bianca. Allenamento o Palla 8 arcade a due giocatori. Croce per mirare, tieni A e rilascia; B cambia modalità.',
+  blurb: "Mira e tira: allenamento o Palla 8 per due giocatori.",
   inputs: ['TOCCA E MIRA', 'TIRA', '2 GIOCATORI'], size: [360, 640], flexH: true, flexMin: 1.5, bg: '#0b1b20',
   create(api) {
     const { cv, g, held } = api, TAU = Math.PI * 2;

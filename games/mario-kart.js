@@ -2,7 +2,7 @@
 // Regole GP dal manuale Nintendo; fisica e tracciati sono ricostruzioni, non ROM.
 registerGame({
  id:'mario-kart',title:'SUPER MARIO KART',license:'MIT',color:'#f27369',bg:'#152a3c',size:[480,640],flexH:true,flexMin:1.05,
- blurb:'Il Kart in stile SNES, più dettagliato e con sterzo progressivo. GUIDA FACILE accelera da sola e aiuta nelle curve; puoi scegliere la guida classica. Otto piloti, venti circuiti e cinque giri. B accelera, A usa l’oggetto, sinistra/destra sterzano, giù frena, su salta e derapa. START pausa, SELECT cambia mappa/specchio. Anche in orizzontale, con croce e A/B. Grafica e fisica ricostruite per il web.',
+ blurb:"Corri su 20 circuiti con otto piloti, oggetti e guida facile.",
  inputs:['CROCE + A/B','20 CIRCUITI','ORIZZONTALE'],
  create(api){
   const{cv,g,held}=api;let W=cv.width,H=cv.height;

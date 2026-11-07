@@ -2,7 +2,7 @@ registerGame({
   id: 'mouse-quest',
   title: 'MOUSE QUEST',
   color: '#f5d31c',
-  blurb: 'Un topo avventuriero raccoglie il formaggio, salta sui gatti e arriva alla tana. Croce per muoverti, A salta (più a lungo, più in alto), B tenuto premuto per correre.',
+  blurb: "Salta sui gatti, raccogli il formaggio e raggiungi la tana.",
   inputs: ['D-PAD', '2 POLLICI', 'SALTO'],
   size: [480, 540],
   flexH: true,

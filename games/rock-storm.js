@@ -2,7 +2,7 @@ registerGame({
   id: 'rock-storm',
   title: 'ROCK STORM',
   color: '#5a6aa0',
-  blurb: 'Una navicella nella tempesta di asteroidi: spezzali prima che ti colpiscano. Metti il dito dove vuoi andare: la nave ti segue. Con A spari, con B ti teletrasporti.',
+  blurb: "Guida la navicella e distruggi gli asteroidi prima che ti colpiscano.",
   inputs: ['TOCCO DIRETTO', 'D-PAD', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#05070f',

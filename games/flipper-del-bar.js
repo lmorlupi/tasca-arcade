@@ -5,7 +5,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#e8455f',
-  blurb: 'Il flipper del bar sotto casa: tira la molla, tieni la pallina in gioco con le due palette, colpisci i paraurti e accendi i tre bersagli per il bonus. Tocca a sinistra e a destra, o usa la croce.',
+  blurb: "Tieni in gioco la pallina e colpisci i bersagli per fare punti.",
   inputs: ['TOCCO', 'D-PAD', 'ANCA E BACINO'],
   size: [360, 640],
   bg: '#1a0f26',

@@ -2,7 +2,7 @@ registerGame({
   id: 'canyon-raid',
   title: 'CANYON RAID',
   color: '#e0a020',
-  blurb: 'Sorvola montagne, città e caverne fino alla base nemica. Laser in avanti, bombe verso il basso (partono da sole sopra i bersagli). Il carburante cala sempre: bombarda i serbatoi per fare il pieno. Evita missili, dischi volanti, meteore e il terreno. Trascina il dito per pilotare.',
+  blurb: "Pilota tra montagne e caverne, distruggi i bersagli e fai rifornimento.",
   inputs: ['TRASCINA', 'LASER AUTO', 'BOMBE AUTO'],
   size: [360, 640],
   bg: '#000000',

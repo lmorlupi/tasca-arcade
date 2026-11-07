@@ -5,7 +5,7 @@ registerGame({
   author: 'Tasca Arcade',
   license: 'MIT',
   color: '#c0334d',
-  blurb: 'Briscola a due. Tre carte in mano, un seme di briscola: prendi con la carta più alta dello stesso seme o con una briscola. Asso 11, tre 10, re 4, cavallo 3, fante 2. Con più di 60 punti vinci. Tocca la carta per giocarla.',
+  blurb: "Sfida il telefono a Briscola e conquista più di 60 punti.",
   inputs: ['TOCCO', 'CARTE'],
   size: [360, 600],
   bg: '#0e3a28',

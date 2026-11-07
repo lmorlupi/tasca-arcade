@@ -2,7 +2,7 @@
 // Disegni, mappe e sintesi nuovi; niente ROM o risorse estratte dalla cartuccia.
 registerGame({
  id:'mouse-castle',title:'MOUSE CASTLE',license:'MIT',color:'#efc174',bg:'#172946',size:[320,560],flexH:true,flexMin:1.1,largePad:true,
- blurb:'Esplora 28 livelli a colori, tutti selezionabili. Raccogli otto chiavi fra corridoi e porte illuminate: le indicazioni ti aiutano a trovare la strada. Personaggi piccoli, nemici lenti, arco iniziale e primo urto protetto; le chiavi restano anche se perdi una vita. Croce per camminare e salire, su per le porte, A/B per l’arma, START pausa: non si salta. SALVA conserva la partita; ogni livello ha il suo salvataggio automatico, anche offline. Disegni e percorsi ricostruiti per il web.',
+ blurb:"Esplora 28 livelli, raccogli le chiavi e difenditi con l’arco.",
  inputs:['CROCE + A/B','28 QUADRI','GRAFICA A COLORI'],
  create(api){
   const{cv,g,held}=api;let W=cv.width,H=cv.height;

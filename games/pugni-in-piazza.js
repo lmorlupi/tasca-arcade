@@ -2,7 +2,7 @@ registerGame({
   id: 'pugni-in-piazza',
   title: 'PUGNI IN PIAZZA',
   color: '#e8762c',
-  blurb: 'Picchiaduro uno contro uno, al meglio dei tre round. Scegli fra quattro lottatori da commedia, batti gli altri tre e poi il Maestro del Buio. A pugno, B calcio, indietro para (in basso para le spazzate). Le mosse speciali escono con le mezzelune della croce: ↓↘→, →↓↘, ↓↙←. Colpi di fila fanno combo; troppi colpi stordiscono.',
+  blurb: "Scegli il lottatore e vinci con pugni, calci e mosse speciali.",
   inputs: ['CROCE', 'A PUGNO · B CALCIO', 'MEZZELUNE', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#120d16',

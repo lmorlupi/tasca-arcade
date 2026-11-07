@@ -2,7 +2,7 @@ registerGame({
   id: 'serpent',
   title: 'SERPENT',
   color: '#4cc24a',
-  blurb: 'Il serpente cresce mangiando le mele. Striscia il dito nella direzione in cui vuoi girare, senza toccare muri né te stesso. Le mele dorate valgono di più.',
+  blurb: "Mangia le mele e cresci senza urtare i muri o la tua coda.",
   inputs: ['SWIPE', 'D-PAD', 'VIBRAZIONE'],
   size: [360, 640],
   bg: '#0b1020',

@@ -2,7 +2,7 @@ registerGame({
   id: 'slide-2048',
   title: 'SLIDE 2048',
   color: '#a655b8',
-  blurb: 'Fai scorrere le tessere con uno swipe: due uguali si fondono. Arriva a 2048. B annulla l\'ultima mossa.',
+  blurb: "Fai scorrere e unisci le tessere uguali fino a 2048.",
   inputs: ['SWIPE', 'VIBRAZIONE', 'D-PAD'],
   size: [360, 620],
   bg: '#141a2e',

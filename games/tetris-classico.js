@@ -1,7 +1,7 @@
 // Ricostruzione web: regole e cadenze del gioco portatile del 1989, disegno LCD nuovo.
 registerGame({
   id: 'tetris-classico', title: 'TETRIS CLASSICO', license: 'MIT', color: '#a6b57c',
-  blurb: 'Il classico dei blocchi cadenti: sette pezzi, dieci colonne, A-TYPE e sfida B-TYPE da 25 linee. Aspetto LCD, velocità classiche e Korobeiniki. Trascina per spostare, tocca per ruotare; frecce e rotazioni sono anche sullo schermo. Salva la partita.',
+  blurb: "Il classico dei blocchi cadenti, con due modalità e salvataggio.",
   inputs: ['TOCCO E TRASCINA', 'MUSICA A', 'A/B ROTAZIONE'], size: [360, 640], flexH: true, flexMin: 1.35, bg: '#a8b585',
   create(api) {
     const { cv, g, held } = api, W = cv.width, H = cv.height, COLS = 10, ROWS = 18, FPS = 59.7275;
