@@ -112,7 +112,7 @@ registerGame({
       arrows = []; freeze = 1;
     };
     let introT = 0;
-    const saved = () => api.store.get('stage', 1);
+    const saved = () => { const stage = api.store.get('stage', 1); return Number.isInteger(stage) && stage >= 1 && stage <= 1000000 ? stage : 1; };
     const intro = () => { state = 'intro'; introT = 1.8; };
     const newGame = (from = 1) => { score = 0; lives = 3; level = from; gen(level); resetPlayer(); intro(); };
     const restartStage = () => { gen(level); resetPlayer(); intro(); };
@@ -330,7 +330,7 @@ registerGame({
 
     const act = k => {
       if (k === 'start') {
-        if (state === 'title' || state === 'over') newGame(Math.min(saved(), LEVELS.length + 20));
+        if (state === 'title' || state === 'over') newGame(saved());
         else if (state === 'intro') state = 'play';
         else if (state === 'play') state = 'pause';
         else if (state === 'pause') state = 'play';
@@ -344,7 +344,7 @@ registerGame({
         else if (k === 'up' || k === 'down') enter(k);
       }
     };
-    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(Math.min(saved(), LEVELS.length + 20)); };
+    const onPointer = e => { if (e.type === 'down' && (state === 'title' || state === 'over')) newGame(saved()); };
 
     // Disegno
     const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
@@ -524,7 +524,7 @@ registerGame({
       onHide() { if (state === 'play') state = 'pause'; },
       update,
       render,
-      debug: { newGame, gen, build, get state() { return state; }, get P() { return P; }, get keys() { return keys; }, get foes() { return foes; }, get stairs() { return stairs; }, get pipes() { return pipes; }, get doors() { return doors; }, get walls() { return walls; }, get items() { return items; }, get crates() { return crates; }, get exit() { return exit; }, get need() { return need; }, get got() { return got; }, LEVELS, Y, X, pos },
+      debug: { newGame, gen, build, get level() { return level; }, get state() { return state; }, get P() { return P; }, get keys() { return keys; }, get foes() { return foes; }, get stairs() { return stairs; }, get pipes() { return pipes; }, get doors() { return doors; }, get walls() { return walls; }, get items() { return items; }, get crates() { return crates; }, get exit() { return exit; }, get need() { return need; }, get got() { return got; }, LEVELS, Y, X, pos },
     };
   },
 });

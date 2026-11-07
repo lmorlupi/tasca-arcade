@@ -74,7 +74,7 @@ registerGame({
     }
     const saved = api.store.get('island', null); let data = restore(saved), started = !!saved?.v, state = 'title', returnState = 'play', tab = 'items', page = 0;
     let area = data.area, P = { ...data.player, dir: 1, step: 0, pose: 0 }, camera = { x: 0, y: 0 }, time = 0, autosave = 0, musicAt = 0, musicStep = 0, ambientAt = 2;
-    let path = [], destination = null, terrain = null, objects = [], actors = [], grid = [], backdrop = null, buttons = [], pressed = null, dialog = null, selectedFurniture = null, roomFlash = 0, fishing = null, toast = '', toastTime = 0, burst = [];
+    let path = [], destination = null, terrain = null, objects = [], actors = [], grid = [], backdrop = null, backdropScale = 1, buttons = [], pressed = null, dialog = null, selectedFurniture = null, roomFlash = 0, fishing = null, toast = '', toastTime = 0, burst = [];
     const sound = (name, opts = {}) => { if (api.sound) api.sound(name, opts); else if (name !== 'step' && name !== 'wave') api.beep(name === 'collect' ? 784 : name === 'fish' ? 1046 : 523, 0.09, 'triangle', 0.035); };
     const notify = (s, t = 3) => { toast = s; toastTime = t; };
     const progress = () => CHAPTERS[data.chapter];
@@ -265,6 +265,7 @@ registerGame({
     const circle = (x, y, r, color) => oval(x, y, r, r, color);
     const line = (points, color, width = 2) => { g.strokeStyle = color; g.lineWidth = width; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); points.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); };
     const poly = (points, color) => { g.fillStyle = color; g.beginPath(); points.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); };
+    const edge = (color, width = 1) => { g.strokeStyle = color; g.lineWidth = width; g.lineJoin = 'round'; g.stroke(); };
     const txt = (s, x, y, size = 15, color = '#3f6259', align = 'left', weight = 700) => { g.font = `${weight} ${size}px "Trebuchet MS", system-ui, sans-serif`; g.fillStyle = color; g.textAlign = align; g.textBaseline = 'middle'; g.fillText(String(s), x, y); };
     function wrap(s, x, y, width, size = 16, color = '#527369', limit = 10, lineHeight = size * 1.4) {
       g.font = `500 ${size}px "Trebuchet MS", system-ui, sans-serif`; const words = String(s).split(/\s+/), lines = []; let row = '';
@@ -279,17 +280,17 @@ registerGame({
     }
     function itemIcon(kind, x, y, scale = 1) {
       g.save(); g.translate(x, y); g.scale(scale, scale);
-      if (kind === 'fruit') { circle(-5, 1, 10, '#e78778'); circle(5, 1, 10, '#e79780'); oval(-3, -4, 3, 5, '#f4c6a6', 0.5); line([[0, -7], [2, -14]], '#907151', 3); oval(7, -11, 6, 3, '#79a87a', -0.4); }
-      else if (kind === 'wood') { rr(-15, -6, 28, 14, 5, '#ad7f55'); oval(13, 1, 5, 7, '#dec493'); oval(13, 1, 2, 4, '#b59163'); line([[-12, -2], [6, -2]], '#d2a878', 2); }
-      else if (kind === 'stone') { poly([[-14, 6], [-11, -6], [0, -12], [12, -6], [16, 7], [3, 11]], '#96a5a2'); poly([[-11, -6], [0, -12], [8, -4], [1, 1]], '#c3cfbe'); }
+      if (kind === 'fruit') { circle(-5, 1, 10, '#e78778'); edge('#b56d5b'); circle(5, 1, 10, '#e79780'); edge('#b56d5b'); oval(-3, -4, 3, 5, '#f4c6a6', 0.5); line([[0, -7], [2, -14]], '#907151', 3); oval(7, -11, 6, 3, '#79a87a', -0.4); }
+      else if (kind === 'wood') { rr(-15, -6, 28, 14, 5, '#ad7f55'); edge('#806346'); oval(13, 1, 5, 7, '#dec493'); edge('#94744e'); oval(13, 1, 2, 4, '#b59163'); line([[-12, -2], [6, -2]], '#d2a878', 2); }
+      else if (kind === 'stone') { poly([[-14, 6], [-11, -6], [0, -12], [12, -6], [16, 7], [3, 11]], '#96a5a2'); edge('#6f8580', 1.1); poly([[-11, -6], [0, -12], [8, -4], [1, 1]], '#c3cfbe'); }
       else if (kind === 'flower') flower(0, 13, '#df9dba', 1.35);
-      else if (kind === 'fish') { oval(0, 1, 15, 8, '#80b6c7', -0.16); poly([[10, 1], [21, -9], [21, 9]], '#6099b6'); oval(-4, -1, 7, 3, '#b3d8d7', -0.2); circle(-9, -1, 1.5, '#385e66'); }
+      else if (kind === 'fish') { oval(0, 1, 15, 8, '#80b6c7', -0.16); edge('#507f91'); poly([[10, 1], [21, -9], [21, 9]], '#6099b6'); oval(-4, -1, 7, 3, '#b3d8d7', -0.2); circle(-9, -1, 1.5, '#385e66'); }
       else if (kind === 'bug') { oval(-8, -4, 9, 11, '#c2addb', -0.3); oval(8, -4, 9, 11, '#e4bfd8', 0.3); oval(-6, 6, 6, 7, '#e4c38f'); oval(6, 6, 6, 7, '#e7d1ac'); line([[0, 8], [0, -9]], '#695a70', 3); }
-      else if (kind === 'shell') { g.fillStyle = '#f0c6b4'; g.beginPath(); g.moveTo(0, 12); g.bezierCurveTo(-30, -8, -9, -20, 0, -12); g.bezierCurveTo(9, -20, 30, -8, 0, 12); g.fill(); for (let i = -2; i <= 2; i++) line([[i * 5, -8], [0, 10]], '#dca994', 1.2); }
-      else if (kind === 'star') { starShape(0, 0, 17, '#edce7c'); starShape(-2, -3, 9, '#f9e8ae'); }
+      else if (kind === 'shell') { g.fillStyle = '#f0c6b4'; g.beginPath(); g.moveTo(0, 12); g.bezierCurveTo(-30, -8, -9, -20, 0, -12); g.bezierCurveTo(9, -20, 30, -8, 0, 12); g.fill(); edge('#bc8d77'); for (let i = -2; i <= 2; i++) line([[i * 5, -8], [0, 10]], '#dca994', 1.2); }
+      else if (kind === 'star') { starShape(0, 0, 17, '#edce7c'); edge('#b3914c'); starShape(-2, -3, 9, '#f9e8ae'); }
       else if (kind === 'crop') { poly([[-8, -8], [9, -8], [1, 18]], '#df985a'); line([[-5, -3], [4, -3]], '#efb780', 2); line([[0, -7], [-7, -16]], '#75a36c', 4); line([[0, -7], [5, -18]], '#89b476', 4); }
       else if (kind === 'seeds') { rr(-11, -15, 22, 30, 4, '#dfc898'); rr(-9, -6, 18, 18, 3, '#faf0cf'); oval(0, 3, 4, 7, '#92af74', 0.4); }
-      else if (kind === 'coin') { circle(0, 0, 14, '#e8bf6b'); circle(-1, -1, 10, '#f5dc98'); txt('•', 0, -1, 18, '#c29952', 'center'); }
+      else if (kind === 'coin') { circle(0, 0, 14, '#e8bf6b'); edge('#b18c43'); circle(-1, -1, 10, '#f5dc98'); txt('•', 0, -1, 18, '#c29952', 'center'); }
       g.restore();
     }
     function animal(n, x, y, scale = 1, walk = 0) {
@@ -298,12 +299,12 @@ registerGame({
       if (n.species === 'fox') oval(15, -16, 13, 6, '#d69874', -0.8);
       if (n.species === 'rabbit') circle(13, -12, 6, '#f5e4dc');
       oval(-7, -3, 5, 4, '#7b695d'); oval(7, -3, 5, 4, '#7b695d');
-      oval(0, -15 + bob, 13, 17, n.shirt); line([[-9, -21 + bob], [-16, -12 + bob]], n.color, 7); line([[9, -21 + bob], [16, -12 + bob]], n.color, 7);
+      oval(0, -15 + bob, 13, 17, n.shirt); edge('#657460', 1.1); line([[-9, -21 + bob], [-16, -12 + bob]], n.color, 7); line([[9, -21 + bob], [16, -12 + bob]], n.color, 7);
       const hy = -39 + bob;
       if (n.species === 'rabbit') { oval(-9, hy - 19, 6, 18, n.color, -0.15); oval(9, hy - 19, 6, 18, n.color, 0.15); oval(-9, hy - 19, 2.5, 12, '#e6a4ac', -0.15); oval(9, hy - 19, 2.5, 12, '#e6a4ac', 0.15); }
-      else if (['cat', 'fox'].includes(n.species)) { poly([[-18, hy], [-17, hy - 24], [-2, hy - 12]], n.color); poly([[18, hy], [17, hy - 24], [2, hy - 12]], n.color); poly([[-14, hy - 9], [-14, hy - 18], [-7, hy - 11]], '#dfa7a0'); poly([[14, hy - 9], [14, hy - 18], [7, hy - 11]], '#dfa7a0'); }
+      else if (['cat', 'fox'].includes(n.species)) { poly([[-18, hy], [-17, hy - 24], [-2, hy - 12]], n.color); edge('#827562', 1.1); poly([[18, hy], [17, hy - 24], [2, hy - 12]], n.color); edge('#827562', 1.1); poly([[-14, hy - 9], [-14, hy - 18], [-7, hy - 11]], '#dfa7a0'); poly([[14, hy - 9], [14, hy - 18], [7, hy - 11]], '#dfa7a0'); }
       else if (['bear', 'deer'].includes(n.species)) { circle(-15, hy - 14, 8, n.color); circle(15, hy - 14, 8, n.color); circle(-15, hy - 14, 4, '#d8a58f'); circle(15, hy - 14, 4, '#d8a58f'); }
-      oval(0, hy, 21, 20, n.color); oval(-4, hy - 5, 12, 10, '#fff2d327');
+      oval(0, hy, 21, 20, n.color); edge('#827562', 1.1); oval(-4, hy - 5, 12, 10, '#fff2d327');
       if (n.species === 'fox') { oval(-10, hy + 6, 10, 8, '#fff1d9'); oval(10, hy + 6, 10, 8, '#fff1d9'); }
       if (n.species === 'owl') { oval(-9, hy, 9, 12, '#efe7d5'); oval(9, hy, 9, 12, '#efe7d5'); }
       const blink = Math.sin(time * 0.67 + n.x) > 0.995;
@@ -317,14 +318,14 @@ registerGame({
       g.save(); g.translate(x, y); g.scale(scale, scale); const bob = Math.abs(Math.sin(step)) * 2, skin = SKIN[data.look.skin], hair = HAIR[data.look.hair];
       oval(0, 0, 14, 5, '#3c66532a');
       oval(-6, -3 + Math.sin(step) * 2, 5, 4, '#8c7866'); oval(6, -3 - Math.sin(step) * 2, 5, 4, '#8c7866');
-      rr(-10, -23 + bob, 20, 17, 6, SHIRTS[data.look.shirt]); rr(-10, -10 + bob, 20, 4, 2, '#eee3c7');
+      rr(-10, -23 + bob, 20, 17, 6, SHIRTS[data.look.shirt]); edge('#657460', 1.1); rr(-10, -10 + bob, 20, 4, 2, '#eee3c7');
       line([[-10, -20 + bob], [-15, -10 + bob + Math.sin(step) * 3]], skin, 6); line([[10, -20 + bob], [15, -10 + bob - Math.sin(step) * 3]], skin, 6);
-      oval(0, -38 + bob, 19, 21, hair); circle(-16, -34 + bob, 4, skin); circle(16, -34 + bob, 4, skin); oval(0, -35 + bob, 17, 17, skin);
+      oval(0, -38 + bob, 19, 21, hair); circle(-16, -34 + bob, 4, skin); circle(16, -34 + bob, 4, skin); oval(0, -35 + bob, 17, 17, skin); edge('#997758', 1);
       oval(-8, -46 + bob, 10, 7, hair, -0.4); oval(7, -47 + bob, 12, 6, hair, 0.35); oval(18, -38 + bob, 6, 9, hair, -0.25);
       if (Math.sin(time * 0.7) > 0.995) { line([[-9, -35 + bob], [-5, -35 + bob]], '#454e45', 2); line([[5, -35 + bob], [9, -35 + bob]], '#454e45', 2); }
       else { oval(-7, -35 + bob, 2.2, 3, '#414e47'); oval(7, -35 + bob, 2.2, 3, '#414e47'); circle(-7.5, -36 + bob, 0.7, '#fff8e1'); circle(6.5, -36 + bob, 0.7, '#fff8e1'); }
       oval(-11, -28 + bob, 4, 2, '#dd9c9277'); oval(11, -28 + bob, 4, 2, '#dd9c9277'); line([[-3, -26 + bob], [0, -25 + bob], [3, -26 + bob]], '#aa7d6b', 1.2);
-      oval(0, -53 + bob, 26, 5, '#d8b976'); rr(-16, -66 + bob, 32, 15, [12, 12, 3, 3], '#e8cf93'); rr(-16, -56 + bob, 32, 4, 1, SHIRTS[data.look.shirt]); flower(19, -54 + bob, '#f8e4b3', 0.5);
+      oval(0, -53 + bob, 26, 5, '#d8b976'); edge('#a1844e'); rr(-16, -66 + bob, 32, 15, [12, 12, 3, 3], '#e8cf93'); edge('#a1844e'); rr(-16, -56 + bob, 32, 4, 1, SHIRTS[data.look.shirt]); flower(19, -54 + bob, '#f8e4b3', 0.5);
       if (P.pose > 0 && scale === 1) { line([[13, -16], [21, -41]], '#967450', 3); oval(23, -48, 10, 13, '#e8eee780', -0.25); }
       g.restore();
     }
@@ -342,28 +343,28 @@ registerGame({
     }
     function building(o, x, y) {
       const shop = o.type === 'shop', hall = o.type === 'hall', roof = hall ? '#8baea9' : shop ? '#a1b681' : AREAS[area].roof;
-      oval(x, y + 8, 69, 16, '#4c77552c'); rr(x - 51, y - 62, 102, 69, 6, '#d4c8a7'); rr(x - 47, y - 64, 94, 64, 4, '#f3e5bd');
+      oval(x, y + 8, 69, 16, '#4c77552c'); rr(x - 51, y - 62, 102, 69, 6, '#d4c8a7'); edge('#a39876', 1.2); rr(x - 47, y - 64, 94, 64, 4, '#f3e5bd');
       for (let i = 0; i < 5; i++) line([[x - 46, y - 53 + i * 12], [x + 46, y - 53 + i * 12]], '#d7c6a44a', 1);
       rr(x + 24, y - 109, 15, 37, 2, '#b3a389'); rr(x + 21, y - 112, 21, 7, 2, '#d2bba0');
       poly([[x - 65, y - 64], [x - 44, y - 108], [x + 39, y - 108], [x + 64, y - 64]], '#7c8d6b');
-      poly([[x - 65, y - 69], [x - 40, y - 112], [x + 40, y - 112], [x + 65, y - 69]], roof);
+      poly([[x - 65, y - 69], [x - 40, y - 112], [x + 40, y - 112], [x + 65, y - 69]], roof); edge('#657e64', 1.2);
       for (let row = 0; row < 4; row++) line([[x - 59 + row * 6, y - 75 - row * 10], [x + 59 - row * 6, y - 75 - row * 10]], '#f5e8c738', 1.2);
       line([[x - 65, y - 67], [x + 65, y - 67]], '#f7ddae', 5);
-      const window = wx => { rr(wx - 13, y - 51, 26, 29, 4, '#bb9f74'); rr(wx - 10, y - 48, 20, 23, 3, '#b4d5cc'); line([[wx - 9, y - 43], [wx + 8, y - 43]], '#f6ebca', 2); line([[wx, y - 48], [wx, y - 25]], '#f6ebca', 2); poly([[wx - 8, y - 46], [wx - 3, y - 46], [wx - 8, y - 36]], '#fff4d077'); rr(wx - 16, y - 21, 32, 6, 2, '#bba77d'); flower(wx - 7, y - 24, '#e4a4b0', .45); flower(wx + 6, y - 25, '#f6d990', .5); };
-      window(x - 32); window(x + 32); rr(x - 14, y - 42, 28, 47, [13, 13, 2, 2], '#ab8a66'); rr(x - 10, y - 37, 20, 36, [9, 9, 1, 1], '#cba87c'); circle(x + 7, y - 14, 2, '#f1db9f'); rr(x - 22, y + 4, 44, 6, 2, '#c4b595'); rr(x - 27, y + 9, 54, 5, 2, '#ded0a9');
-      if (shop) { rr(x - 38, y - 64, 76, 15, 4, '#fff0c9'); txt('EMPORIO', x, y - 56, 10, '#6d8b68', 'center'); for (let i = 0; i < 6; i++) rr(x - 42 + i * 14, y - 65, 14, 9, [0, 0, 5, 5], i % 2 ? '#f5e9c7' : '#b3c68d'); }
+      const window = wx => { rr(wx - 13, y - 51, 26, 29, 4, '#bb9f74'); edge('#927a55'); rr(wx - 10, y - 48, 20, 23, 3, '#b4d5cc'); line([[wx - 9, y - 43], [wx + 8, y - 43]], '#f6ebca', 2); line([[wx, y - 48], [wx, y - 25]], '#f6ebca', 2); poly([[wx - 8, y - 46], [wx - 3, y - 46], [wx - 8, y - 36]], '#fff4d077'); rr(wx - 16, y - 21, 32, 6, 2, '#bba77d'); flower(wx - 7, y - 24, '#e4a4b0', .45); flower(wx + 6, y - 25, '#f6d990', .5); };
+      window(x - 32); window(x + 32); rr(x - 14, y - 42, 28, 47, [13, 13, 2, 2], '#ab8a66'); edge('#866a4d'); rr(x - 10, y - 37, 20, 36, [9, 9, 1, 1], '#cba87c'); circle(x + 7, y - 14, 2, '#f1db9f'); rr(x - 22, y + 4, 44, 6, 2, '#c4b595'); rr(x - 27, y + 9, 54, 5, 2, '#ded0a9');
+      if (shop) { rr(x - 38, y - 64, 76, 15, 4, '#fff0c9'); txt('EMPORIO', x, y - 56, 10, '#4e6c4b', 'center'); for (let i = 0; i < 6; i++) rr(x - 42 + i * 14, y - 65, 14, 9, [0, 0, 5, 5], i % 2 ? '#f5e9c7' : '#b3c68d'); }
       if (hall) { circle(x, y - 90, 12, '#f6e8bf'); line([[x, y - 97], [x, y - 90], [x + 5, y - 87]], '#7c9a86', 2); }
       if (o.type === 'house') { rr(x - 73, y - 17, 5, 32, 2, '#ba9b72'); rr(x - 81, y - 24, 21, 17, 4, '#9bb7a1'); poly([[x - 83, y - 24], [x - 70, y - 31], [x - 58, y - 24]], '#d7a584'); circle(x - 65, y - 15, 2, '#f7e8c5'); }
       if (o.type === 'windmill') { const angle = time * .25; circle(x, y - 91, 5, '#bda583'); for (let i = 0; i < 4; i++) { const a = angle + i * Math.PI / 2; line([[x, y - 91], [x + Math.cos(a) * 47, y - 91 + Math.sin(a) * 47]], '#d5c29c', 5); } }
     }
     function tree(o, x, y) {
-      oval(x, y + 1, 30, 9, '#447a5330'); rr(x - 7, y - 51, 14, 53, 5, '#9c8258'); rr(x - 2, y - 46, 4, 43, 2, '#c0a276');
+      oval(x, y + 1, 30, 9, '#447a5330'); rr(x - 7, y - 51, 14, 53, 5, '#9c8258'); edge('#776746'); rr(x - 2, y - 46, 4, 43, 2, '#c0a276');
       const sway = Math.sin(time * 1.1 + o.phase) * 1.4;
       const colors = area === 1 ? ['#a3b66e', '#c0c47f', '#d2c887'] : area === 3 ? ['#729b9b', '#94b6ac', '#a7c7af'] : ['#74b27b', '#91c789', '#b2d897'];
       const tx = x + sway;
-      oval(tx, y - 70, 36, 35, colors[0]); oval(tx - 22, y - 51, 25, 26, colors[0]); oval(tx + 23, y - 52, 26, 26, colors[0]); oval(tx, y - 50, 34, 28, colors[1]); oval(tx - 10, y - 76, 25, 23, colors[1]); oval(tx - 14, y - 83, 15, 11, colors[2]); oval(tx + 22, y - 62, 12, 10, colors[2]);
+      oval(tx, y - 70, 36, 35, colors[0]); edge('#64865d', 1.1); oval(tx - 22, y - 51, 25, 26, colors[0]); edge('#64865d', 1.1); oval(tx + 23, y - 52, 26, 26, colors[0]); edge('#64865d', 1.1); oval(tx, y - 50, 34, 28, colors[1]); oval(tx - 10, y - 76, 25, 23, colors[1]); oval(tx - 14, y - 83, 15, 11, colors[2]); oval(tx + 22, y - 62, 12, 10, colors[2]);
       for (let i = 0; i < 7; i++) { const a = i * 2.399 + o.phase; oval(tx + Math.cos(a) * 25, y - 62 + Math.sin(a) * 21, 4, 2, '#d2e6a955', a); }
-      if (available(o)) for (const [dx, dy] of [[-20, -60], [15, -49], [4, -81]]) { circle(tx + dx, y + dy, 6.5, o.variant % 2 ? '#e9b080' : '#dc8b77'); circle(tx + dx - 2, y + dy - 2, 2, '#f5d5a4'); line([[tx + dx, y + dy - 5], [tx + dx + 1, y + dy - 9]], '#6b8c5b', 1.5); }
+      if (available(o)) for (const [dx, dy] of [[-20, -60], [15, -49], [4, -81]]) { circle(tx + dx, y + dy, 6.5, o.variant % 2 ? '#e9b080' : '#dc8b77'); edge('#af7858', .9); circle(tx + dx - 2, y + dy - 2, 2, '#f5d5a4'); line([[tx + dx, y + dy - 5], [tx + dx + 1, y + dy - 9]], '#6b8c5b', 1.5); }
     }
     function drawObject(o, x, y) {
       if (['house', 'shop', 'hall', 'cabin', 'hut', 'windmill'].includes(o.type)) { building(o, x, y); return; }
@@ -384,10 +385,14 @@ registerGame({
       else if (o.type === 'flowerbed') { oval(x, y, 30, 12, '#a78f69'); for (let i = 0; i < 5; i++) flower(x - 21 + i * 10, y + i % 2 * 4, ['#e6aab8', '#f3d797', '#b2acd1'][i % 3], .8); }
       else if (o.type === 'plot') { const c = data.crops[o.id]; rr(x - 18, y - 10, 36, 22, 6, c?.watered ? '#9b8062' : '#bd9c70'); for (let i = 0; i < 3; i++) line([[x - 12, y - 5 + i * 6], [x + 12, y - 5 + i * 6]], '#886f5438', 1); if (c) { const grown = c.watered && data.clock - c.at >= 60; if (grown) itemIcon('crop', x, y - 13, .8); else { line([[x, y - 2], [x, y - 14]], '#83ab74', 3); oval(x - 5, y - 10, 7, 3, '#9bc582', .4); oval(x + 5, y - 15, 7, 3, '#acd48b', -.4); } } }
     }
-    function makeBackdrop() {
-      const c = document.createElement('canvas'); c.width = WORLD; c.height = Math.ceil(WORLD * YS); const real = g, cg = c.getContext('2d'), random = rng(area * 7919 + 17), pal = AREAS[area];
+    const outputScale = () => { const pixels = typeof cv.getAttribute === 'function' ? Number(cv.getAttribute('width')) : W; return Math.max(1, Number.isFinite(pixels) && pixels > 0 ? pixels / W : 1); };
+    const terrainScale = () => Math.min(outputScale(), Math.sqrt(4.6e6 / (WORLD * Math.ceil(WORLD * YS))));
+    function makeBackdrop(scale) {
+      const c = document.createElement('canvas'); c.width = Math.ceil(WORLD * scale); c.height = Math.ceil(WORLD * YS * scale); const cg = c.getContext('2d'), random = rng(area * 7919 + 17), pal = AREAS[area];
+      cg.setTransform(scale, 0, 0, scale, 0, 0); backdropScale = scale;
       // Terrain is painted once; animated characters, water and foliage remain separate.
-      cg.fillStyle = pal.water; cg.fillRect(0, 0, c.width, c.height);
+      // Match the actual display density (including automatic quality changes), within a mobile-sized cache budget.
+      cg.fillStyle = pal.water; cg.fillRect(0, 0, WORLD, WORLD * YS);
       for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
         const kind = terrain[y][x], px = x * T, py = y * T * YS; if (kind === 'water') continue;
         const coast = [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dx, dy]) => !terrain[y + dy] || terrain[y + dy][x + dx] === 'water');
@@ -403,8 +408,8 @@ registerGame({
       return c;
     }
     function drawWorld() {
-      const pal = AREAS[area]; g.fillStyle = pal.water; g.fillRect(0, 0, W, H); if (!backdrop) backdrop = makeBackdrop();
-      g.save(); g.translate(-camera.x, -camera.y); g.drawImage(backdrop, 0, 0);
+      const pal = AREAS[area]; g.fillStyle = pal.water; g.fillRect(0, 0, W, H); const density = terrainScale(); if (!backdrop || Math.abs(backdropScale - density) > .015) backdrop = makeBackdrop(density);
+      g.save(); g.translate(-camera.x, -camera.y); g.drawImage(backdrop, 0, 0, WORLD, WORLD * YS);
       for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (terrain[y][x] === 'water' && x * T > camera.x - T && x * T < camera.x + W + T && y * T * YS > camera.y - T && y * T * YS < camera.y + H + T) {
         const yy = y * T * YS + 12 + Math.sin(time + x) * 2; line([[x * T + 7, yy], [x * T + 16, yy + 1], [x * T + 25, yy]], '#e5f6df55', 1.4);
       }
@@ -617,7 +622,7 @@ registerGame({
       debug: {
         get state() { return state; }, get data() { return clone(data); }, get player() { return { ...P }; }, get camera() { return { ...camera }; }, get area() { return area; }, get path() { return clone(path); },
         get objects() { return clone(objects); }, get actors() { return clone(actors); }, get grid() { return clone(grid); }, get fishing() { return fishing && { ...fishing }; }, get buttons() { return buttons.map(({ id, x, y, w, h }) => ({ id, x, y, w, h })); },
-        get layout() { return { width: W, height: H, tile: T, yScale: YS, room: roomFloor() }; }, get goalReady() { return ready(); }, get selectedFurniture() { return selectedFurniture; }, get focusedButton() { return buttons[focus]?.id || null; },
+        get layout() { return { width: W, height: H, tile: T, yScale: YS, room: roomFloor() }; }, get rendering() { return { outputScale: outputScale(), terrainScale: backdropScale, terrainWidth: backdrop?.width || 0, terrainHeight: backdrop?.height || 0, terrainPixels: backdrop ? backdrop.width * backdrop.height : 0 }; }, get goalReady() { return ready(); }, get selectedFurniture() { return selectedFurniture; }, get focusedButton() { return buttons[focus]?.id || null; },
       },
     };
   },
