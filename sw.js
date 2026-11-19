@@ -1,6 +1,6 @@
 // Service worker: tiene in cache tutta la console, così funziona anche senza rete.
 // Quando cambia un file, aumenta VERSION: i telefoni scaricano di nuovo tutto.
-const VERSION = 'arcade-v134';
+const VERSION = 'arcade-v135';
 // File della console. I giochi non sono qui: si leggono da games/catalog.json, così aggiungerne uno
 // non richiede di toccare questo file (basta aumentare VERSION).
 const BASE = [
@@ -30,14 +30,20 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Prima la cache; se manca il file va in rete e lo salva. Offline le pagine ricadono su index.html.
+// Leggi dalla cache della versione attiva, anche se un worker precedente sta ancora finendo un download.
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
-  e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then(hit => hit || fetch(req).then(res => {
-      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-      return res;
-    }).catch(() => req.mode === 'navigate' ? caches.match('index.html') : Response.error()))
-  );
+  e.respondWith((async () => {
+    const cache = await caches.open(VERSION);
+    const hit = await cache.match(req, { ignoreSearch: true });
+    if (hit) return hit;
+    try {
+      const response = await fetch(req);
+      if (response.ok) await cache.put(req, response.clone()).catch(() => {});
+      return response;
+    } catch (_) {
+      return (req.mode === 'navigate' && await cache.match('index.html')) || Response.error();
+    }
+  })());
 });

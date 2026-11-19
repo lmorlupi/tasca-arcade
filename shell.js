@@ -481,7 +481,8 @@
     const active = Boolean(isFullscreen());
     const available = Boolean(fullscreenMethod());
     const offerFullscreen = !active && available && matchMedia('(any-pointer: coarse)').matches;
-    $('boot-label').textContent = offerFullscreen ? 'GIOCA A SCHERMO INTERO' : 'TOCCA PER INIZIARE';
+    const bootLabel = $('boot-label');
+    if (bootLabel) bootLabel.textContent = offerFullscreen ? 'GIOCA A SCHERMO INTERO' : 'TOCCA PER INIZIARE';
     const button = $('fullscreen'), tip = $('fullscreen-tip');
     if (button) button.hidden = !offerFullscreen;
     if (tip) tip.hidden = active || available;
@@ -1028,6 +1029,7 @@
   };
   window.Shell = {
     async start() {
+      if (mode === 'boot') menuEl.inert = true;
       syncFullscreenControls();
       await loadCatalog();
       games.forEach(x => BUILTIN_IDS.add(x.id));
