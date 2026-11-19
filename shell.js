@@ -469,6 +469,23 @@
     Number(favorites.has(games[b].id)) - Number(favorites.has(games[a].id)) || a - b);
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = () => navigator.standalone || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+  const isFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement || standalone();
+  const fullscreenMethod = () => {
+    const el = document.documentElement;
+    if (document.fullscreenEnabled && el.requestFullscreen) return el.requestFullscreen;
+    if (document.webkitFullscreenEnabled || document.fullscreenEnabled !== false) {
+      return el.webkitRequestFullscreen || el.webkitRequestFullScreen;
+    }
+  };
+  const syncFullscreenControls = () => {
+    const active = Boolean(isFullscreen());
+    const available = Boolean(fullscreenMethod());
+    const offerFullscreen = !active && available && matchMedia('(any-pointer: coarse)').matches;
+    $('boot-label').textContent = offerFullscreen ? 'GIOCA A SCHERMO INTERO' : 'TOCCA PER INIZIARE';
+    const button = $('fullscreen'), tip = $('fullscreen-tip');
+    if (button) button.hidden = !offerFullscreen;
+    if (tip) tip.hidden = active || available;
+  };
   const HOT = { INCLINA: 1, SWIPE: 1, FLICK: 1 };
 
   // Offline e aggiornamenti: il service worker tiene tutto in cache; "AGGIORNA" controlla se c'è una versione nuova
@@ -535,9 +552,9 @@
   };
   const renderMenu = () => {
     pinned = false;
-    const tip = isIOS && !standalone()
-      ? '<p class="tip">Per giocare a schermo intero: tocca Condividi, poi «Aggiungi alla schermata Home».</p>' : '';
-    menuEl.innerHTML = `<header class="catalog-header"><div class="catalog-top"><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button></div><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button><a class="coffee-link" id="support" href="https://buymeacoffee.com/pu3ilqqnqd" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè su Buy Me a Coffee (si apre in una nuova scheda)" title="Offrimi un caffè"><span class="coffee-icon" aria-hidden="true">☕</span></a></span><div class="game-search"><input id="game-search" type="search" placeholder="Cerca un gioco…" aria-label="Cerca un gioco" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" value="${esc(menuSearch)}"><button class="search-clear" id="search-clear" aria-label="Cancella la ricerca"${menuSearch ? '' : ' hidden'}>×</button></div></header><p class="ver" id="ver"></p>${tip}<p class="search-count" id="search-count" aria-live="polite"></p><div id="game-list">${cardsHtml()}</div><button class="act imp" id="imp">+ IMPORTA UN GIOCO</button><p class="legal">Progetto indipendente, non affiliato né approvato da produttori di console o di videogiochi. I marchi citati appartengono ai rispettivi proprietari. Giochi, grafica e suoni sono originali.</p>`;
+    const tip = isIOS ? '<p class="tip" id="fullscreen-tip" hidden>Schermo intero su iPhone. In Safari, tocca <b>Condividi</b> → <b>Aggiungi alla schermata Home</b>, attiva <b>Apri come app web</b> se disponibile e apri Tasca Arcade dall’icona.</p>' : '';
+    menuEl.innerHTML = `<header class="catalog-header"><div class="catalog-top"><button class="brand" id="brand" aria-label="Cambia colore della scocca">TASCA <b>ARCADE</b></button></div><span class="tools"><button class="snd" id="col">ASPETTO</button><button class="snd" id="help">AIUTO</button><button class="snd" id="upd">AGGIORNA</button><button class="snd" id="snd">${muted ? 'SUONO OFF' : 'SUONO ON'}</button><a class="coffee-link" id="support" href="https://buymeacoffee.com/pu3ilqqnqd" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè su Buy Me a Coffee (si apre in una nuova scheda)" title="Offrimi un caffè"><span class="coffee-icon" aria-hidden="true">☕</span></a></span><div class="game-search"><input id="game-search" type="search" placeholder="Cerca un gioco…" aria-label="Cerca un gioco" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" value="${esc(menuSearch)}"><button class="search-clear" id="search-clear" aria-label="Cancella la ricerca"${menuSearch ? '' : ' hidden'}>×</button></div></header><p class="ver" id="ver"></p><button class="snd fullscreen" id="fullscreen" type="button" hidden>SCHERMO INTERO</button>${tip}<p class="search-count" id="search-count" aria-live="polite"></p><div id="game-list">${cardsHtml()}</div><button class="act imp" id="imp">+ IMPORTA UN GIOCO</button><p class="legal">Progetto indipendente, non affiliato né approvato da produttori di console o di videogiochi. I marchi citati appartengono ai rispettivi proprietari. Giochi, grafica e suoni sono originali.</p>`;
+    syncFullscreenControls();
     filterMenu(); showVersion();
   };
   menuEl.addEventListener('input', e => { if (e.target.id === 'game-search') { menuSearch = e.target.value; filterMenu(); } });
@@ -549,6 +566,7 @@
     if (e.target.id === 'impOk') { const b = document.getElementById('impAdd'); if (b) b.disabled = !e.target.checked; }
   });
   menuEl.addEventListener('click', async e => {
+    if (e.target.closest('#fullscreen')) { goFull(e); return; }
     if (e.target.closest('#search-clear')) { menuSearch = ''; const input = $('game-search'); if (input) input.value = ''; filterMenu(); if (input) input.focus(); return; }
     const star = e.target.closest('.favorite');
     if (star) {
@@ -654,7 +672,7 @@
     ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'up',
     ' ': 'a', x: 'a', X: 'a', z: 'b', Z: 'b', Enter: 'start', p: 'start', P: 'start', Escape: 'select', r: 'select', R: 'select',
   };
-  const nativeKeys = e => e.target && e.target.closest && !hapLabel.contains(e.target) && e.target.closest('input, textarea, a[href], .favorite');
+  const nativeKeys = e => e.target && e.target.closest && !hapLabel.contains(e.target) && e.target.closest('input, textarea, a[href], .favorite, #boot, #fullscreen');
   addEventListener('keydown', e => {
     if (nativeKeys(e)) return;
     if (e.key === 'm' || e.key === 'M' || e.key === 'Backspace') { e.preventDefault(); if (mode === 'game') toMenu(); return; }
@@ -689,14 +707,14 @@
   let lastTouchEnd = 0;
   document.addEventListener('touchend', e => {
     // Il catalogo usa click nativi: non scartare un secondo tap rapido su ricerca, giochi o comandi.
-    if (e.target.closest('.menu button, .menu a, .menu input, .menu textarea')) { lastTouchEnd = 0; return; }
+    if (e.target.closest('.menu button, .menu a, .menu input, .menu textarea, #boot')) { lastTouchEnd = 0; return; }
     const now = Date.now();
     if (now - lastTouchEnd < 400) e.preventDefault();
     lastTouchEnd = now;
   }, { passive: false });
   // Fuori dal catalogo ogni tocco ha già i suoi eventi puntatore: fermare il tocco "classico" toglie al
-  // browser ogni appiglio per lo zoom del doppio tap (e il click ritardato). Il catalogo resta normale.
-  document.addEventListener('touchstart', e => { if (!e.target.closest('.menu')) e.preventDefault(); }, { passive: false });
+  // browser ogni appiglio per lo zoom del doppio tap. Catalogo e avvio usano il click nativo.
+  document.addEventListener('touchstart', e => { if (!e.target.closest('.menu, #boot')) e.preventDefault(); }, { passive: false });
   document.addEventListener('touchmove', e => { if (e.scale && e.scale !== 1) e.preventDefault(); }, { passive: false });
   document.addEventListener('dblclick', e => e.preventDefault());
   // Se la pagina è rimasta ingrandita da un pizzico precedente, riporta lo zoom a 1 (meglio che si può).
@@ -809,20 +827,31 @@
   $('padToggle').addEventListener('click', e => { if (e.detail === 0) togglePad(); });
   ['down', 'move', 'up', 'cancel'].forEach(t => cv.addEventListener('pointer' + t, ptr(t)));
 
-  // Su telefono il primo tocco porta la pagina a schermo intero (iPhone: solo da "Aggiungi a Home").
+  let attemptedFullscreen = false;
   const goFull = e => {
-    if (e?.target?.closest?.('a[href], input, textarea')) return;
-    if (document.fullscreenElement || document.webkitFullscreenElement || standalone() || fullRequest) return;
+    if (!e.isTrusted || isFullscreen() || fullRequest) return;
     if (navigator.userActivation && !navigator.userActivation.isActive) return;
-    if (document.fullscreenEnabled === false && !document.webkitFullscreenEnabled) return;
-    const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen;
+    const req = fullscreenMethod();
     if (!req) return;
-    try { fullRequest = Promise.resolve(req.call(el, { navigationUI: 'hide' })).then(orientGame).catch(() => {}).finally(() => { fullRequest = null; }); } catch (_) { fullRequest = null; }
+    const el = document.documentElement;
+    attemptedFullscreen = true;
+    try {
+      const request = req === el.requestFullscreen ? req.call(el, { navigationUI: 'hide' }) : req.call(el);
+      fullRequest = Promise.resolve(request).catch(() => {}).finally(() => { fullRequest = null; });
+    } catch (_) { fullRequest = null; }
   };
-  // Il primo gesto valido attiva il fullscreen; la PWA lo usa già all'apertura dall'icona.
-  document.addEventListener('pointerdown', goFull, { capture: true });
-  document.addEventListener('pointerup', goFull, { capture: true });
-  document.addEventListener('keydown', goFull, { capture: true });
+  // Dopo la schermata di avvio, il primo gesto valido può attivare lo schermo intero.
+  const autoFullscreen = e => {
+    if (attemptedFullscreen || e.target.closest?.('a[href], input, textarea, #boot, #fullscreen')) return;
+    if (e.type.startsWith('pointer') && e.target.closest?.('.menu')) return;
+    if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return;
+    if (e.type === 'keydown' && (!KEYS[e.key] || e.key === 'Escape')) return;
+    goFull(e);
+  };
+  for (const type of ['pointerdown', 'pointerup', 'click', 'keydown']) document.addEventListener(type, autoFullscreen, true);
+  const fullscreenChanged = () => { syncFullscreenControls(); orientGame(); scheduleResize(); };
+  document.addEventListener('fullscreenchange', fullscreenChanged);
+  document.addEventListener('webkitfullscreenchange', fullscreenChanged);
 
   // Colori della console: scocca e tasti A/B, scelti dal catalogo (COLORI) e salvati sul telefono.
   const SHELL_COLORS = [
@@ -879,11 +908,11 @@
   // Piccola guida: come mettere l'app nella Home del telefono e usarla anche senza rete.
   const renderHelp = () => {
     const ios = isIOS, one = ios
-      ? ['Apri questo link con <b>Safari</b> (non dentro un\'altra app).', 'Tocca il tasto <b>Condividi</b> (il quadrato con la freccia in su).', 'Scorri e scegli <b>«Aggiungi alla schermata Home»</b>.', 'Tocca <b>Aggiungi</b>: l\'icona compare nella Home.']
+      ? ['Apri questo link con <b>Safari</b> (non dentro un\'altra app).', 'Tocca il tasto <b>Condividi</b> (il quadrato con la freccia in su).', 'Scorri e scegli <b>«Aggiungi alla schermata Home»</b>.', 'Attiva <b>«Apri come app web»</b> se disponibile e tocca <b>Aggiungi</b>.', 'Apri Tasca Arcade dall’icona nella schermata Home.']
       : ['Apri questo link con <b>Chrome</b>.', 'Tocca i <b>tre puntini</b> in alto a destra.', 'Scegli <b>«Aggiungi a schermata Home»</b> (o «Installa app»).', 'Conferma: l\'icona compare nella Home.'];
     const other = ios
       ? ['Su Android (Chrome): tre puntini → «Aggiungi a schermata Home» o «Installa app».']
-      : ['Su iPhone (Safari): Condividi → «Aggiungi alla schermata Home».'];
+      : ['Su iPhone (Safari), tocca Condividi → «Aggiungi alla schermata Home», attiva «Apri come app web» se disponibile e avvia l’app dall’icona.'];
     menuEl.innerHTML = `<header><button class="snd" id="helpBack">‹ CATALOGO</button><h1 class="help-title">AIUTO</h1></header>
       <h2 class="sub">METTI L'APP NELLA HOME ${ios ? '(IPHONE)' : '(ANDROID)'}</h2>
       <ol class="help">${one.map(x => '<li>' + x + '</li>').join('')}</ol>
@@ -928,9 +957,11 @@
     clearTimeout(bootTimer);
     mode = 'menu';
     bootEl.classList.add('gone');
+    bootEl.inert = true;
+    menuEl.inert = false;
     beep(1046, 0.08); beep(1318, 0.12);
   };
-  bootEl.addEventListener('pointerdown', () => { audioUnlock(); endBoot(); });
+  bootEl.addEventListener('click', e => { goFull(e); audioUnlock(); endBoot(); });
 
   // Ciclo. La fisica avanza a passi fissi di 1/120 s: a 60 Hz due passi per fotogramma, a 120 Hz uno, cosi'
   // salti e rimbalzi sono uguali su ogni telefono. Il resto puo' andare un po' sotto zero (al massimo mezzo passo):
@@ -997,6 +1028,7 @@
   };
   window.Shell = {
     async start() {
+      syncFullscreenControls();
       await loadCatalog();
       games.forEach(x => BUILTIN_IDS.add(x.id));
       syncCommunityGames();
@@ -1008,7 +1040,7 @@
       renderMenu();
       // Auto-aggiornamento: controlla all'apertura (appena il service worker e' pronto) e ogni volta che si torna nell'app.
       setTimeout(() => checkUpdate(false), 1500); setTimeout(() => checkUpdate(false), 6000);
-      bootTimer = setTimeout(endBoot, 2600);
+      if (mode === 'boot') bootTimer = setTimeout(endBoot, 2600);
       requestAnimationFrame(frame);
     },
     // Aggancio per le prove automatiche.

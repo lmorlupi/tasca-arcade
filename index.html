@@ -26,11 +26,11 @@
   <div class="bezel">
     <div class="screen" id="screen">
       <canvas id="cv" width="480" height="576"></canvas>
-      <section class="menu" id="menu" aria-label="Catalogo giochi"></section>
-      <section class="boot" id="boot" aria-hidden="true">
-        <div class="logo" id="logo"></div>
-        <p>TOCCA PER INIZIARE</p>
-      </section>
+      <section class="menu" id="menu" aria-label="Catalogo giochi" inert></section>
+      <button class="boot" id="boot" type="button">
+        <span class="logo" id="logo" aria-hidden="true"></span>
+        <span class="boot-label" id="boot-label">TOCCA PER INIZIARE</span>
+      </button>
     </div>
   </div>
   <div class="pad">

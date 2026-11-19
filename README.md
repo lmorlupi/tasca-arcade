@@ -7,7 +7,9 @@ inclinazione, swipe, scatti del dito, due pollici, vibrazione. Funziona anche **
 
 ## Schermo intero
 
-Dall’icona installata sulla schermata Home l’app richiede la modalità fullscreen. Nel browser la attiva al primo tocco o tasto consentito: i browser richiedono un gesto dell’utente. Su iPhone apri dall’icona Home per eliminare le barre di Safari. I giochi compatibili possono ruotare anche nell’app installata.
+Dall’icona sulla schermata Home, l’app richiede lo schermo intero all’apertura. Nei browser compatibili, tocca **Gioca a schermo intero** all’avvio o **Schermo intero** nel catalogo.
+
+Su iPhone, apri la pagina in Safari e tocca **Condividi** → **Aggiungi alla schermata Home**. Attiva **Apri come app web** se disponibile, aggiungi l’icona e aprila dalla Home per giocare senza le barre di Safari. I giochi compatibili possono ruotare anche nell’app installata.
 
 ## Schermo e comandi
 
